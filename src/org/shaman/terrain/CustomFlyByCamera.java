@@ -29,7 +29,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package terrain;
+package org.shaman.terrain;
 
 import com.jme3.collision.MotionAllowedListener;
 import com.jme3.input.*;

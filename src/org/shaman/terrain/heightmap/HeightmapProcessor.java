@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package terrain.heightmap;
+package org.shaman.terrain.heightmap;
 
 import java.util.List;
 

@@ -20,7 +20,7 @@
 //  #
 //  #**************************************************************************/
 
-package terrain;
+package org.shaman.terrain;
 
 import net.sourceforge.arbaro.gui.*;
 import java.awt.*;

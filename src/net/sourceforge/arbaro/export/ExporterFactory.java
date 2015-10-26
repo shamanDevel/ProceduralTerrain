@@ -26,7 +26,7 @@ import net.sourceforge.arbaro.mesh.MeshGenerator;
 import net.sourceforge.arbaro.mesh.MeshGeneratorFactory;
 import net.sourceforge.arbaro.tree.Tree;
 import net.sourceforge.arbaro.params.Params;
-import terrain.ArbaroToJmeExporter;
+import org.shaman.terrain.ArbaroToJmeExporter;
 
 
 /**

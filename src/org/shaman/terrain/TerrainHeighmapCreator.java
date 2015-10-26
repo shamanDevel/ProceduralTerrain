@@ -29,7 +29,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package terrain;
+package org.shaman.terrain;
 
 import com.jme3.app.FlyCamAppState;
 import com.jme3.app.SimpleApplication;
@@ -63,10 +63,7 @@ import com.jme3.util.SkyFactory;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.logging.Logger;
-import terrain.heightmap.Heightmap;
-import terrain.heightmap.HeightmapProcessor;
-import terrain.heightmap.HeightmapProcessorChain;
-import terrain.heightmap.PerlinNoiseHeightmapProcessor;
+import org.shaman.terrain.heightmap.*;
 
 
 /**
@@ -76,7 +73,7 @@ import terrain.heightmap.PerlinNoiseHeightmapProcessor;
  */
 public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final Logger LOG = Logger.getLogger(TerrainHeighmapCreator.class.getName());
-	private static final int SIZE = 1024;
+	private static final int SIZE = 512;//1024;
 	private static final float SLOPE_SCALE = 500f;
 	private static final float SLOPE_POWER = 1f;
 	
@@ -150,6 +147,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		processors = new HeightmapProcessorChain(new Heightmap(SIZE));
 		properties = new ArrayList<>();
 		//add processors
+		VoronoiHeightmapProcessor voronoi = new VoronoiHeightmapProcessor();
+		processors.addProcessor(voronoi);
+		properties.addAll(voronoi.getProperties());
 		noise = new PerlinNoiseHeightmapProcessor[7];
 		float initFrequency = 2;
 		for (int i=0; i<noise.length; ++i) {
