@@ -31,17 +31,18 @@ public interface HeightmapProcessor {
 		boolean change(boolean up);
 	}
 	/**
-	 * Applies the modification algorithm to the heightmap
+	 * Applies the modification algorithm to the heightmap.
+	 * Without changing the seed by {@link #reseed() }, this method should
+	 * produce the same results every time it is executed on the same input map.
 	 * @param map the input heightmap
 	 * @return the changed heightmap, the same instance
 	 */
 	Heightmap apply(Heightmap map);
 	
 	/**
-	 * Sets a seed used for random generators.
-	 * @param seed the new seed
+	 * Notifies the processor that it should use a new seed from now one.
 	 */
-	void setSeed(long seed);
+	void reseed();
 	
 	List<? extends PropItem> getProperties();
 }

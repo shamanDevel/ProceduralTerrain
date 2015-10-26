@@ -97,10 +97,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private BitmapText titleText;
 	private BitmapText selectionText;
 	private BitmapText propText;
-	private HeightmapProcessorChain processors;
+	private HeightmapProcessor processors;
 	private Heightmap heightmap;
 	private Texture2D alphaMap;
-	private PerlinNoiseHeightmapProcessor[] noise;
 
     public static void main(String[] args) {
         TerrainHeighmapCreator app = new TerrainHeighmapCreator();
@@ -144,31 +143,32 @@ public class TerrainHeighmapCreator extends SimpleApplication {
     }
 	
 	private void initHeightmap() {
-		processors = new HeightmapProcessorChain(new Heightmap(SIZE));
-		properties = new ArrayList<>();
-		//add processors
-		VoronoiHeightmapProcessor voronoi = new VoronoiHeightmapProcessor();
-		processors.addProcessor(voronoi);
-		properties.addAll(voronoi.getProperties());
-		noise = new PerlinNoiseHeightmapProcessor[7];
+		//create processors
+		ChainProcessor noiseChain = new ChainProcessor();
 		float initFrequency = 2;
-		for (int i=0; i<noise.length; ++i) {
-			noise[i] = new PerlinNoiseHeightmapProcessor(i+1, Math.pow(2, initFrequency+i), Math.pow(0.3, i+1));
-			processors.addProcessor(noise[i]);
-			properties.addAll(noise[i].getProperties());
+		for (int i=0; i<7; ++i) {
+			PerlinNoiseProcessor noise = new PerlinNoiseProcessor(i+1, Math.pow(2, initFrequency+i), Math.pow(0.3, i+1));
+			noiseChain.add(noise);
 		}
-		
-		processors.setSeeds();
-		heightmap = processors.applyAll();
+		noiseChain.add(new NormalizationProcessor());
+		ChainProcessor voronoiChain = new ChainProcessor();
+		voronoiChain.add(new VoronoiProcessor());
+		voronoiChain.add(new NormalizationProcessor());
+		processors = new SplitCombineProcessor(
+				new HeightmapProcessor[]{noiseChain, voronoiChain}, 
+				new float[]{0.7f, 0.3f});
+		properties.addAll(processors.getProperties());
+		processors.reseed();
+		heightmap = processors.apply(new Heightmap(SIZE));
 		changed = true;
 	}
 	
 	private void updateHeightmap() {
 		long time1 = System.currentTimeMillis();
 		if (!changed) {
-			processors.setSeeds();
+			processors.reseed();
 		}
-		heightmap = processors.applyAll();
+		heightmap = processors.apply(new Heightmap(SIZE));
 		changed = false;
 		long time2 = System.currentTimeMillis();
 		System.out.println("Time to apply processors: "+(time2-time1)/1000.0+" sec");
@@ -252,7 +252,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
          * The total size is up to you. At 1025 it ran fine for me (200+FPS), however at
          * size=2049 it got really slow. But that is a jump from 2 million to 8 million triangles...
          */
-        terrain = new TerrainQuad("terrain", 65, SIZE+1, heightmap.getJMEHeightmap(256));
+        terrain = new TerrainQuad("terrain", 65, SIZE+1, heightmap.getJMEHeightmap(128));
 		terrain.setHeight(Vector2f.ZERO, speed);
 //        TerrainLodControl control = new TerrainLodControl(terrain, getCamera());
 //        control.setLodCalculator( new DistanceLodCalculator(65, 2.7f) ); // patch size, and a multiplier

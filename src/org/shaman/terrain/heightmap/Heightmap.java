@@ -77,6 +77,19 @@ public class Heightmap implements Cloneable {
 	}
 	
 	/**
+	 * Sets a specific value to the height at the specific coordinate.
+	 * If the coordinates are outside of the boundary, nothing changes
+	 * @param x
+	 * @param y
+	 * @param toAdd the value to add
+	 */
+	public void adjustHeightAt(int x, int y, float toAdd) {
+		if (x>=0 && x<size && y>=0 && y<size) {
+			data[x][y] += toAdd;
+		}
+	}
+	
+	/**
 	 * Returns the slope at the specified coordinates.
 	 * @param x
 	 * @param y

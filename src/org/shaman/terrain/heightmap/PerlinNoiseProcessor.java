@@ -11,17 +11,17 @@ import java.util.List;
 import java.util.Random;
 
 
-public class PerlinNoiseHeightmapProcessor implements HeightmapProcessor {
+public class PerlinNoiseProcessor implements HeightmapProcessor {
 	private int index;
 	private Noise noise;
 	private double frequency;
 	private double amplitude;
 
-	public PerlinNoiseHeightmapProcessor() {
+	public PerlinNoiseProcessor() {
 		noise = new Noise(new Random().nextInt());
 	}
 
-	public PerlinNoiseHeightmapProcessor(int index, double frequency, double amplitude) {
+	public PerlinNoiseProcessor(int index, double frequency, double amplitude) {
 		this();
 		this.index = index;
 		this.frequency = frequency;
@@ -58,8 +58,8 @@ public class PerlinNoiseHeightmapProcessor implements HeightmapProcessor {
 	}
 
 	@Override
-	public void setSeed(long seed) {
-		noise = new Noise(seed);
+	public void reseed() {
+		noise = new Noise(new Random().nextLong());
 	}
 
 	@Override
