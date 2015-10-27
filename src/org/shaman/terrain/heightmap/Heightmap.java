@@ -64,6 +64,30 @@ public class Heightmap implements Cloneable {
 	}
 	
 	/**
+	 * Performs a biliniar interpolation to get the height between grid positions.
+	 * @param x
+	 * @param y
+	 * @return 
+	 */
+	public float getHeightInterpolating(float x, float y) {
+		x = Math.max(0, Math.min(size-1, x));
+		y = Math.max(0, Math.min(size-1, y));
+		int ax = (int) Math.floor(x);
+		int bx = (int) Math.ceil(x);
+		int ay = (int) Math.floor(y);
+		int by = (int) Math.ceil(y);
+		float fx = x%1;
+		float fy = y%1;
+		float q11 = getHeightAtClamping(ax, ay);
+		float q12 = getHeightAtClamping(ax, by);
+		float q21 = getHeightAtClamping(bx, ay);
+		float q22 = getHeightAtClamping(bx, by);
+		float v1 = (1-fx)*q11 + fx*q12;
+		float v2 = (1-fx)*q21 + fx*q22;
+		return (1-fy)*v1 + fy*v2;
+	}
+	
+	/**
 	 * Sets the height at the specific coordinate.
 	 * If the coordinates are outside of the boundary, nothing changes
 	 * @param x
