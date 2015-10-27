@@ -153,13 +153,14 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		noiseChain.add(new NormalizationProcessor());
 		ChainProcessor voronoiChain = new ChainProcessor();
 		voronoiChain.add(new VoronoiProcessor());
-		voronoiChain.add(new DistortionProcessor(0.01f, 8));
+//		voronoiChain.add(new DistortionProcessor(0.01f, 8));
 		voronoiChain.add(new NormalizationProcessor());
 		ChainProcessor finalChain = new ChainProcessor();
 		finalChain.add(new SplitCombineProcessor(
 				new HeightmapProcessor[]{noiseChain, voronoiChain}, 
 				new float[]{0.6f, 0.3f}));
 		finalChain.add(new DistortionProcessor());
+		finalChain.add(new ThermalErosionProcessor());
 		processors = finalChain;
 		properties.addAll(processors.getProperties());
 		processors.reseed();

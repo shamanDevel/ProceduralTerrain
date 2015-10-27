@@ -27,7 +27,7 @@ public class DistortionProcessor implements HeightmapProcessor {
 	}
 
 	public DistortionProcessor() {
-		this(0.1f, 8);
+		this(0.05f, 8);
 	}
 
 	public float getDistortion() {

@@ -91,9 +91,30 @@ public class SplitCombineProcessor implements HeightmapProcessor {
 					}
 				}
 			});
-			items.addAll(p.getProperties());
+			for (PropItem prop : p.getProperties()) {
+				items.add(new IntendingPropItem(prop, " "));
+			}
 		}
 		return items;
 	}
-	
+	private static class IntendingPropItem implements PropItem {
+		private final PropItem delegate;
+		private final String intend;
+
+		public IntendingPropItem(PropItem delegate, String intend) {
+			this.delegate = delegate;
+			this.intend = intend;
+		}
+		
+		@Override
+		public String getText() {
+			return intend + delegate.getText();
+		}
+
+		@Override
+		public boolean change(boolean up) {
+			return delegate.change(up);
+		}
+		
+	}
 }
