@@ -74,8 +74,8 @@ import org.shaman.terrain.heightmap.*;
 public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final Logger LOG = Logger.getLogger(TerrainHeighmapCreator.class.getName());
 	private static final int SIZE = 512;//1024;
-	private static final float SLOPE_SCALE = 500f;
-	private static final float SLOPE_POWER = 1f;
+	private static final float SLOPE_SCALE = 200f;
+	private static final float SLOPE_POWER = 2f;
 	
     private TerrainQuad terrain;
     private Material matTerrain;
@@ -87,7 +87,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
     protected BitmapText hintText;
     private PointLight pl;
     private Geometry lightMdl;
-    private float darkRockScale = 32;
+    private float darkRockScale = 16;
     private float grassScale = 32;
 	private CustomFlyByCamera camera;
     
@@ -116,7 +116,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		data.rewind();
 		for (int x=0; x<SIZE; ++x) {
 			for (int y=0; y<SIZE; ++y) {
-				float slope = heightmap.getSlopeAt(x, y);
+				float slope = heightmap.getSlopeAt(y, SIZE-x-1);
 				slope = (float) Math.pow(slope * SLOPE_SCALE, SLOPE_POWER);
 				float g = Math.max(0, 1-slope);
 				float r = 1-g;
@@ -160,7 +160,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		properties.addAll(processors.getProperties());
 		processors.reseed();
 		heightmap = processors.apply(new Heightmap(SIZE));
-		changed = true;
+		changed = false;
 	}
 	
 	private void updateHeightmap() {
@@ -199,21 +199,21 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		updateAlphaMap();
         
         // DARK ROCK texture
-        Texture darkRock = assetManager.loadTexture("terrain/rock.jpg");
+        Texture darkRock = assetManager.loadTexture("org/shaman/terrain/rock2.jpg");
         darkRock.setWrap(WrapMode.Repeat);
         matTerrain.setTexture("DiffuseMap", darkRock);
         matTerrain.setFloat("DiffuseMap_0_scale", darkRockScale/(float)SIZE);
         
         // GRASS texture
-        Texture grass = assetManager.loadTexture("terrain/grass.jpg");
+        Texture grass = assetManager.loadTexture("org/shaman/terrain/grass.jpg");
         grass.setWrap(WrapMode.Repeat);
         matTerrain.setTexture("DiffuseMap_1", grass);
         matTerrain.setFloat("DiffuseMap_1_scale", grassScale/(float)SIZE);
         
         // NORMAL MAPS
-        Texture normalMapRock = assetManager.loadTexture("terrain/rock_normal.png");
+        Texture normalMapRock = assetManager.loadTexture("org/shaman/terrain/rock_normal.png");
         normalMapRock.setWrap(WrapMode.Repeat);
-        Texture normalMapGrass = assetManager.loadTexture("terrain/grass_normal.jpg");
+        Texture normalMapGrass = assetManager.loadTexture("org/shaman/terrain/grass_normal.jpg");
         normalMapGrass.setWrap(WrapMode.Repeat);
         matTerrain.setTexture("NormalMap", normalMapRock);
         matTerrain.setTexture("NormalMap_1", normalMapGrass);
