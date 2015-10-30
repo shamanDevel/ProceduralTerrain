@@ -93,6 +93,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
     
 	private ArrayList<HeightmapProcessor.PropItem> properties = new ArrayList<>();
 	private int property = 0;
+	private boolean propertiesEnabled = true;
 	private boolean changed;
 	private BitmapText titleText;
 	private BitmapText selectionText;
@@ -100,6 +101,8 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private HeightmapProcessor processors;
 	private Heightmap heightmap;
 	private Texture2D alphaMap;
+	
+	private SketchTerrain sketchTerrain;
 
     public static void main(String[] args) {
         TerrainHeighmapCreator app = new TerrainHeighmapCreator();
@@ -107,7 +110,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         app.start();
     }
 
-	private void updateAlphaMap() {
+	public void updateAlphaMap() {
 		Image image = alphaMap.getImage();
 		ByteBuffer data = image.getData(0);
 		if (data == null) {
@@ -141,6 +144,15 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		initScene();
 		initPropertyUI();
     }
+	
+	private void nextStep() {
+		propertiesEnabled = false;
+		titleText.getParent().detachChild(titleText);
+		propText.getParent().detachChild(propText);
+		selectionText.getParent().detachChild(selectionText);
+		//switch to terrain sketching
+		sketchTerrain = new SketchTerrain(this, heightmap);
+	}
 	
 	private void initHeightmap() {
 		//create processors
@@ -193,6 +205,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		cam.setFrustumFar(10000);
 		camera = new CustomFlyByCamera(cam);
 		camera.registerWithInput(inputManager);
+		camera.setDragToRotate(true);
 		
 		// TERRAIN TEXTURE material
         matTerrain = new Material(assetManager, "Common/MatDefs/Terrain/TerrainLighting.j3md");
@@ -276,7 +289,8 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		titleText = new BitmapText(font);
 		titleText.setText(
 				"Use arrow keys to select the property and modify it\n"
-				+ "Press Enter to apply changes, press Enter again to generate new seeds");
+				+ "Press Enter to apply changes, press Enter again to generate new seeds\n"
+				+ "Press Space to end this step and continue to terrain sketching");
 		titleText.setLocalTranslation(0, settings.getHeight(), 0);
 		guiNode.attachChild(titleText);
 		selectionText = new BitmapText(font);
@@ -293,10 +307,12 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		inputManager.addMapping("NextProp", new KeyTrigger(KeyInput.KEY_DOWN));
 		inputManager.addMapping("PrevProp", new KeyTrigger(KeyInput.KEY_UP));
 		inputManager.addMapping("ApplyChanges", new KeyTrigger(KeyInput.KEY_RETURN));
+		inputManager.addMapping("NextStep", new KeyTrigger(KeyInput.KEY_SPACE));
 		inputManager.addListener(new ActionListener() {
 			@Override
 			public void onAction(String name, boolean isPressed, float tpf) {
 				if (!isPressed) return;
+				if (!propertiesEnabled) return;
 				switch (name) {
 					case "NextProp":
 						property = Math.min(properties.size() - 1, property + 1);
@@ -315,11 +331,14 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 					case "ApplyChanges":
 						updateHeightmap();
 						break;
+					case "NextStep":
+						nextStep();
+						break;
 					default:
 						return;
 				}
 			}
-		}, "PropUp", "PropDown", "NextProp", "PrevProp", "ApplyChanges");
+		}, "PropUp", "PropDown", "NextProp", "PrevProp", "ApplyChanges", "NextStep");
 	}
 	private void updatePropertyUI() {
 		StringBuilder str = new StringBuilder();
@@ -431,6 +450,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 			camera.setMoveSpeed(200);
 		}
 		updatePropertyUI();
+		if (sketchTerrain != null) {
+			sketchTerrain.onUpdate(tpf);
+		}
 	}
 	
 }
