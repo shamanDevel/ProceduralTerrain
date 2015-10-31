@@ -6,27 +6,29 @@
 package org.shaman.terrain;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.font.BitmapFont;
+import com.jme3.font.BitmapText;
+import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
-import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.AnalogListener;
-import com.jme3.input.controls.MouseAxisTrigger;
-import com.jme3.input.controls.MouseButtonTrigger;
+import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
 import com.jme3.scene.shape.Quad;
 import com.jme3.texture.Image;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.zero_separation.plugins.imagepainter.ImagePainter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.shaman.terrain.heightmap.Heightmap;
 
 /**
@@ -34,11 +36,29 @@ import org.shaman.terrain.heightmap.Heightmap;
  * @author Sebastian Weiss
  */
 public class SketchTerrain implements AnalogListener, ActionListener {
-
 	private static final Logger LOG = Logger.getLogger(SketchTerrain.class.getName());
+	private static final int MAX_STROKES = 10;
+	private static final int STROKE_WIDTH = 5;
+	private static final int STROKE_T_JUNCTION_TRHESHOLD = 20;
+	private static final ColorRGBA NEW_STROKE_COLOR = ColorRGBA.Black;
+	private static final ColorRGBA OLD_STROKE_COLOR = ColorRGBA.White;
+	private static final ColorRGBA[] STROKE_COLORS = new ColorRGBA[] { //has to be the same length as MAX_STROKES
+		new ColorRGBA(0.5f, 0, 0, 1),
+		new ColorRGBA(1, 0, 0, 1),
+		new ColorRGBA(1, 0.5f, 0.5f, 1),
+		new ColorRGBA(0, 0.5f, 0, 1),
+		new ColorRGBA(0, 1f, 0, 1),
+		new ColorRGBA(0.5f, 1, 0.5f, 1),
+		new ColorRGBA(0, 0, 0.5f, 1),
+		new ColorRGBA(0, 0, 1f, 1),
+		new ColorRGBA(0.5f, 0.5f, 1f, 1),
+		new ColorRGBA(1, 0, 1, 1)
+	};
+	
 	private final TerrainHeighmapCreator app;
 	private final Heightmap map;
 
+	private Node guiNode;
 	private int width, height;
 	private ImagePainter tmpImage;
 	private ImagePainter image;
@@ -54,6 +74,7 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 	 * this list contains all sketches. The sketches are point list from left to right
 	 */
 	private ArrayList<ArrayList<Vector2f>> sketches = new ArrayList<>();
+	private Integer[] strokeOrder;
 
 	public SketchTerrain(TerrainHeighmapCreator app, Heightmap map) {
 		this.app = app;
@@ -62,6 +83,9 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 	}
 
 	private void init() {
+		guiNode = new Node("sketch gui");
+		app.getGuiNode().attachChild(guiNode);
+		
 		width = app.getCamera().getWidth();
 		height = app.getCamera().getHeight();
 		tmpImage = new ImagePainter(Image.Format.ABGR8, width, height);
@@ -77,7 +101,7 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 		Quad quad = new Quad(width, height);
 		Geometry quadGeom = new Geometry("SketchQuad", quad);
 		quadGeom.setMaterial(quadMaterial);
-		app.getGuiNode().attachChild(quadGeom);
+		guiNode.attachChild(quadGeom);
 		tmpTexture = new Texture2D(tmpImage.getImage());
 		tmpQuadMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
 		tmpQuadMaterial.setTexture("ColorMap", tmpTexture);
@@ -87,7 +111,7 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 		quad = new Quad(width, height);
 		quadGeom = new Geometry("TmpSketchQuad", quad);
 		quadGeom.setMaterial(tmpQuadMaterial);
-		app.getGuiNode().attachChild(quadGeom);
+		guiNode.attachChild(quadGeom);
 
 		app.getInputManager().addMapping("SketchStartEnd", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
 		app.getInputManager().addMapping("SketchEditL", new MouseAxisTrigger(MouseInput.AXIS_X, true));
@@ -95,6 +119,24 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 		app.getInputManager().addMapping("SketchEditU", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
 		app.getInputManager().addMapping("SketchEditD", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
 		app.getInputManager().addListener(this, "SketchStartEnd", "SketchEditL", "SketchEditR", "SketchEditU", "SketchEditD");
+		app.getInputManager().addMapping("SweepStrokes", new KeyTrigger(KeyInput.KEY_RETURN));
+		app.getInputManager().addMapping("DeleteStrokes", new KeyTrigger(KeyInput.KEY_BACK));
+		app.getInputManager().addListener(this, "SweepStrokes", "DeleteStrokes");
+		
+		BitmapFont font = app.getAssetManager().loadFont("Interface/Fonts/Console.fnt");
+		BitmapText orderText = new BitmapText(font);
+		orderText.setText("Stroke order colors:");
+		orderText.setLocalTranslation(0, height, 0);
+		guiNode.attachChild(orderText);
+		for (int i=0; i<STROKE_COLORS.length; ++i) {
+			Quad q = new Quad(50, STROKE_WIDTH);
+			Material m = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+			m.setColor("Color", STROKE_COLORS[i]);
+			Geometry g = new Geometry("StrokeColor"+i, q);
+			g.setMaterial(m);
+			g.setLocalTranslation(5, height - orderText.getHeight() - (i*3+3)*STROKE_WIDTH, 0);
+			guiNode.attachChild(g);
+		}
 	}
 
 	public void onUpdate(float tpf) {
@@ -108,18 +150,21 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 			int y1 = (int) currentPoints.get(currentPoints.size() - 2).y;
 			int x2 = (int) currentPoints.get(currentPoints.size() - 1).x;
 			int y2 = (int) currentPoints.get(currentPoints.size() - 1).y;
-			drawLineBresenham(x1, y1, x2, y2, 5, ColorRGBA.Blue, tmpImage);
+			drawLineBresenham(x1, y1, x2, y2, STROKE_WIDTH, NEW_STROKE_COLOR, tmpImage);
 			tmpQuadMaterial.setTexture("ColorMap", tmpTexture);
 		}
 		lastX = cursor.x;
 		lastY = cursor.y;
 	}
 	
+	/**
+	 * Adds the current sketch to the list of strokes
+	 */
 	private void addCurrentSketch() {
 		for (int i=1; i<currentPoints.size(); ++i) {
 			Vector2f p1 = currentPoints.get(i-1);
 			Vector2f p2 = currentPoints.get(i);
-			drawLineBresenham((int) p1.x, (int) p1.y, (int) p2.x, (int) p2.y, 5, ColorRGBA.Black, image);
+			drawLineBresenham((int) p1.x, (int) p1.y, (int) p2.x, (int) p2.y, STROKE_WIDTH, OLD_STROKE_COLOR, image);
 			quadMaterial.setTexture("ColorMap", texture);
 		}
 		sketches.add(new ArrayList<>(currentPoints));
@@ -141,6 +186,10 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 	public void onAction(String name, boolean isPressed, float tpf) {
 		if ("SketchStartEnd".equals(name)) {
 			if (isPressed) {
+				if (sketches.size() == MAX_STROKES) {
+					LOG.warning("maximal number of strokes reached, cannot add more");
+					return;
+				}
 				LOG.info("start sketch");
 				currentPoints.clear();
 				currentPoints.add(new Vector2f(lastX, lastY));
@@ -155,9 +204,18 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 				}
 				tmpImage.wipe(new ColorRGBA(0, 0, 0, 0f));
 			}
+		} else if ("SweepStrokes".equals(name) && isPressed) {
+			sweepStrokes();
+		} else if ("DeleteStrokes".equals(name) && isPressed) {
+			deleteStrokes();
 		}
 	}
 	
+	/**
+	 * Checks if the given sketch is a valid stroke
+	 * @param points
+	 * @return {@code true} if it is valid
+	 */
 	private boolean isSketchValid(ArrayList<Vector2f> points) {
 		if (points.size()<2) {
 			return false;
@@ -177,6 +235,201 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 			Collections.reverse(points);
 		}
 		return true;
+	}
+	
+	/**
+	 * Deletes all strokes
+	 */
+	private void deleteStrokes() {
+		sketches.clear();
+		image.wipe(ColorRGBA.BlackNoAlpha);
+		quadMaterial.setTexture("ColorMap", texture);
+	}
+	
+	/**
+	 * fills the gap in x-coordinates between the stroke's control points
+	 * @param stroke the stroke
+	 * @return an array with all control points
+	 */
+	private Vector2f[] fillStroke(ArrayList<Vector2f> stroke) {
+		List<Vector2f> l = new ArrayList<>(stroke.size()*2);
+		l.add(stroke.get(0));
+		for (int i=1; i<stroke.size(); ++i) {
+			Vector2f p0 = stroke.get(i-1);
+			Vector2f p1 = stroke.get(i);
+			for (int x=(int) p0.x+1; x<(int) p1.x; ++x) {
+				float y = p0.y + (p1.y-p0.y)*(x-p0.x)/(p1.x-p0.x);
+				l.add(new Vector2f(x, y));
+			}
+			l.add(p1);
+		}
+		return l.toArray(new Vector2f[l.size()]);
+	}
+	/**
+	 * Sweeps the strokes to determine the order of them.
+	 */
+	private void sweepStrokes() {
+		LOG.info("sweep strokes");
+		//for simplicity, copy into arrays
+		int n = sketches.size();
+		Vector2f[][] strokes = new Vector2f[n][];
+		for (int i=0; i<n; ++i) {
+			strokes[i] = fillStroke(sketches.get(i));
+		}
+		int[] index = new int[n];
+		boolean[] started = new boolean[n];
+		boolean[] ended = new boolean[n];
+		boolean[] junctionsFound = new boolean[n];
+		//list of 'first in-front-of second'-relations
+		final Set<Pair<Integer, Integer>> relations = new HashSet<>();
+		//sweep
+		for (int sweep=0; sweep<width; ++sweep) {
+			//check for starts of sketches
+			for (int i=0; i<n; ++i) {
+				if (!started[i] && strokes[i][0].x==sweep) {
+					started[i]=true;
+					index[i]=0;
+					//check if it is a T-junction
+					for (int j=0; j<n; ++j) {
+						if (started[j] && !ended[j] && j!=i) {
+							int intersection = distance(strokes[i][0], strokes[j]);
+							if (strokes[i][0].distanceSquared(strokes[j][intersection]) < STROKE_T_JUNCTION_TRHESHOLD) {
+								//t-junction, compare tangents
+								float dy1 = strokes[i][1].y - strokes[i][0].y;
+								float dy2 = strokes[j][intersection+1].y - strokes[j][intersection].y;
+								if (dy1 > dy2) {
+									//new stroke is behind
+									relations.add(new ImmutablePair<>(j, i));
+								} else {
+									//new stroke is in front
+									relations.add(new ImmutablePair<>(i, j));
+								}
+								junctionsFound[i] = true;
+								junctionsFound[j] = true;
+							}
+						}
+					}
+				}
+			}
+			//increment index of active sketches
+			for (int i=0; i<n; ++i) {
+				if (started[i] && !ended[i]) {
+					while(strokes[i][index[i]].x<=sweep) {
+						index[i]++;
+						if (index[i]>=strokes[i].length) {
+							ended[i] = true;
+							//end of stroke, check for t-junctions
+							for (int j=0; j<n; ++j) {
+								if (started[j] && !ended[j] && j!=i) {
+									int intersection = distance(strokes[i][strokes[i].length-1], strokes[j]);
+									if (strokes[i][strokes[i].length-1].distanceSquared(strokes[j][intersection]) < STROKE_T_JUNCTION_TRHESHOLD) {
+										//t-junction, compare tangents
+										float dy1 = strokes[i][strokes[i].length-1].y - strokes[i][strokes[i].length-2].y;
+										float dy2 = strokes[j][intersection+1].y - strokes[j][intersection].y;
+										if (dy1<dy2) {
+											//ended stroke is behind
+											relations.add(new ImmutablePair<>(j, i));
+										} else {
+											//ended stroke is in front
+											relations.add(new ImmutablePair<>(i, j));
+										}
+										junctionsFound[i] = true;
+										junctionsFound[j] = true;
+									}
+								}
+							}
+							break;
+						}
+					}
+					index[i]--;
+				}
+			}
+		}
+		LOG.info("relations from t-junctions: "+relations);
+		//check for strokes that have no junctions
+		for (int i=0; i<n; ++i) {
+			for (int j=0; j<n; ++j) {
+				if (j==i) continue;
+				if (junctionsFound[i]) continue;
+				//stroke i is behind j IF i completely contains j OR min-y i < max-y j at the endpoints
+				if (strokes[i][0].x <= strokes[j][0].x && strokes[i][strokes[i].length-1].x >= strokes[j][strokes[j].length-1].x) {
+					relations.add(new ImmutablePair<>(j, i));
+				} else if (Math.min(strokes[i][0].y, strokes[i][strokes[i].length-1].y)
+						 > Math.min(strokes[j][0].y, strokes[j][strokes[j].length-1].y)
+						&& !relations.contains(new ImmutablePair<>(i, j))) {
+					relations.add(new ImmutablePair<>(j, i));
+				}
+				//TODO: generates cycles when hills are stacked on top of each other without t-junctions
+				//      Maybe better to check if a sketch is completely under or above another sketch (pointwise)
+			}
+		}
+		LOG.info("relations after area check: "+relations);
+		//make the relation transient
+		boolean added = true;
+		trans:
+		while (added) {
+			added = false;
+			for (Pair<Integer,Integer> p1 : relations) {
+				for (Pair<Integer, Integer> p2 : relations) {
+					if (p1.getRight().equals(p2.getLeft())) {
+						int i1 = p1.getLeft();
+						int i2 = p2.getRight();
+						if (i1==i2 || relations.contains(new ImmutablePair<>(i2, i1))) {
+							LOG.warning("cycle created with ("+i1+","+i2+") in "+relations);
+						}
+						if (!relations.contains(new ImmutablePair<>(i1, i2))) {
+							relations.add(new ImmutablePair<>(i1, i2));
+							added = true;
+							continue trans;
+						}
+					}
+				}
+			}
+		}
+		//end of sweeping, now sort
+		LOG.info("final relations: "+relations);
+		strokeOrder = new Integer[n];
+		for (int i=0; i<n; ++i) {strokeOrder[i]=i;}
+		Arrays.sort(strokeOrder, new Comparator<Integer>() {
+			@Override
+			public int compare(Integer o1, Integer o2) {
+				if (relations.contains(new ImmutablePair<>(o1, o2))) {
+					return 1;
+				} else if (relations.contains(new ImmutablePair<>(o2, o1))) {
+					return -1;
+				} else {
+					return 0;
+				}
+			}
+		});
+		LOG.info("order: "+Arrays.toString(strokeOrder));
+		drawStrokesInOrder();
+	}
+	private int distance(Vector2f p, Vector2f[] curve) {
+		float dist = Float.MAX_VALUE;
+		int index = 0;
+		for (int i=0; i<curve.length; ++i) {
+			Vector2f c = curve[i];
+			float d = p.distanceSquared(c);
+			if (d<dist) {
+				dist = d;
+				index = i;
+			}
+		}
+		return index;
+	}
+	
+	private void drawStrokesInOrder() {
+		image.wipe(ColorRGBA.BlackNoAlpha);
+		for (int i=0; i<strokeOrder.length; ++i) {
+			List<Vector2f> points = sketches.get(strokeOrder[i]);
+			for (int j=1; j<points.size(); ++j) {
+				Vector2f p1 = points.get(j-1);
+				Vector2f p2 = points.get(j);
+				drawLineBresenham((int) p1.x, (int) p1.y, (int) p2.x, (int) p2.y, STROKE_WIDTH, STROKE_COLORS[i], image);
+			}
+		}
+		quadMaterial.setTexture("ColorMap", texture);
 	}
 
 	/*
