@@ -348,19 +348,51 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 		LOG.info("relations from t-junctions: "+relations);
 		//check for strokes that have no junctions
 		for (int i=0; i<n; ++i) {
+			if (junctionsFound[i]) continue;
 			for (int j=0; j<n; ++j) {
 				if (j==i) continue;
-				if (junctionsFound[i]) continue;
-				//stroke i is behind j IF i completely contains j OR min-y i < max-y j at the endpoints
-				if (strokes[i][0].x <= strokes[j][0].x && strokes[i][strokes[i].length-1].x >= strokes[j][strokes[j].length-1].x) {
-					relations.add(new ImmutablePair<>(j, i));
-				} else if (Math.min(strokes[i][0].y, strokes[i][strokes[i].length-1].y)
-						 > Math.min(strokes[j][0].y, strokes[j][strokes[j].length-1].y)
-						&& !relations.contains(new ImmutablePair<>(i, j))) {
-					relations.add(new ImmutablePair<>(j, i));
+				int startA, startB, endA, endB;
+				if (strokes[i][0].x <= strokes[j][0].x) {
+					if (strokes[i][strokes[i].length-1].x < strokes[j][0].x) {
+						continue; //completely left
+					} else {
+						//search for start and end
+						for (startA=0; strokes[i][startA].x<strokes[j][0].x; ++startA);
+						endA = strokes[i].length-1;
+						startB = 0;
+						for (endB=strokes[j].length-1; strokes[i][strokes[i].length-1].x<strokes[j][endB].x; --endB);
+					}
+				} else {
+					if (strokes[i][0].x > strokes[j][strokes[j].length-1].x) {
+						continue; //completely right
+					} else {
+						//search for start and end
+						startA = 0;
+						for (endA=strokes[i].length-1; strokes[i][endA].x>strokes[j][strokes[j].length-1].x; --endA);
+						for (startB=0; strokes[i][0].x>strokes[j][startB].x; ++startB);
+						endB = strokes[j].length-1;
+					}
 				}
-				//TODO: generates cycles when hills are stacked on top of each other without t-junctions
-				//      Maybe better to check if a sketch is completely under or above another sketch (pointwise)
+				//check intervall if it is completely below or above
+				boolean below = false;
+				boolean above = false;
+				for (int a=startA; a<=endA; ++a) {
+					//slow search, but simple
+					for (int b=startB; b<=endB; ++b) {
+						if (strokes[i][a].x==strokes[j][b].x) {
+							if (strokes[i][a].y > strokes[j][b].y) {
+								above = true;
+							} else if (strokes[i][a].y < strokes[j][b].y) {
+								below = true;
+							}
+						}
+					}
+				}
+				if (above && !below) {
+					relations.add(new ImmutablePair<>(j, i));
+				} else if (!above && below) {
+					relations.add(new ImmutablePair<>(i, j));
+				}
 			}
 		}
 		LOG.info("relations after area check: "+relations);
