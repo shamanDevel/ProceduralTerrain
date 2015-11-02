@@ -34,6 +34,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.shaman.terrain.heightmap.Heightmap;
 
 /**
@@ -507,10 +508,11 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 					//shoot a ray to detect visibility
 					Vector3f dir = cam.getLocation().subtract(p3).normalizeLocal();
 					ray.setDirection(dir);
-					ray.setOrigin(p3.add(dir.mult(1f)));
+					ray.setOrigin(p3.add(dir.mult(5f)));
 					results.clear();
 					app.getHeightmapSpatial().collideWith(ray, results);
 					visible[x][y] = results.size()==0;
+//					visible[x][y] = true;
 				}
 			}
 		}
@@ -552,25 +554,138 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 		hg.setMaterial(hmat);
 		featureNode.attachChild(hg);
 		
-		//find silhouettes in x-direction
-		LOG.info("find silhouettes");
-		for (int x=1; x<map.getSize(); ++x) {
-			for (int y=1; y<map.getSize()-1; ++y) {
-				if (visible[x][y] && visible[x-1][y] && (!visible[x][y-1] || !visible[x][y+1])) {
-					features.add(Arrays.asList(new Vector2f(x-1, y), new Vector2f(x, y)));
+		//build graph
+		int[][] nodes = new int[map.getSize()][map.getSize()];
+		Graph graph = new Graph();
+		ArrayList<Vector3f> positions = new ArrayList<>();
+		ArrayList<Vector2f> indices = new ArrayList<>();
+		for (int x=0; x<map.getSize(); ++x) {
+			for (int y=0; y<map.getSize(); ++y) {
+				if (visible[x][y]) {
+					nodes[x][y] = graph.addNode();
+					positions.add(app.getHeightmapPoint(x, y).add(0, 0.5f, 0));
+					indices.add(new Vector2f(x, y));
+				} else {
+					nodes[x][y] = -1;
 				}
 			}
 		}
-		for (int y=1; y<map.getSize(); ++y) {
-			for (int x=1; x<map.getSize()-1; ++x) {
-				if (visible[x][y] && visible[x][y-1] && (!visible[x-1][y] || !visible[x+1][y])) {
-					features.add(Arrays.asList(new Vector2f(x, y-1), new Vector2f(x, y)));
+		for (int x=0; x<map.getSize(); ++x) {
+			for (int y=0; y<map.getSize(); ++y) {
+				if (nodes[x][y]==-1) {
+					continue;
+				}
+				if (x>0 && nodes[x-1][y]>=0) {
+					graph.addEdge(nodes[x-1][y], nodes[x][y], -100);
+				}
+				if (y>0 && nodes[x][y-1]>=0) {
+					graph.addEdge(nodes[x][y-1], nodes[x][y], -100);
+				}
+				if (x>0 && y>0 && nodes[x-1][y-1]>=0) {
+					graph.addEdge(nodes[x-1][y-1], nodes[x][y], -100);
+				}
+				if (x>0 && y>0 && nodes[x-1][y]>=0 && nodes[x][y-1]>=0) {
+					graph.addEdge(nodes[x-1][y], nodes[x][y-1], -100);
 				}
 			}
 		}
 		
+		//find silhouettes
+		for (Triple<Integer, Integer, Float> e : graph) {
+			Vector2f a = indices.get(e.getLeft());
+			Vector2f b = indices.get(e.getMiddle());
+			int ax = (int) a.x;
+			int ay = (int) a.y;
+			int bx = (int) b.x;
+			int by = (int) b.y;
+			Vector3f A = app.getHeightmapPoint(ax, ay);
+			Vector3f B = app.getHeightmapPoint(bx, by);
+			Vector3f C,D;
+			if (a.x==b.x) {
+				//vertical step
+				if (a.x>0) {
+					C = app.getHeightmapPoint(ax-1, ay)
+							.add(app.getHeightmapPoint(bx-1, by))
+							.multLocal(0.5f);
+				} else {
+					C = A.add(B).multLocal(0.5f);
+				}
+				if (a.x<map.getSize()-1) {
+					D = app.getHeightmapPoint(ax+1, ay)
+							.add(app.getHeightmapPoint(bx+1, by))
+							.multLocal(0.5f);
+				} else {
+					D = A.add(B).multLocal(0.5f);
+				}
+			} else if (a.y==b.y) {
+				//horizontal step
+				if (a.y>0) {
+					C = app.getHeightmapPoint(ax, ay-1)
+							.add(app.getHeightmapPoint(bx, by-1))
+							.multLocal(0.5f);
+				} else {
+					C = A.add(B).multLocal(0.5f);
+				}
+				if (a.y<map.getSize()-1) {
+					D = app.getHeightmapPoint(ax, ax+1)
+							.add(app.getHeightmapPoint(bx, by+1))
+							.multLocal(0.5f);
+				} else {
+					D = A.add(B).multLocal(0.5f);
+				}
+			} else {
+				//diagonal step
+				C = app.getHeightmapPoint(ax, by);
+				D = app.getHeightmapPoint(bx, ay);
+			}
+			//check silhouette
+			Vector3f pA = cam.getScreenCoordinates(A);
+			Vector3f pB = cam.getScreenCoordinates(B);
+			Vector3f pC = cam.getScreenCoordinates(C);
+			Vector3f pD = cam.getScreenCoordinates(D);
+			Vector2f ppA = new Vector2f(pA.x, pA.y);
+			Vector2f ppB = new Vector2f(pB.x, pB.y);
+			Vector2f ppC = new Vector2f(pC.x, pC.y);
+			Vector2f ppD = new Vector2f(pD.x, pD.y);
+			if (FastMath.counterClockwise(ppA, ppB, ppC)==FastMath.counterClockwise(ppA, ppB, ppD)) {
+				//silhouette detected
+				graph.setEdgeWeight(e.getLeft(), e.getMiddle(), 1000);
+				continue;
+			}
+			
+			//check ringes
+		}
+		showGraph(graph, visiblePoints);
+		
 		LOG.info("features: "+features);
 		displayFeatures();
+	}
+	
+	private void showGraph(Graph g, List<Vector3f> positions) {
+		ArrayList<Vector3f> lines = new ArrayList<>();
+		ArrayList<ColorRGBA> colors = new ArrayList<>();
+		for (Triple<Integer, Integer, Float> e : g) {
+			lines.add(positions.get(e.getLeft()));
+			lines.add(positions.get(e.getMiddle()));
+			float v = 1 - (e.getRight()+100)/200f;
+			ColorRGBA col = new ColorRGBA(1, v, v, 1);
+//			ColorRGBA col = ColorRGBA.White;
+			colors.add(col);
+			colors.add(col);
+		}
+		Mesh m = new Mesh();
+		m.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(lines.toArray(new Vector3f[lines.size()])));
+		m.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(colors.toArray(new ColorRGBA[colors.size()])));
+		m.setMode(Mesh.Mode.Lines);
+		m.setLineWidth(2);
+		m.updateCounts();
+		m.updateBound();
+		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		//mat.setColor("Color", ColorRGBA.White);
+		mat.setBoolean("VertexColor", true);
+		Geometry geom = new Geometry("graph", m);
+		geom.setMaterial(mat);
+		featureNode.attachChild(geom);
 	}
 	
 	private void displayFeatures() {

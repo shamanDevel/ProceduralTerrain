@@ -14,7 +14,7 @@ import org.apache.commons.lang3.tuple.*;
  *
  * @author Sebastian Weiss
  */
-public class Graph {
+public class Graph implements Iterable<Triple<Integer, Integer, Float>> {
 
 	private final ArrayList<ArrayList<MutablePair<Integer, Float>>> graph;
 
@@ -67,6 +67,46 @@ public class Graph {
 				break;
 			}
 		}
+	}
+	
+	@Override
+	public Iterator<Triple<Integer, Integer, Float>> iterator() {
+		return new Iterator<Triple<Integer, Integer, Float>>() {
+			Triple<Integer, Integer, Float> current = null;
+			private int u=0;
+			private int v=0;
+			
+			@Override
+			public boolean hasNext() {
+				while (true) {
+					if (u==graph.size()) {
+						return false;
+					}
+					ArrayList<MutablePair<Integer, Float>> n = graph.get(u);
+					if (v==n.size()) {
+						v=0;
+						u++;
+						continue;
+					}
+					MutablePair<Integer, Float> p = n.get(v);
+					v++;
+					if (p.getLeft()>u) {
+						current = new ImmutableTriple<>(u, p.getLeft(), p.getRight());
+						return true;
+					}
+				}
+			}
+
+			@Override
+			public Triple<Integer, Integer, Float> next() {
+				return current;
+			}
+
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException("Not supported yet.");
+			}
+		};
 	}
 
 	// A recursive function that uses visited[] and parent to detect
