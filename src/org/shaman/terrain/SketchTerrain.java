@@ -85,7 +85,6 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 	 */
 	private List<List<Vector2f>> features = new ArrayList<>();
 	private Node featureNode = new Node("features");
-	private DepthGrabber depthGrabber;
 
 	public SketchTerrain(TerrainHeighmapCreator app, Heightmap map) {
 		this.app = app;
@@ -150,7 +149,6 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 		}
 		
 		app.getRootNode().attachChild(featureNode);
-		depthGrabber = new DepthGrabber(app);
 	}
 
 	public void onUpdate(float tpf) {
