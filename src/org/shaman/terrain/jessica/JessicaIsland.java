@@ -109,6 +109,51 @@ public class JessicaIsland extends SimpleApplication {
         loadHintText();
     }
 
+	private void initAlphaMap(Image image) {
+		Texture2D a1 = (Texture2D) assetManager.loadTexture("org/shaman/terrain/jessica/TexAlpha1.png");
+		Texture2D a2 = (Texture2D) assetManager.loadTexture("org/shaman/terrain/jessica/TexAlpha2.png");
+		Texture2D a3 = (Texture2D) assetManager.loadTexture("org/shaman/terrain/jessica/TexAlpha3.png");
+		Texture2D a4 = (Texture2D) assetManager.loadTexture("org/shaman/terrain/jessica/TexAlpha4.png");
+		ByteBuffer d1 = a1.getImage().getData(0);
+		ByteBuffer d2 = a2.getImage().getData(0);
+		ByteBuffer d3 = a3.getImage().getData(0);
+		ByteBuffer d4 = a4.getImage().getData(0);
+		System.out.println("size d1="+d1.capacity()+" d2="+d2.capacity()+" d3="+d3.capacity()+" d4="+d4.capacity());
+		ByteBuffer data = image.getData(0);
+		if (data == null) {
+			data = BufferUtils.createByteBuffer(512*512*4);
+		}
+		System.out.println("output size="+data.capacity());
+		data.rewind();
+		d1.rewind();
+		d2.rewind();
+		d3.rewind();
+		d4.rewind();
+		for (int x=0; x<512; ++x) {
+			for (int y=0; y<512; ++y) {
+				float r = d1.get(); d1.get(); d1.get(); float ra = d1.get();
+				float g = d2.get(); d2.get(); d2.get(); float ga = d2.get();
+				float b = d3.get(); d3.get(); d3.get(); float gb = d3.get();
+				float a = d4.get(); d4.get(); d4.get(); float aa = d4.get();
+				r *= ra;
+				g *= ga;
+				b *= gb;
+				a *= aa;
+				float sum = r+g+b+a;
+				sum /= 255;
+				r /= sum;
+				g /= sum;
+				b /= sum;
+				a /= sum;
+				data.put((byte) r).put((byte) g).put((byte) b).put((byte) a);
+			}
+		}
+		data.rewind();
+		image.setFormat(Image.Format.RGBA8);
+		image.setWidth(512);
+		image.setHeight(512);
+		image.setData(0, data);
+	}
     @Override
     public void simpleInitApp() {
         setupKeys();
@@ -125,17 +170,29 @@ public class JessicaIsland extends SimpleApplication {
 		Texture2D alphaMap = new Texture2D(heightMapImage.getImage().getWidth(), 
 				heightMapImage.getImage().getHeight(), Image.Format.ABGR8);
         
-        // DARK ROCK texture
-        Texture darkRock = assetManager.loadTexture("org/shaman/terrain/rock2.jpg");
-        darkRock.setWrap(WrapMode.Repeat);
-        matTerrain.setTexture("DiffuseMap", darkRock);
-        matTerrain.setFloat("DiffuseMap_0_scale", 16/256f);
-        
         // GRASS texture
         Texture grass = assetManager.loadTexture("org/shaman/terrain/grass.jpg");
         grass.setWrap(WrapMode.Repeat);
         matTerrain.setTexture("DiffuseMap_1", grass);
         matTerrain.setFloat("DiffuseMap_1_scale", 32/256f);
+		
+		// DARK ROCK texture
+        Texture darkRock = assetManager.loadTexture("org/shaman/terrain/rock2.jpg");
+        darkRock.setWrap(WrapMode.Repeat);
+        matTerrain.setTexture("DiffuseMap", darkRock);
+        matTerrain.setFloat("DiffuseMap_0_scale", 16/256f);
+		
+		// SAND texture
+        Texture sand = assetManager.loadTexture("org/shaman/terrain/jessica/sand.jpg");
+        sand.setWrap(WrapMode.Repeat);
+        matTerrain.setTexture("DiffuseMap_2", sand);
+        matTerrain.setFloat("DiffuseMap_2_scale", 16/256f);
+		
+		// GRAVEL texture
+//        Texture gravel = assetManager.loadTexture("org/shaman/terrain/jessica/gravel.jpg");
+//        gravel.setWrap(WrapMode.Repeat);
+//        matTerrain.setTexture("DiffuseMap_3", gravel);
+//        matTerrain.setFloat("DiffuseMap_3_scale", 16/256f);
         
         // NORMAL MAPS
         Texture normalMapRock = assetManager.loadTexture("org/shaman/terrain/rock_normal.png");
@@ -158,23 +215,9 @@ public class JessicaIsland extends SimpleApplication {
             e.printStackTrace();
         }
 		
-		Image image = alphaMap.getImage();
-		ByteBuffer data = image.getData(0);
-		if (data == null) {
-			data = BufferUtils.createByteBuffer(512*512*4);
-		}
-		data.rewind();
-		for (int x=0; x<512; ++x) {
-			for (int y=0; y<512; ++y) {
-				float r = 1, g=0;
-				data.put((byte) (255*r)).put((byte) (255*g)).put((byte) 0).put((byte) 0);
-			}
-		}
-		data.rewind();
-		image.setFormat(Image.Format.RGBA8);
-		image.setWidth(512);
-		image.setHeight(512);
-		image.setData(0, data);
+//		Image image = alphaMap.getImage();
+//		initAlphaMap(image);
+		alphaMap = (Texture2D) assetManager.loadTexture("org/shaman/terrain/jessica/Alpha.png");
 		alphaMap.setMagFilter(Texture.MagFilter.Bilinear);
 		matTerrain.setTexture("AlphaMap", alphaMap);
 
@@ -188,9 +231,9 @@ public class JessicaIsland extends SimpleApplication {
          * size=2049, it got really slow. But that is a jump from 2 million to 8 million triangles...
          */
         terrain = new TerrainQuad("terrain", 65, 513, heightmap.getHeightMap());
-        TerrainLodControl control = new TerrainLodControl(terrain, getCamera());
-        control.setLodCalculator( new DistanceLodCalculator(65, 2.7f) ); // patch size, and a multiplier
-        terrain.addControl(control);
+//        TerrainLodControl control = new TerrainLodControl(terrain, getCamera());
+//        control.setLodCalculator( new DistanceLodCalculator(65, 2.7f) ); // patch size, and a multiplier
+//        terrain.addControl(control);
         terrain.setMaterial(matTerrain);
         terrain.setLocalTranslation(0, -100, 0);
         terrain.setLocalScale(2f, 0.5f, 2f);
@@ -248,6 +291,8 @@ public class JessicaIsland extends SimpleApplication {
 //        fpp.addFilter(lsf);
         fpp.addFilter(new FXAAFilter());
 		viewPort.addProcessor(fpp);
+		
+		flyCam.setMoveSpeed(100);
     }
 
     public void loadHintText() {
