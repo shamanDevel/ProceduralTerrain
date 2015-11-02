@@ -6,6 +6,8 @@
 package org.shaman.terrain;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.collision.CollisionResult;
+import com.jme3.collision.CollisionResults;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
@@ -13,16 +15,19 @@ import com.jme3.input.MouseInput;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.FastMath;
-import com.jme3.math.Vector2f;
+import com.jme3.math.*;
+import com.jme3.renderer.Camera;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
+import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.shape.Quad;
+import com.jme3.scene.shape.Sphere;
 import com.jme3.texture.Image;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
+import com.jme3.util.BufferUtils;
 import com.zero_separation.plugins.imagepainter.ImagePainter;
 import java.util.*;
 import java.util.logging.Level;
@@ -69,12 +74,18 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 
 	private boolean sketchStarted = false;
 	private float lastX, lastY;
-	private ArrayList<Vector2f> currentPoints = new ArrayList<>();
+	private List<Vector2f> currentPoints = new ArrayList<>();
 	/**
 	 * this list contains all sketches. The sketches are point list from left to right
 	 */
-	private ArrayList<ArrayList<Vector2f>> sketches = new ArrayList<>();
+	private List<List<Vector2f>> sketches = new ArrayList<>();
 	private Integer[] strokeOrder;
+	/**
+	 * Contains the features. Each feature is a list of adjacent heighmap coordinates (integers)
+	 */
+	private List<List<Vector2f>> features = new ArrayList<>();
+	private Node featureNode = new Node("features");
+	private DepthGrabber depthGrabber;
 
 	public SketchTerrain(TerrainHeighmapCreator app, Heightmap map) {
 		this.app = app;
@@ -137,6 +148,9 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 			g.setLocalTranslation(5, height - orderText.getHeight() - (i*3+3)*STROKE_WIDTH, 0);
 			guiNode.attachChild(g);
 		}
+		
+		app.getRootNode().attachChild(featureNode);
+		depthGrabber = new DepthGrabber(app);
 	}
 
 	public void onUpdate(float tpf) {
@@ -206,6 +220,7 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 			}
 		} else if ("SweepStrokes".equals(name) && isPressed) {
 			sweepStrokes();
+			findFeatures();
 		} else if ("DeleteStrokes".equals(name) && isPressed) {
 			deleteStrokes();
 		}
@@ -216,7 +231,7 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 	 * @param points
 	 * @return {@code true} if it is valid
 	 */
-	private boolean isSketchValid(ArrayList<Vector2f> points) {
+	private boolean isSketchValid(List<Vector2f> points) {
 		if (points.size()<2) {
 			return false;
 		}
@@ -244,6 +259,7 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 		sketches.clear();
 		image.wipe(ColorRGBA.BlackNoAlpha);
 		quadMaterial.setTexture("ColorMap", texture);
+		featureNode.detachAllChildren();
 	}
 	
 	/**
@@ -251,7 +267,7 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 	 * @param stroke the stroke
 	 * @return an array with all control points
 	 */
-	private Vector2f[] fillStroke(ArrayList<Vector2f> stroke) {
+	private Vector2f[] fillStroke(List<Vector2f> stroke) {
 		List<Vector2f> l = new ArrayList<>(stroke.size()*2);
 		l.add(stroke.get(0));
 		for (int i=1; i<stroke.size(); ++i) {
@@ -267,6 +283,8 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 	}
 	/**
 	 * Sweeps the strokes to determine the order of them.
+	 * Input: {@link #sketches}
+	 * Output: {@link #strokeOrder}
 	 */
 	private void sweepStrokes() {
 		LOG.info("sweep strokes");
@@ -464,6 +482,133 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 		quadMaterial.setTexture("ColorMap", texture);
 	}
 
+	/**
+	 * Finds the features (silhouettes and ringelines) of the terrain.
+	 * Input: {@link #map}
+	 * Output: {@link #features}
+	 */
+	private void findFeatures() {
+		featureNode.detachAllChildren();
+		Camera cam = app.getCamera();
+		
+		//1. find silhouettes: edges were the front face is visible, but not the back face
+		//collect distances and visibility
+		LOG.info("compute visibility");
+		boolean[][] visible = new boolean[map.getSize()][map.getSize()];
+		float[][] distance = new float[map.getSize()][map.getSize()];
+		Ray ray = new Ray();
+		CollisionResults results = new CollisionResults();
+		for (int x=0; x<map.getSize(); ++x) {
+			for (int y=0; y<map.getSize(); ++y) {
+				Vector3f p3 = app.getHeightmapPoint(x, y);
+				Vector3f p2 = cam.getScreenCoordinates(p3);
+				distance[x][y] = p2.z;
+				if (p2.x<0 || p2.x>=width || p2.y<0 || p2.y>=height) {
+					visible[x][y] = false; //outside of the screen
+				} else {
+					//shoot a ray to detect visibility
+					Vector3f dir = cam.getLocation().subtract(p3).normalizeLocal();
+					ray.setDirection(dir);
+					ray.setOrigin(p3.add(dir.mult(1f)));
+					results.clear();
+					app.getHeightmapSpatial().collideWith(ray, results);
+					visible[x][y] = results.size()==0;
+				}
+			}
+		}
+		//Test
+		LOG.info("show visibility");
+		List<Vector3f> visiblePoints = new ArrayList<>();
+		List<Vector3f> hiddenPoints = new ArrayList<>();
+		Material vmat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		vmat.setColor("Color", ColorRGBA.Red);
+		Material hmat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		hmat.setColor("Color", ColorRGBA.Gray);
+		for (int x=0; x<map.getSize(); ++x) {
+			for (int y=0; y<map.getSize(); ++y) {
+				Vector3f p = app.getHeightmapPoint(x, y);
+				p.addLocal(0, 0.5f, 0);
+				if (visible[x][y]) {
+					visiblePoints.add(p);
+				} else {
+					hiddenPoints.add(p);
+				}
+			}
+		}
+		Mesh vm = new Mesh();
+		vm.setMode(Mesh.Mode.Points);
+		vm.setPointSize(10);
+		vm.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(visiblePoints.toArray(new Vector3f[visiblePoints.size()])));
+		vm.updateCounts();
+		vm.updateBound();
+		Geometry vg = new Geometry("visible", vm);
+		vg.setMaterial(vmat);
+		featureNode.attachChild(vg);
+		Mesh hm = new Mesh();
+		hm.setMode(Mesh.Mode.Points);
+		hm.setPointSize(10);
+		hm.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(hiddenPoints.toArray(new Vector3f[hiddenPoints.size()])));
+		hm.updateCounts();
+		hm.updateBound();
+		Geometry hg = new Geometry("hidden", hm);
+		hg.setMaterial(hmat);
+		featureNode.attachChild(hg);
+		
+		//find silhouettes in x-direction
+		LOG.info("find silhouettes");
+		for (int x=1; x<map.getSize(); ++x) {
+			for (int y=1; y<map.getSize()-1; ++y) {
+				if (visible[x][y] && visible[x-1][y] && (!visible[x][y-1] || !visible[x][y+1])) {
+					features.add(Arrays.asList(new Vector2f(x-1, y), new Vector2f(x, y)));
+				}
+			}
+		}
+		for (int y=1; y<map.getSize(); ++y) {
+			for (int x=1; x<map.getSize()-1; ++x) {
+				if (visible[x][y] && visible[x][y-1] && (!visible[x-1][y] || !visible[x+1][y])) {
+					features.add(Arrays.asList(new Vector2f(x, y-1), new Vector2f(x, y)));
+				}
+			}
+		}
+		
+		LOG.info("features: "+features);
+		displayFeatures();
+	}
+	
+	private void displayFeatures() {
+		LOG.info("display features");
+//		featureNode.detachAllChildren();
+		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		mat.setColor("Color", ColorRGBA.White);
+		for (List<Vector2f> feature : features) {
+			for (int i=1; i<feature.size(); ++i) {
+				Vector2f a = feature.get(i-1);
+				Vector2f b = feature.get(i);
+				com.jme3.scene.shape.Line l = new com.jme3.scene.shape.Line(
+						app.getHeightmapPoint((int) a.x, (int) a.y),
+						app.getHeightmapPoint((int) b.x, (int) b.y));
+				l.setLineWidth(5);
+				Geometry g = new Geometry("feature", l);
+				g.setMaterial(mat);
+				featureNode.attachChild(g);
+			}
+		}
+		
+		//Test
+		Vector3f p1 = app.getHeightmapPoint(50, 50);
+		Vector3f p2 = app.getHeightmapPoint(200, 50);
+		Sphere s1 = new Sphere(16, 16, 1);
+		Sphere s2 = new Sphere(16, 16, 1);
+		Geometry g1 = new Geometry("s1", s1);
+		Geometry g2 = new Geometry("s2", s2);
+		g1.setLocalTranslation(p1);
+		g2.setLocalTranslation(p2);
+		g1.setMaterial(mat);
+		g2.setMaterial(mat);
+		featureNode.attachChild(g1);
+		featureNode.attachChild(g2);
+	}
+	
 	/*
 	 * Implementation of Bresenham's fast line drawing algorithm. Based on the
 	 * wikipedia article:

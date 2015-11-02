@@ -73,7 +73,7 @@ import org.shaman.terrain.heightmap.*;
  */
 public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final Logger LOG = Logger.getLogger(TerrainHeighmapCreator.class.getName());
-	private static final int SIZE = 512;//1024;
+	private static final int SIZE = 256;//1024;
 	private static final float SLOPE_SCALE = 200f;
 	private static final float SLOPE_POWER = 2f;
 	
@@ -281,6 +281,21 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         terrain.setLocalTranslation(0, -SIZE/2, 0);
         terrain.setLocalScale(1f, 1f, 1f);
         rootNode.attachChild(terrain);
+	}
+	
+	/**
+	 * Converts a heightmap position in a real-world position
+	 * @param x the heightmap x-coordinate
+	 * @param y the heightmap y-coordinate
+	 * @return the position of that corner in real-world
+	 */
+	public Vector3f getHeightmapPoint(int x, int y) {
+		float h = heightmap.getHeightAt(x, y);
+		return new Vector3f(x - SIZE/2, h*128 -SIZE/2, y - SIZE/2);
+	}
+	
+	public Spatial getHeightmapSpatial() {
+		return terrain;
 	}
 	
 	private void initPropertyUI() {		
