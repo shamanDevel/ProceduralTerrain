@@ -32,6 +32,7 @@
 package org.shaman.terrain.jessica;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.bounding.BoundingBox;
 import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -48,20 +49,30 @@ import com.jme3.post.filters.DepthOfFieldFilter;
 import com.jme3.post.filters.FXAAFilter;
 import com.jme3.post.filters.LightScatteringFilter;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.control.LodControl;
+import com.jme3.scene.shape.Box;
 import com.jme3.terrain.geomipmap.TerrainLodControl;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.terrain.geomipmap.lodcalc.DistanceLodCalculator;
 import com.jme3.terrain.heightmap.AbstractHeightMap;
+import com.jme3.terrain.heightmap.HeightMap;
 import com.jme3.terrain.heightmap.ImageBasedHeightMap;
 import com.jme3.texture.Image;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture.WrapMode;
 import com.jme3.texture.Texture2D;
+import com.jme3.texture.image.ImageRaster;
 import com.jme3.util.BufferUtils;
 import com.jme3.util.SkyFactory;
 import com.jme3.water.WaterFilter;
+import java.awt.Color;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.logging.Logger;
+import jme3tools.optimize.LodGenerator;
 
 /**
  * Demonstrates how to use terrain.
@@ -83,7 +94,21 @@ import java.nio.ByteBuffer;
  * @author bowens
  */
 public class JessicaIsland extends SimpleApplication {
+	private static final Logger LOG = Logger.getLogger(JessicaIsland.class.getName());
 	private Vector3f lightDir = new Vector3f(-4.9236743f, -1.27054665f, 5.896916f);
+	private final Random rand = new Random(1);
+	private static final String[] TREES = new String[] {
+		"Models/Doodads/Trees/GnarlyTree.j3o",
+		"Models/Doodads/Trees/OakTree.j3o",
+		"Models/Doodads/Trees/RedSpruce.j3o",
+		"Models/Doodads/Trees/GnarlyTree.j3o",
+		"Models/Doodads/Trees/ScotsTree.j3o",
+		"Models/Doodads/Trees/ScotsTree2.j3o",
+		"Models/Doodads/Trees/Sequoia.j3o",
+		"Models/Doodads/Trees/Sonnerat.j3o",
+		"Models/Doodads/Trees/TallPine.j3o",
+		"Models/Doodads/Trees/Walnut.j3o"
+	};
 
     private TerrainQuad terrain;
     Material matRock;
@@ -230,6 +255,7 @@ public class JessicaIsland extends SimpleApplication {
          * The total size is up to you. At 1025 it ran fine for me (200+FPS), however at
          * size=2049, it got really slow. But that is a jump from 2 million to 8 million triangles...
          */
+		heightmap.erodeTerrain();
         terrain = new TerrainQuad("terrain", 65, 513, heightmap.getHeightMap());
 //        TerrainLodControl control = new TerrainLodControl(terrain, getCamera());
 //        control.setLodCalculator( new DistanceLodCalculator(65, 2.7f) ); // patch size, and a multiplier
@@ -248,6 +274,8 @@ public class JessicaIsland extends SimpleApplication {
         al.setColor(new ColorRGBA(0.1f, 0.1f, 0.1f, 1.0f));
         rootNode.addLight(al);
 
+		addPlants(heightmap);
+		
         cam.setLocation(new Vector3f(0, 10, -10));
         cam.lookAtDirection(new Vector3f(0, -1.5f, -1).normalizeLocal(), Vector3f.UNIT_Y);
 		
@@ -294,6 +322,74 @@ public class JessicaIsland extends SimpleApplication {
 		
 		flyCam.setMoveSpeed(100);
     }
+	
+	private void addPlants(HeightMap heightmap) {
+		Texture2D tex = (Texture2D) assetManager.loadTexture("org/shaman/terrain/jessica/Plants.png");
+		System.out.println("format: "+tex.getImage().getFormat());
+		ImageRaster raster = ImageRaster.create(tex.getImage());
+		ColorRGBA col = new ColorRGBA();
+		
+		LOG.info("load trees and generate LOD");
+		Spatial[] trees = new Spatial[TREES.length];
+		for (int i=0; i<TREES.length; ++i) {
+			trees[i] = assetManager.loadModel(TREES[i]);
+			trees[i].scale(2f);
+			BoundingBox box = (BoundingBox) trees[i].getWorldBound();
+			Vector3f min = box.getMin(new Vector3f());
+			trees[i].move(0, -min.y, 0);
+			ArrayList<Geometry> geoms = new ArrayList<>();
+			listsGeometries(trees[i], geoms);
+			for (Geometry geom : geoms) {
+				LodGenerator lod = new LodGenerator(geom);
+				lod.bakeLods(LodGenerator.TriangleReductionMethod.PROPORTIONAL,0.5f,0.25f,0.125f,1f/16);
+				geom.addControl(new LodControl());
+				LOG.info("processed "+geom);
+			}
+		}
+		//TODO: move this outside of the class, cache them on the disk.
+		
+		LOG.info("plant");
+		for (int x=0; x<512; ++x) {
+			for (int y=0; y<512; ++y) {
+				raster.getPixel(x, 511-y, col);
+				float a = col.a;
+				float r = col.r;
+				float g = col.g;
+				float b = col.b;
+				r *= a;
+				g *= a;
+				b *= a;
+				
+				float wx = 2*(x-256);
+				float wy = -100 + heightmap.getTrueHeightAtPoint(x, y)/2;
+				float wz = 2*(y-256);
+				
+				if (g>0.3) {
+					float prob = g * 0.02f;
+					if (rand.nextFloat()<prob) {
+						//plant a tree
+						Spatial tree = trees[rand.nextInt(TREES.length)].clone();
+//						Geometry tree = new Geometry("Tree", box);
+//						tree.setMaterial(mat);
+						tree.move(wx, wy, wz);
+						
+						rootNode.attachChild(tree);
+						System.out.println("plant tree at "+tree.getLocalTranslation());
+					}
+				}
+			}
+		}
+	}
+	private void listsGeometries(Spatial s, ArrayList<Geometry> list) {
+		if (s instanceof Geometry) {
+			list.add((Geometry) s);
+		}
+		if (s instanceof Node) {
+			for (Spatial c : ((Node) s).getChildren()) {
+				listsGeometries(c, list);
+			}
+		}
+	}
 
     public void loadHintText() {
         hintText = new BitmapText(guiFont, false);
