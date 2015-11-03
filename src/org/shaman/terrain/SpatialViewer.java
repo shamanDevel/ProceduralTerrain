@@ -45,8 +45,9 @@ public class SpatialViewer extends SimpleApplication {
 		center = createBox(0, 0, 0, ColorRGBA.Blue);
         attachCoordinateAxes(Vector3f.ZERO);
 
-        flyCam.setEnabled(false);
-        chaseCam = new ChaseCamera(cam, center, inputManager);
+		flyCam.setDragToRotate(true);
+//        flyCam.setEnabled(false);
+//        chaseCam = new ChaseCamera(cam, center, inputManager);
 		
 		light = new PointLight();
 		light.setColor(ColorRGBA.White);

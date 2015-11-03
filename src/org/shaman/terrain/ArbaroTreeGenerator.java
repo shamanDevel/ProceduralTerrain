@@ -22,6 +22,7 @@
 
 package org.shaman.terrain;
 
+import com.jme3.math.ColorRGBA;
 import net.sourceforge.arbaro.gui.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -181,7 +182,7 @@ import net.sourceforge.arbaro.tree.TreeGeneratorFactory;
 		
 		// create file chooser for open/save dialogs
 		fileChooser = new JFileChooser();
-		fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")+"/trees"));
+		fileChooser.setCurrentDirectory(new File("C:\\Users\\Sebastian\\Documents\\Java\\ProceduralTerrain\\trees\\"));
 		
 		// read config
 		config = new Config();
@@ -227,6 +228,10 @@ import net.sourceforge.arbaro.tree.TreeGeneratorFactory;
 			boolean useQuads = true;
 			MeshGenerator meshGenerator = MeshGeneratorFactory.createMeshGenerator(/*params,*/ useQuads);
 			ArbaroToJmeExporter exporter = new ArbaroToJmeExporter(spatialViewer.getAssetManager(), tree,meshGenerator);
+//			exporter.setBarkTexture("org/shaman/terrain/treetex/bark3.jpg");
+			exporter.setBarkColor(new ColorRGBA(130f / 255f, 80f / 255f, 50f / 255f, 1f));
+			exporter.setBarkColor(new ColorRGBA(200f / 255f, 180f / 255f, 160f / 255f, 1f));
+			exporter.setLeafTexture("org/shaman/terrain/treetex/leaf1.png");
 			exporter.doWrite();
 			spatialViewer.setSpatial(exporter.getSpatial());
 			

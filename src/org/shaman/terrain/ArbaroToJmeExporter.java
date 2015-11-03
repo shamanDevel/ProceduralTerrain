@@ -11,9 +11,11 @@ import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer;
+import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
 import java.io.PrintWriter;
 import java.text.NumberFormat;
@@ -36,6 +38,7 @@ import org.apache.commons.lang3.ArrayUtils;
  */
 public class ArbaroToJmeExporter extends MeshExporter{
 	private static final Logger LOG = Logger.getLogger(ArbaroToJmeExporter.class.getName());
+	private static final float BARK_UV_SCALING = 16;
 	
 	long vertexProgressCount=0;
 	long faceProgressCount=0;
@@ -57,13 +60,30 @@ public class ArbaroToJmeExporter extends MeshExporter{
 	private ArrayList<Vector2f> leafTmpUVs;
 	private ArrayList<Integer> leafIndices;
 	private com.jme3.scene.Node spatial;
-
+	private String barkTex;
+	private String leafTex;
+	private ColorRGBA barkCol;
+	private boolean writeLeaves = true;
+	
 	public ArbaroToJmeExporter(AssetManager assetManager, Tree tree, MeshGenerator meshGenerator) {
 		super(meshGenerator);
 		this.assetManager = assetManager;
 		this.tree = tree;
 		LOG.info("exporter created");
 		progress = new Progress();
+	}
+	
+	public void setBarkTexture(String tex) {
+		barkTex = tex;
+	}
+	public void setBarkColor(ColorRGBA col) {
+		barkCol = col;
+	}
+	public void setLeafTexture(String tex) {
+		leafTex = tex;
+	}
+	public void writeLeaves(boolean leaves) {
+		writeLeaves = leaves;
 	}
 	
 	public com.jme3.scene.Spatial getSpatial() {
@@ -95,8 +115,11 @@ public class ArbaroToJmeExporter extends MeshExporter{
 		writeStemFaces();
 		
 		//leaves
-		writeLeafVertices();
-		writeLeafFaces();
+		if (writeLeaves) {
+			writeLeafVertices();
+			writeLeafFaces();
+			duplicateLeaves();
+		}
 		
 		//create normals
 		createNormals(stemVertices, stemNormals, stemIndices);
@@ -114,24 +137,39 @@ public class ArbaroToJmeExporter extends MeshExporter{
 		stemMesh.updateBound();
 		Geometry geom = new Geometry("Stem", stemMesh);
 		Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-		mat.setColor("Diffuse", ColorRGBA.Brown);
-		mat.setBoolean("UseMaterialColors", true);
+		if (barkTex!=null) {
+			Texture tex = assetManager.loadTexture(barkTex);
+			tex.setWrap(Texture.WrapMode.Repeat);
+			mat.setTexture("DiffuseMap", tex);
+		} else {
+			mat.setColor("Diffuse", barkCol != null ? barkCol : ColorRGBA.Brown);
+			mat.setBoolean("UseMaterialColors", true);
+		}
 		geom.setMaterial(mat);
 		spatial.attachChild(geom);
 		
-		com.jme3.scene.Mesh leafMesh = new com.jme3.scene.Mesh();
-		leafMesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(leafVertices.toArray(new Vector3f[leafVertices.size()])));
-		leafMesh.setBuffer(VertexBuffer.Type.Normal, 3, BufferUtils.createFloatBuffer(leafNormals.toArray(new Vector3f[leafNormals.size()])));
-		leafMesh.setBuffer(VertexBuffer.Type.TexCoord, 2, BufferUtils.createFloatBuffer(leafUVs.toArray(new Vector2f[leafUVs.size()])));
-		leafMesh.setBuffer(VertexBuffer.Type.Index, 3, ArrayUtils.toPrimitive(leafIndices.toArray(new Integer[leafIndices.size()])));
-		leafMesh.updateCounts();
-		leafMesh.updateBound();
-		geom = new Geometry("Leaves", leafMesh);
-		mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-		mat.setColor("Diffuse", ColorRGBA.Green);
-		mat.setBoolean("UseMaterialColors", true);
-		geom.setMaterial(mat);
-		spatial.attachChild(geom);
+		if (writeLeaves) {
+			com.jme3.scene.Mesh leafMesh = new com.jme3.scene.Mesh();
+			leafMesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(leafVertices.toArray(new Vector3f[leafVertices.size()])));
+			leafMesh.setBuffer(VertexBuffer.Type.Normal, 3, BufferUtils.createFloatBuffer(leafNormals.toArray(new Vector3f[leafNormals.size()])));
+			leafMesh.setBuffer(VertexBuffer.Type.TexCoord, 2, BufferUtils.createFloatBuffer(leafUVs.toArray(new Vector2f[leafUVs.size()])));
+			leafMesh.setBuffer(VertexBuffer.Type.Index, 3, ArrayUtils.toPrimitive(leafIndices.toArray(new Integer[leafIndices.size()])));
+			leafMesh.updateCounts();
+			leafMesh.updateBound();
+			geom = new Geometry("Leaves", leafMesh);
+			mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+			if (leafTex!=null) {
+				mat.setTexture("DiffuseMap", assetManager.loadTexture(leafTex));
+				mat.getAdditionalRenderState().setAlphaTest(true);
+				mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+				geom.setQueueBucket(RenderQueue.Bucket.Transparent);
+			} else {
+				mat.setColor("Diffuse", ColorRGBA.Green);
+				mat.setBoolean("UseMaterialColors", true);
+			}
+			geom.setMaterial(mat);
+			spatial.attachChild(geom);
+		}
 		
 	}
 	
@@ -168,7 +206,7 @@ public class ArbaroToJmeExporter extends MeshExporter{
 		for (Enumeration vertices = mesh.allVertices(true);
 			vertices.hasMoreElements();) {
 				UVVector vertex = (UVVector)vertices.nextElement();
-				stemUVs.add(new Vector2f((float) vertex.u, (float) vertex.v));
+				stemUVs.add(new Vector2f((float) vertex.u * BARK_UV_SCALING, (float) vertex.v * 256));
 		}
 	}
 	
@@ -232,6 +270,38 @@ public class ArbaroToJmeExporter extends MeshExporter{
 					vertexOffset, uvVertexOffset,smoothingGroup);
 		tree.traverseTree(faceExporter);
 		LOG.info("leave triangle count: "+leafIndices.size()/3);
+	}
+	
+	private void duplicateLeaves() {
+		ArrayList<Vector3f> tmp = leafVertices;
+		int count = tmp.size();
+		leafVertices = new ArrayList<>(leafVertices.size()*2);
+		for (Vector3f v : tmp) leafVertices.add(v.clone());
+		for (Vector3f v : tmp) leafVertices.add(v.clone());
+		
+		tmp = leafNormals;
+		leafNormals = new ArrayList<>(leafNormals.size()*2);
+		for (Vector3f v : tmp) leafNormals.add(v.clone());
+		for (Vector3f v : tmp) leafNormals.add(v.clone());
+		
+		ArrayList<Vector2f> tmp2 = leafUVs;
+		leafUVs = new ArrayList<>(leafUVs.size()*2);
+		for (Vector2f v : tmp2) leafUVs.add(v.clone());
+		for (Vector2f v : tmp2) leafUVs.add(v.clone());
+		
+		ArrayList<Integer> index = leafIndices;
+		leafIndices = new ArrayList<>(index.size()*2);
+		for (int i=0; i<index.size(); i+=3) {
+			int a = index.get(i);
+			int b = index.get(i+1);
+			int c = index.get(i+2);
+			leafIndices.add(a);
+			leafIndices.add(b);
+			leafIndices.add(c);
+			leafIndices.add(a + count);
+			leafIndices.add(c + count);
+			leafIndices.add(b + count);
+		}
 	}
 	
 	private class LeafWriterBase extends DefaultTreeTraversal {
@@ -346,8 +416,10 @@ public class ArbaroToJmeExporter extends MeshExporter{
 				leafIndices.add((int) f.points[i]+offset);
 				leafIndices.add((int) f.points[i-1]+offset);
 			}
-			for (int i=0; i<f.points.length; ++i) {
-				leafUVs.get((int) f.points[i]+offset).set(leafTmpUVs.get((int) f.points[i]));
+			if (!leafTmpUVs.isEmpty()) {
+				for (int i=0; i<f.points.length; ++i) {
+					leafUVs.get((int) f.points[i]+offset).set(leafTmpUVs.get((int) f.points[i]));
+				}
 			}
 		}
 	}
