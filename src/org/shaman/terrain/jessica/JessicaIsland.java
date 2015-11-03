@@ -329,25 +329,6 @@ public class JessicaIsland extends SimpleApplication {
 		ImageRaster raster = ImageRaster.create(tex.getImage());
 		ColorRGBA col = new ColorRGBA();
 		
-		LOG.info("load trees and generate LOD");
-		Spatial[] trees = new Spatial[TREES.length];
-		for (int i=0; i<TREES.length; ++i) {
-			trees[i] = assetManager.loadModel(TREES[i]);
-			trees[i].scale(2f);
-			BoundingBox box = (BoundingBox) trees[i].getWorldBound();
-			Vector3f min = box.getMin(new Vector3f());
-			trees[i].move(0, -min.y, 0);
-			ArrayList<Geometry> geoms = new ArrayList<>();
-			listsGeometries(trees[i], geoms);
-			for (Geometry geom : geoms) {
-				LodGenerator lod = new LodGenerator(geom);
-				lod.bakeLods(LodGenerator.TriangleReductionMethod.PROPORTIONAL,0.5f,0.25f,0.125f,1f/16);
-				geom.addControl(new LodControl());
-				LOG.info("processed "+geom);
-			}
-		}
-		//TODO: move this outside of the class, cache them on the disk.
-		
 		LOG.info("plant");
 		for (int x=0; x<512; ++x) {
 			for (int y=0; y<512; ++y) {
@@ -360,21 +341,63 @@ public class JessicaIsland extends SimpleApplication {
 				g *= a;
 				b *= a;
 				
-				float wx = 2*(x-256);
-				float wy = -100 + heightmap.getTrueHeightAtPoint(x, y)/2;
-				float wz = 2*(y-256);
+				float ix = x + rand.nextFloat()-0.5f;
+				float iy = y + rand.nextFloat()-0.5f;
+				float wx = 2*(ix-256);
+				float wy = -100 + heightmap.getInterpolatedHeight(ix, iy)/2;
+				float wz = 2*(iy-256);
 				
-				if (g>0.3) {
-					float prob = g * 0.02f;
+				//trees
+				Material treeMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+				treeMat.setColor("Color", ColorRGBA.Brown);
+				if (g>0.3 && wy>-40) {
+					float prob = g * 0.01f;
 					if (rand.nextFloat()<prob) {
 						//plant a tree
-						Spatial tree = trees[rand.nextInt(TREES.length)].clone();
-//						Geometry tree = new Geometry("Tree", box);
-//						tree.setMaterial(mat);
-						tree.move(wx, wy, wz);
-						
+						Box box = new Box(new Vector3f(-1, 0, -1), new Vector3f(1, 3, 1));
+						Geometry tree = new Geometry("tree", box);
+						tree.setMaterial(treeMat);
+						tree.setLocalScale(2+rand.nextFloat());
+						tree.setLocalTranslation(wx, wy, wz);
+						tree.rotate((rand.nextFloat()-0.5f)*0.1f, (rand.nextFloat()-0.5f)*0.5f, (rand.nextFloat()-0.5f)*0.1f);
 						rootNode.attachChild(tree);
 						System.out.println("plant tree at "+tree.getLocalTranslation());
+					}
+				}
+				
+				//dead bushes
+				Material bushMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+				bushMat.setColor("Color", ColorRGBA.Gray);
+				if (b>0.3 && wy>-40) {
+					float prob = b * 0.02f;
+					if (rand.nextFloat()<prob) {
+						//plant a tree
+						Box box = new Box(new Vector3f(-0.5f, 0, -0.5f), new Vector3f(0.5f, 1, 0.5f));
+						Geometry bush = new Geometry("tree", box);
+						bush.setMaterial(bushMat);
+						bush.setLocalScale(1+rand.nextFloat());
+						bush.setLocalTranslation(wx, wy, wz);
+						bush.rotate((rand.nextFloat()-0.5f)*0.1f, (rand.nextFloat()-0.5f)*0.5f, (rand.nextFloat()-0.5f)*0.1f);
+						rootNode.attachChild(bush);
+						System.out.println("plant tree at "+bush.getLocalTranslation());
+					}
+				}
+				
+				//palms
+				Material palmMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+				palmMat.setColor("Color", ColorRGBA.Green);
+				if (r>0.3 && wy>-40) {
+					float prob = r * 0.02f;
+					if (rand.nextFloat()<prob) {
+						//plant a tree
+						Box box = new Box(new Vector3f(-0.5f, 0, -0.5f), new Vector3f(0.5f, 3, 0.5f));
+						Geometry palm = new Geometry("tree", box);
+						palm.setMaterial(palmMat);
+						palm.setLocalScale(1+rand.nextFloat());
+						palm.setLocalTranslation(wx, wy, wz);
+						palm.rotate((rand.nextFloat()-0.5f)*0.1f, (rand.nextFloat()-0.5f)*0.5f, (rand.nextFloat()-0.5f)*0.1f);
+						rootNode.attachChild(palm);
+						System.out.println("plant tree at "+palm.getLocalTranslation());
 					}
 				}
 			}
