@@ -242,32 +242,37 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
     }
 
     protected void mapJoystick( Joystick joystick ) {
-        
-        // Map it differently if there are Z axis
-        if( joystick.getAxis( JoystickAxis.Z_ROTATION ) != null && joystick.getAxis( JoystickAxis.Z_AXIS ) != null ) {
- 
-            // Make the left stick move
-            joystick.getXAxis().assignAxis( CameraInput.FLYCAM_STRAFERIGHT, CameraInput.FLYCAM_STRAFELEFT );
-            joystick.getYAxis().assignAxis( CameraInput.FLYCAM_BACKWARD, CameraInput.FLYCAM_FORWARD );
-            
-            // And the right stick control the camera                       
-            joystick.getAxis( JoystickAxis.Z_ROTATION ).assignAxis( CameraInput.FLYCAM_DOWN, CameraInput.FLYCAM_UP );
-            joystick.getAxis( JoystickAxis.Z_AXIS ).assignAxis(  CameraInput.FLYCAM_RIGHT, CameraInput.FLYCAM_LEFT );
- 
-            // And let the dpad be up and down           
-            joystick.getPovYAxis().assignAxis(CameraInput.FLYCAM_RISE, CameraInput.FLYCAM_LOWER);
- 
-            if( joystick.getButton( "Button 8" ) != null ) { 
-                // Let the stanard select button be the y invert toggle
-                joystick.getButton( "Button 8" ).assignButton( CameraInput.FLYCAM_INVERTY );
-            }                
-            
-        } else {             
-            joystick.getPovXAxis().assignAxis(CameraInput.FLYCAM_STRAFERIGHT, CameraInput.FLYCAM_STRAFELEFT);
-            joystick.getPovYAxis().assignAxis(CameraInput.FLYCAM_FORWARD, CameraInput.FLYCAM_BACKWARD);
-            joystick.getXAxis().assignAxis(CameraInput.FLYCAM_RIGHT, CameraInput.FLYCAM_LEFT);
-            joystick.getYAxis().assignAxis(CameraInput.FLYCAM_DOWN, CameraInput.FLYCAM_UP);
-        }                
+		
+//        joystick.getAxis("x").assignAxis("JoystickRight", "JoystickLeft");
+//		joystick.getAxis("y").assignAxis("JoystickFront", "JoystickBack");
+//		joystick.getAxis("z").assignAxis("JoystickUp", "JoystickDown");
+//		inputManager.addListener(this, "JoystickRight", "JoystickLeft", "JoystickFront", "JoystickBack", "JoystickUp", "JoystickDown");
+		
+//        // Map it differently if there are Z axis
+//        if( joystick.getAxis( JoystickAxis.Z_ROTATION ) != null && joystick.getAxis( JoystickAxis.Z_AXIS ) != null ) {
+// 
+//            // Make the left stick move
+//            joystick.getXAxis().assignAxis( CameraInput.FLYCAM_STRAFERIGHT, CameraInput.FLYCAM_STRAFELEFT );
+//            joystick.getYAxis().assignAxis( CameraInput.FLYCAM_BACKWARD, CameraInput.FLYCAM_FORWARD );
+//            
+//            // And the right stick control the camera                       
+//            joystick.getAxis( JoystickAxis.Z_ROTATION ).assignAxis( CameraInput.FLYCAM_DOWN, CameraInput.FLYCAM_UP );
+//            joystick.getAxis( JoystickAxis.Z_AXIS ).assignAxis(  CameraInput.FLYCAM_RIGHT, CameraInput.FLYCAM_LEFT );
+// 
+//            // And let the dpad be up and down           
+//            joystick.getPovYAxis().assignAxis(CameraInput.FLYCAM_RISE, CameraInput.FLYCAM_LOWER);
+// 
+//            if( joystick.getButton( "Button 8" ) != null ) { 
+//                // Let the stanard select button be the y invert toggle
+//                joystick.getButton( "Button 8" ).assignButton( CameraInput.FLYCAM_INVERTY );
+//            }                
+//            
+//        } else {             
+//            joystick.getPovXAxis().assignAxis(CameraInput.FLYCAM_STRAFERIGHT, CameraInput.FLYCAM_STRAFELEFT);
+//            joystick.getPovYAxis().assignAxis(CameraInput.FLYCAM_FORWARD, CameraInput.FLYCAM_BACKWARD);
+//            joystick.getXAxis().assignAxis(CameraInput.FLYCAM_RIGHT, CameraInput.FLYCAM_LEFT);
+//            joystick.getYAxis().assignAxis(CameraInput.FLYCAM_DOWN, CameraInput.FLYCAM_UP);
+//        }                
     }
 
     /**
@@ -383,6 +388,8 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
     public void onAnalog(String name, float value, float tpf) {
         if (!enabled)
             return;
+		float joystickFactor = 0.01f;
+		float joystickThreshold = 30;
 
         if (name.equals(CameraInput.FLYCAM_LEFT)){
             rotateCamera(value, initialUpVec);
@@ -405,10 +412,30 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
         }else if (name.equals(CameraInput.FLYCAM_LOWER)){
             riseCamera(-value);
         }else if (name.equals(CameraInput.FLYCAM_ZOOMIN)){
-            zoomCamera(value);
+//            zoomCamera(value);
+			moveSpeed += value;
+			System.out.println("move speed: "+moveSpeed);
         }else if (name.equals(CameraInput.FLYCAM_ZOOMOUT)){
-            zoomCamera(-value);
-        }
+//            zoomCamera(-value);
+			moveSpeed -= value;
+			System.out.println("move speed: "+moveSpeed);
+        }else if (name.equals("JoystickRight")) {
+			if (Math.abs(value)>joystickThreshold) {
+				moveCamera(value*joystickFactor, true);
+			}
+		}else if (name.equals("JoystickLeft")) {
+			if (Math.abs(value)>joystickThreshold) {
+				moveCamera(-value*joystickFactor, true);
+			}
+		}else if (name.equals("JoystickFront")) {
+			if (Math.abs(value)>joystickThreshold) {
+				moveCamera(value*joystickFactor, false);
+			}
+		}else if (name.equals("JoystickBack")) {
+			if (Math.abs(value)>joystickThreshold) {
+				moveCamera(-value*joystickFactor, false);
+			}
+		}
     }
 
     public void onAction(String name, boolean value, float tpf) {
