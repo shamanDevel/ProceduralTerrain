@@ -5,6 +5,7 @@
  */
 package org.shaman.terrain;
 
+import Jama.Matrix;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
@@ -27,7 +28,6 @@ import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Quad;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.shadow.DirectionalLightShadowRenderer;
-import com.jme3.shadow.EdgeFilteringMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Logger;
@@ -285,7 +285,6 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			ControlPoint p1 = points[i-1];
 			ControlPoint p2 = points[i];
 			float t = (time-times[i-1]) / (times[i]-times[i-1]);
-			System.out.println("interpolate time "+time+": p1="+(i-1)+", p2="+i+", t="+t);
 			
 			//interpolate
 			ControlPoint p = new ControlPoint();
@@ -373,6 +372,38 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			P.scaleAdd(-t2 + 2 * t, P1, P);
 			P.scaleAdd(t2 - t, T0, P);
 			return P;
+		}
+	}
+	
+	private static class DiffusionSolver {
+		//input
+		private final int size;
+		private final ControlCurve[] curves;
+		
+		//matrices
+		private Matrix elevation; //target elevation
+		private Matrix alpha, beta; //factors specifying the influence of the gradient, smootheness and elevation
+		private Matrix normX, normY; //the normalized direction of the control curves at this point
+		private Matrix gradient; //the gradient/expected height difference at that point
+
+		private DiffusionSolver(int size, ControlCurve[] curves) {
+			this.size = size;
+			this.curves = curves;
+			rasterize();
+		}
+		
+		/**
+		 * Rasterizes the control curves in the matrices
+		 */
+		private void rasterize() {
+			elevation = new Matrix(size, size);
+			alpha = new Matrix(size, size);
+			beta = new Matrix(size, size);
+			normX = new Matrix(size, size);
+			normY = new Matrix(size, size);
+			gradient = new Matrix(size, size);
+			
+			//TODO
 		}
 	}
 }
