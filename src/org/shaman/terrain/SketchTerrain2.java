@@ -13,6 +13,7 @@ import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
@@ -28,7 +29,9 @@ import com.jme3.scene.shape.Sphere;
 import com.jme3.shadow.DirectionalLightShadowRenderer;
 import com.jme3.shadow.EdgeFilteringMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Logger;
+import org.apache.commons.lang3.StringUtils;
 import org.shaman.terrain.heightmap.Heightmap;
 
 /**
@@ -42,6 +45,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 	private static final float PLANE_MOVE_SPEED = 0.02f;
 	private static final float CURVE_SIZE = 0.5f;
 	private static final int CURVE_RESOLUTION = 8;
+	private static final int CURVE_SAMPLES = 128;
 	
 	private final TerrainHeighmapCreator app;
 	private final Heightmap map;
@@ -51,7 +55,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 	private float planeDistance = INITIAL_PLANE_DISTANCE;
 	private Spatial sketchPlane;
 
-	private final ArrayList<Vector3f[]> featureCurves;
+	private final ArrayList<ControlCurve> featureCurves;
 	private final ArrayList<Node> featureCurveNodes;
 	
 	public SketchTerrain2(TerrainHeighmapCreator app, Heightmap map) {
@@ -70,7 +74,13 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		app.getRootNode().attachChild(sceneNode);
 		
 		//add test feature curve
-		addFeatureCurve(new Vector3f[]{new Vector3f(-50, 0, -10), new Vector3f(-10,20,20), new Vector3f(20,40,-5), new Vector3f(50,0,10)});
+		ControlPoint p1 = new ControlPoint(40, 40, 0, 0, 0, 0, 0, 0, 0, 0);
+		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 20*FastMath.DEG_TO_RAD, 30, 20*FastMath.DEG_TO_RAD, 30, 0, 0);
+		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 20*FastMath.DEG_TO_RAD, 40, 20*FastMath.DEG_TO_RAD, 40, 0, 0);
+		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 20*FastMath.DEG_TO_RAD, 30, 20*FastMath.DEG_TO_RAD, 30, 0, 0);
+		ControlPoint p5 = new ControlPoint(160, 200, 0, 0, 0, 0, 0, 0, 0, 0);
+		ControlCurve c = new ControlCurve(new ControlPoint[]{p1, p2, p3, p4, p5});
+		addFeatureCurve(c);
 		
 		//init sketch plane
 		initSketchPlane();
@@ -120,18 +130,19 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		app.getInputManager().addListener(this, "SketchPlaneDist-", "SketchPlaneDist+");
 	}
 	
-	private void addFeatureCurve(Vector3f[] controlPoints) {
+	private void addFeatureCurve(ControlCurve curve) {
 		Node node = new Node("feature"+(featureCurveNodes.size()+1));
+		featureCurves.add(curve);
 		
 		Material sphereMat = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
 		sphereMat.setBoolean("UseMaterialColors", true);
 		sphereMat.setColor("Diffuse", ColorRGBA.Gray);
 		sphereMat.setColor("Ambient", ColorRGBA.White);
-		for (int i=0; i<controlPoints.length; ++i) {
-			Sphere s = new Sphere(CURVE_RESOLUTION, CURVE_RESOLUTION, CURVE_SIZE);
+		for (int i=0; i<curve.points.length; ++i) {
+			Sphere s = new Sphere(CURVE_RESOLUTION, CURVE_RESOLUTION, CURVE_SIZE*1.5f);
 			Geometry g = new Geometry("ControlPoint", s);
 			g.setMaterial(sphereMat);
-			g.setLocalTranslation(controlPoints[i]);
+			g.setLocalTranslation(app.mapHeightmapToWorld(curve.points[i].x, curve.points[i].y, curve.points[i].height));
 			node.attachChild(g);
 		}
 		
@@ -139,9 +150,13 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		tubeMat.setBoolean("UseMaterialColors", true);
 		tubeMat.setColor("Diffuse", ColorRGBA.Blue);
 		tubeMat.setColor("Ambient", ColorRGBA.White);
-		for (int i=1; i<controlPoints.length; ++i) {
-			Vector3f P1 = controlPoints[i-1];
-			Vector3f P2 = controlPoints[i];
+		for (int i=1; i<=CURVE_SAMPLES; ++i) {
+			float t1 = (i-1) / (float) CURVE_SAMPLES;
+			float t2 = i / (float) CURVE_SAMPLES;
+			ControlPoint p1 = curve.interpolate(t1);
+			ControlPoint p2 = curve.interpolate(t2);
+			Vector3f P1 = app.mapHeightmapToWorld(p1.x, p1.y, p1.height);
+			Vector3f P2 = app.mapHeightmapToWorld(p2.x, p2.y, p2.height);
 			Cylinder c = new Cylinder(CURVE_RESOLUTION, CURVE_RESOLUTION, CURVE_SIZE, P1.distance(P2), false);
 			Geometry g = new Geometry("Curve", c);
 			g.setMaterial(tubeMat);
@@ -224,6 +239,11 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			this.noiseRoughness = noiseRoughness;
 		}
 
+		@Override
+		public String toString() {
+			return "ControlPoint{" + "x=" + x + ", y=" + y + ", height=" + height + ", plateau=" + plateau + ", angle1=" + angle1 + ", extend1=" + extend1 + ", angle2=" + angle2 + ", extend2=" + extend2 + ", noiseAmplitude=" + noiseAmplitude + ", noiseRoughness=" + noiseRoughness + '}';
+		}
+		
 	}
 	
 	private static class ControlCurve {
@@ -244,8 +264,12 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			}
 			times = new float[points.length];
 			for (int i=0; i<points.length; ++i) {
-				times[i] = distances[i] / distances[points.length];
+				times[i] = distances[i] / distances[points.length-1];
 			}
+			
+			LOG.info("Control points:\n"+StringUtils.join(points, '\n'));
+			LOG.info("Distances: "+Arrays.toString(distances));
+			LOG.info("Times: "+Arrays.toString(times));
 		}
 		
 		private ControlPoint interpolate(float time) {
@@ -261,6 +285,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			ControlPoint p1 = points[i-1];
 			ControlPoint p2 = points[i];
 			float t = (time-times[i-1]) / (times[i]-times[i-1]);
+			System.out.println("interpolate time "+time+": p1="+(i-1)+", p2="+i+", t="+t);
 			
 			//interpolate
 			ControlPoint p = new ControlPoint();
@@ -276,15 +301,15 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 				Vector3f P1 = new Vector3f(p2.x, p2.y, p2.height);
 				Vector3f T1 = new Vector3f(points[i+1].x-p1.x, points[i+1].y-p1.y, points[i+1].height-p1.height);
 				T1.multLocal(0.5f);
-				Vector3f P = quadraticHermite(P1, T1, P0, t);
+				Vector3f P = quadraticHermite(P0, T1, P1, t);
 				p.x = P.x; p.y = P.y; p.height = P.z;
 			} else if (i==points.length-1) {
 				//quadratic hermite
 				Vector3f P0 = new Vector3f(p1.x, p1.y, p1.height);
 				Vector3f P1 = new Vector3f(p2.x, p2.y, p2.height);
 				Vector3f T0 = new Vector3f(p2.x-points[i-2].x, p2.y-points[i-2].y, p2.height-points[i-2].height);
-				T0.multLocal(0.5f);
-				Vector3f P = quadraticHermite(P0, T0, P1, 1-t);
+				T0.multLocal(-0.5f);
+				Vector3f P = quadraticHermite(P1, T0, P0, 1-t);
 				p.x = P.x; p.y = P.y; p.height = P.z;
 			} else {
 				Vector3f P0 = new Vector3f(p1.x, p1.y, p1.height);

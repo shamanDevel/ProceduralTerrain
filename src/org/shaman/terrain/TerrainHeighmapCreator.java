@@ -300,6 +300,21 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		return new Vector3f(x - SIZE/2, h*128 -SIZE/2, y - SIZE/2);
 	}
 	
+	/**
+	 * Converts a heightmap position in a real-world position
+	 * @param x the heightmap x-coordinate
+	 * @param y the heightmap y-coordinate
+	 * @return the position of that corner in real-world
+	 */
+	public Vector3f getHeightmapPoint(float x, float y) {
+		float h = heightmap.getHeightInterpolating(x, y);
+		return new Vector3f(x - SIZE/2, h*128 -SIZE/2, y - SIZE/2);
+	}
+	
+	public Vector3f mapHeightmapToWorld(float x, float y, float h) {
+		return new Vector3f(x - SIZE/2, h*128 -SIZE/2, y - SIZE/2);
+	}
+	
 	public Spatial getHeightmapSpatial() {
 		return terrain;
 	}
