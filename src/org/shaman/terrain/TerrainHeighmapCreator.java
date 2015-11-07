@@ -36,12 +36,10 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.bounding.BoundingBox;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
-import com.jme3.input.CameraInput;
 import com.jme3.input.KeyInput;
-import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
-import com.jme3.input.controls.MouseAxisTrigger;
+import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
@@ -257,6 +255,8 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         DirectionalLight light = new DirectionalLight();
         light.setDirection((new Vector3f(-0.1f, -0.1f, -0.1f)).normalize());
         rootNode.addLight(light);
+		AmbientLight ambientLight = new AmbientLight(new ColorRGBA(0.2f, 0.2f, 0.2f, 1));
+		rootNode.addLight(ambientLight);
 
         cam.setLocation(new Vector3f(0, 10, -10));
         cam.lookAtDirection(new Vector3f(0, -1.5f, -1).normalizeLocal(), Vector3f.UNIT_Y);
