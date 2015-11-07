@@ -421,7 +421,7 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
     public void onAnalog(String name, float value, float tpf) {
         if (!enabled)
             return;
-		System.out.println(name+": "+value);
+		//System.out.println(name+": "+value);
 
         if (name.equals(CameraInput.FLYCAM_LEFT)){
             rotateCamera(value, initialUpVec, false);

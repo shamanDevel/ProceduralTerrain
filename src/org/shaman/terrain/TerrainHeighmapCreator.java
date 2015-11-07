@@ -102,7 +102,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private Heightmap heightmap;
 	private Texture2D alphaMap;
 	
-	private SketchTerrain sketchTerrain;
+	private SketchTerrain2 sketchTerrain;
 
     public static void main(String[] args) {
         TerrainHeighmapCreator app = new TerrainHeighmapCreator();
@@ -140,9 +140,10 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         setupKeys();
 //		loadHintText();
 		
-		initHeightmap();
+		initHeightmap(false);
 		initScene();
 		initPropertyUI();
+		nextStep();
     }
 	
 	private void nextStep() {
@@ -151,10 +152,15 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		propText.getParent().detachChild(propText);
 		selectionText.getParent().detachChild(selectionText);
 		//switch to terrain sketching
-		sketchTerrain = new SketchTerrain(this, heightmap);
+		sketchTerrain = new SketchTerrain2(this, heightmap);
 	}
 	
-	private void initHeightmap() {
+	private void initHeightmap(boolean applyProcessors) {
+		if (!applyProcessors) {
+			//short cut to SketchTerrain
+			heightmap = new Heightmap(SIZE);
+			return;
+		}
 		//create processors
 		ChainProcessor noiseChain = new ChainProcessor();
 		float initFrequency = 2;
