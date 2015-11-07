@@ -6,9 +6,11 @@
 package org.shaman.terrain;
 
 import Jama.Matrix;
+import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
+import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
@@ -17,20 +19,31 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.Camera;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.renderer.queue.RenderQueue;
-import com.jme3.scene.Geometry;
-import com.jme3.scene.Node;
-import com.jme3.scene.Spatial;
+import com.jme3.scene.*;
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Quad;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.shadow.DirectionalLightShadowRenderer;
+import com.jme3.texture.FrameBuffer;
+import com.jme3.texture.Image;
+import com.jme3.util.BufferUtils;
+import java.awt.Graphics;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
+import java.awt.image.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 import org.apache.commons.lang3.StringUtils;
 import org.shaman.terrain.heightmap.Heightmap;
 
@@ -84,6 +97,10 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		
 		//init sketch plane
 		initSketchPlane();
+		
+		//init actions
+		app.getInputManager().addMapping("SolveDiffusion", new KeyTrigger(KeyInput.KEY_RETURN));
+		app.getInputManager().addListener(this, "SolveDiffusion");
 		
 		//init light for shadow
 		DirectionalLight light = new DirectionalLight(new Vector3f(0, -1, 0));
@@ -175,9 +192,25 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		
 	}
 	
+	private void solveDiffusion() {
+		LOG.info("Solve diffusion");
+		DiffusionSolver solver = new DiffusionSolver(map.getSize(), featureCurves.toArray(new ControlCurve[featureCurves.size()]));
+		Matrix mat = new Matrix(map.getSize(), map.getSize());
+		solver.saveMatrix(mat, "Iter0.png");
+		for (int i=1; i<=100; ++i) {
+			mat = solver.oneIteration(mat);
+			if (i%10 == 0) {
+				solver.saveMatrix(mat, "Iter"+i+".png");
+			}
+		}
+		LOG.info("solved");
+	}
+	
 	@Override
 	public void onAction(String name, boolean isPressed, float tpf) {
-		
+		if ("SolveDiffusion".equals(name) && isPressed) {
+			solveDiffusion();
+		}
 	}
 
 	@Override
@@ -375,7 +408,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		}
 	}
 	
-	private static class DiffusionSolver {
+	private class DiffusionSolver {
 		//input
 		private final int size;
 		private final ControlCurve[] curves;
@@ -403,7 +436,190 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			normY = new Matrix(size, size);
 			gradient = new Matrix(size, size);
 			
-			//TODO
+			for (ControlCurve curve : curves) {
+				//sample curve
+				int samples = 32;
+				ControlPoint[] points = new ControlPoint[samples+1];
+				for (int i=0; i<=samples; ++i) {
+					points[i] = curve.interpolate(i / (float) samples);
+				}
+				
+				//create meshes
+				Mesh line = createLineMesh(points);
+				Mesh plateau = createPlateauMesh(points);
+				
+				//render them
+				Material vertexColorMat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+				vertexColorMat.setBoolean("VertexColor", true);
+				vertexColorMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+				
+				Geometry lineGeom = new Geometry("line", line);
+				lineGeom.setMaterial(vertexColorMat);
+				lineGeom.setQueueBucket(RenderQueue.Bucket.Gui);
+				Geometry plateauGeom = new Geometry("plateau", plateau);
+				plateauGeom.setMaterial(vertexColorMat);
+				plateauGeom.setQueueBucket(RenderQueue.Bucket.Gui);
+				Node node = new Node();
+				node.attachChild(lineGeom);
+				node.attachChild(plateauGeom);
+				node.updateModelBound();
+				node.setCullHint(Spatial.CullHint.Never);
+				fillMatrix(elevation, node);
+				
+				vertexColorMat.setBoolean("VertexColor", false);
+				vertexColorMat.setColor("Color", ColorRGBA.White);
+				fillMatrix(beta, node);
+				
+				//save for debugging
+				saveMatrix(elevation, "Elevation.png");
+				saveMatrix(beta, "Beta.png");
+			}
+			
+			LOG.info("curves rasterized");
+		}
+		
+		public Matrix oneIteration(Matrix last) {
+			Matrix mat = new Matrix(size, size);
+			//add elevation constraint
+			mat.plusEquals(elevation.arrayTimes(beta));
+			//add laplace constraint
+			Matrix laplace = new Matrix(size, size);
+			for (int x=0; x<size; ++x) {
+				for (int y=0; y<size; ++y) {
+					double v = 0;
+					v += last.get(Math.max(0, x-1), y);
+					v += last.get(Math.min(size-1, x+1), y);
+					v += last.get(x, Math.max(0, y-1));
+					v += last.get(x, Math.min(size-1, y+1));
+					v /= 4.0;
+					v *= 1 - alpha.get(x, y) - beta.get(x, y);
+					laplace.set(x, y, v);
+				}
+			}
+			mat.plusEquals(laplace);
+			
+			return mat;
+		}
+		
+		private Mesh createLineMesh(ControlPoint[] points) {
+			Vector3f[] pos = new Vector3f[points.length];
+			ColorRGBA[] col = new ColorRGBA[points.length];
+			for (int i=0; i<points.length; ++i) {
+				pos[i] = new Vector3f(points[i].x, points[i].y, 1-points[i].height);
+				col[i] = new ColorRGBA(points[i].height, points[i].height, points[i].height, 1);
+			}
+			Mesh mesh = new Mesh();
+			mesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(pos));
+			mesh.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(col));
+			mesh.setMode(Mesh.Mode.LineStrip);
+			mesh.setLineWidth(1);
+			return mesh;
+		}
+		
+		private Mesh createPlateauMesh(ControlPoint[] points) {
+			Vector3f[] pos = new Vector3f[points.length*3];
+			ColorRGBA[] col = new ColorRGBA[points.length*3];
+			for (int i=0; i<points.length; ++i) {
+				pos[3*i] = new Vector3f(points[i].x, points[i].y, 1-points[i].height);
+				float dx,dy;
+				if (i==0) {
+					dx = points[i+1].x - points[i].x;
+					dy = points[i+1].y - points[i].y;
+				} else if (i==points.length-1) {
+					dx = points[i].x - points[i-1].x;
+					dy = points[i].y - points[i-1].y;
+				} else {
+					dx = (points[i+1].x - points[i-1].x) / 2f;
+					dy = (points[i+1].y - points[i-1].y) / 2f;
+				}
+				float sum = dx+dy;
+				dx /= sum;
+				dy /= sum;
+				pos[3*i + 1] = pos[3*i].add(points[i].plateau * -dy, points[i].plateau * dx, 0);
+				pos[3*i + 2] = pos[3*i].add(points[i].plateau * dy, points[i].plateau * -dx, 0);
+				col[3*i] = new ColorRGBA(points[i].height, points[i].height, points[i].height, 1);
+				col[3*i+1] = col[3*i];
+				col[3*i+2] = col[3*i];
+			}
+			int[] index = new int[(points.length-1) * 12];
+			for (int i=0; i<points.length-1; ++i) {
+				index[12*i] = 3*i;
+				index[12*i + 1] = 3*i + 3;
+				index[12*i + 2] = 3*i + 1;
+				index[12*i + 3] = 3*i + 3;
+				index[12*i + 4] = 3*i + 4;
+				index[12*i + 5] = 3*i + 1;
+				
+				index[12*i + 6] = 3*i;
+				index[12*i + 7] = 3*i + 2;
+				index[12*i + 8] = 3*i + 3;
+				index[12*i + 9] = 3*i + 3;
+				index[12*i + 10] = 3*i + 2;
+				index[12*i + 11] = 3*i + 5;
+			}
+			Mesh m = new Mesh();
+			m.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(pos));
+			m.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(col));
+			m.setBuffer(VertexBuffer.Type.Index, 1, index);
+			m.setMode(Mesh.Mode.Triangles);
+			return m;
+		}
+		
+		/**
+		 * Renders the given scene in a top-down manner in the given matrix
+		 * @param matrix
+		 * @param scene 
+		 */
+		private void fillMatrix(Matrix matrix, Spatial scene) {
+			//init
+			Camera cam = new Camera(size, size);
+			cam.setParallelProjection(true);
+			ViewPort view = new ViewPort("Off", cam);
+			view.setClearFlags(true, true, true);
+			FrameBuffer buffer = new FrameBuffer(size, size, 1);
+			buffer.setDepthBuffer(Image.Format.Depth);
+			buffer.setColorBuffer(Image.Format.ABGR8);
+			view.setOutputFrameBuffer(buffer);
+			view.attachScene(scene);
+			//render
+			scene.updateGeometricState();
+			view.setEnabled(true);
+			app.getRenderManager().renderViewPort(view, 0);
+			//retrive data
+			ByteBuffer data = BufferUtils.createByteBuffer(size*size*4);
+			app.getRenderer().readFrameBuffer(buffer, data);
+			data.rewind();
+			for (int y=0; y<size; ++y) {
+				for (int x=0; x<size; ++x) {
+					byte d = data.get();
+					matrix.set(x, y, (d & 0xff) / 255.0);
+					data.get(); data.get(); data.get();
+				}
+			}
+		}
+		
+		private void saveMatrix(Matrix matrix, String filename) {
+			byte[] buffer = new byte[size*size];
+			int i=0;
+			for (int x=0; x<size; ++x) {
+				for (int y=0; y<size; ++y) {
+					buffer[i] = (byte) (matrix.get(x, y) * 255);
+					i++;
+				}
+			}
+			ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
+			int[] nBits = { 8 };
+			ColorModel cm = new ComponentColorModel(cs, nBits, false, true,
+					Transparency.OPAQUE, DataBuffer.TYPE_BYTE);
+			SampleModel sm = cm.createCompatibleSampleModel(size, size);
+			DataBufferByte db = new DataBufferByte(buffer, size * size);
+			WritableRaster raster = Raster.createWritableRaster(sm, db, null);
+			BufferedImage result = new BufferedImage(cm, raster, false, null);
+			try {
+				ImageIO.write(result, "png", new File(filename));
+			} catch (IOException ex) {
+				Logger.getLogger(SketchTerrain2.class.getName()).log(Level.SEVERE, null, ex);
+			}
 		}
 	}
 }
