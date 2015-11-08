@@ -263,7 +263,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         
         rootNode.attachChild(createAxisMarker(20));
 	}
-	private void updateTerrain() {
+	public void updateTerrain() {
 		if (terrain != null) {
 			rootNode.detachChild(terrain);
 		}
