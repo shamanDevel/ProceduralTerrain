@@ -90,9 +90,9 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		
 		//add test feature curve
 		ControlPoint p1 = new ControlPoint(40, 40, 0, 0, 0, 0, 0, 0, 0, 0);
-		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 0*FastMath.DEG_TO_RAD, 20, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
-		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 0*FastMath.DEG_TO_RAD, 35, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
-		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 0*FastMath.DEG_TO_RAD, 20, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
+		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 20f*FastMath.DEG_TO_RAD, 20, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
+		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 20f*FastMath.DEG_TO_RAD, 35, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
+		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 20f*FastMath.DEG_TO_RAD, 20, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
 		ControlPoint p5 = new ControlPoint(160, 200, 0, 0, 0, 0, 0, 0, 0, 0);
 		ControlCurve c = new ControlCurve(new ControlPoint[]{p1, p2, p3, p4, p5});
 		addFeatureCurve(c);
@@ -427,7 +427,9 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 	
 	private class DiffusionSolver {
 		//settings
+		private final double BETA_SCALE = 0.9;
 		private final double ALPHA_SCALE = 0.5;
+		private final double GRADIENT_SCALE = 0.01;
 		private final float SLOPE_ALPHA_FACTOR = 0f;
 		
 		//input
@@ -497,6 +499,8 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 				fillMatrix(alpha, slopeGeom);
 				
 				alpha.timesEquals(ALPHA_SCALE);
+				beta.timesEquals(BETA_SCALE);
+				gradH.timesEquals(GRADIENT_SCALE);
 				
 				//save for debugging
 				if (DEBUG_DIFFUSION_SOLVER) {
