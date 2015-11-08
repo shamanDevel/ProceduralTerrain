@@ -60,7 +60,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 	private static final int CURVE_RESOLUTION = 8;
 	private static final int CURVE_SAMPLES = 128;
 	private static final boolean DEBUG_DIFFUSION_SOLVER = false;
-	private static final int DIFFUSION_SOLVER_ITERATIONS = 100;
+	private static final int DIFFUSION_SOLVER_ITERATIONS = 500;
 	
 	private final TerrainHeighmapCreator app;
 	private final Heightmap map;
@@ -89,11 +89,11 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		app.getRootNode().attachChild(sceneNode);
 		
 		//add test feature curve
-		ControlPoint p1 = new ControlPoint(40, 40, 0, 0, 0, 0, 0, 0, 0, 0);
+		ControlPoint p1 = new ControlPoint(40, 40, 0.05f, 0, 0, 0, 0, 0, 0, 0);
 		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 20f*FastMath.DEG_TO_RAD, 20, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
 		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 20f*FastMath.DEG_TO_RAD, 35, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
 		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 20f*FastMath.DEG_TO_RAD, 20, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
-		ControlPoint p5 = new ControlPoint(160, 200, 0, 0, 0, 0, 0, 0, 0, 0);
+		ControlPoint p5 = new ControlPoint(160, 200, 0.05f, 0, 0, 0, 0, 0, 0, 0);
 		ControlCurve c = new ControlCurve(new ControlPoint[]{p1, p2, p3, p4, p5});
 		addFeatureCurve(c);
 		
@@ -546,12 +546,10 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 					if (gx==0 && gy==0) {
 						v = 0; //no gradient
 					} else {
-//						v += last.get(x, y);
-						v -= gx*gx*last.get(clamp(x-(int) Math.signum(gx)), y);
-						v -= gy*gy*last.get(x, clamp(y-(int) Math.signum(gy)));
+						v += gx*gx*last.get(clamp(x-(int) Math.signum(gx)), y);
+						v += gy*gy*last.get(x, clamp(y-(int) Math.signum(gy)));
 					}
-//					v -= last.get(x, y);
-					gradient.set(x, y, -v);
+					gradient.set(x, y, v);
 				}
 			}
 			Matrix oldGradient;
@@ -561,19 +559,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			if (DEBUG_DIFFUSION_SOLVER) {
 				saveFloatMatrix(gradient, "diffusion/Gradient"+iteration+".png");
 			}
-			Matrix gradChange = new Matrix(size, size);
-			for (int x=0; x<size; ++x) {
-				for (int y=0; y<size; ++y) {
-					double expected = gradH.get(x, y);
-					double actual = gradient.get(x, y);
-					double diff = expected + actual;
-					gradChange.set(x, y, diff);
-					if (diff != 0 && DEBUG_DIFFUSION_SOLVER) {
-						System.out.println("x="+x+", y="+y+", exp="+expected+", actual="+actual+", diff="+(diff*alpha.get(x, y))
-							+", gx="+((int) Math.signum(gradX.get(x, y)))+", gy="+((int) Math.signum(gradY.get(x, y))));
-					}
-				}
-			}
+			Matrix gradChange = gradH.plus(gradient);
 			gradChange.arrayTimesEquals(alpha);
 			if (DEBUG_DIFFUSION_SOLVER) {
 				saveFloatMatrix(gradChange, "diffusion/GradChange"+iteration+".png");
@@ -807,7 +793,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			view.setClearFlags(true, true, true);
 			FrameBuffer buffer = new FrameBuffer(size, size, 1);
 			buffer.setDepthBuffer(Image.Format.Depth);
-			buffer.setColorBuffer(Image.Format.ABGR8);
+			buffer.setColorBuffer(Image.Format.RGBA32F);
 			view.setOutputFrameBuffer(buffer);
 			view.attachScene(scene);
 			//render
@@ -815,14 +801,17 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			view.setEnabled(true);
 			app.getRenderManager().renderViewPort(view, 0);
 			//retrive data
-			ByteBuffer data = BufferUtils.createByteBuffer(size*size*4);
-			app.getRenderer().readFrameBuffer(buffer, data);
+			ByteBuffer data = BufferUtils.createByteBuffer(size*size*4*4);
+			app.getRenderer().readFrameBufferWithFormat(buffer, data, Image.Format.RGBA32F);
 			data.rewind();
 			for (int y=0; y<size; ++y) {
 				for (int x=0; x<size; ++x) {
-					byte d = data.get();
-					matrix.set(x, y, (d & 0xff) / 255.0);
-					data.get(); data.get(); data.get();
+//					byte d = data.get();
+//					matrix.set(x, y, (d & 0xff) / 255.0);
+//					data.get(); data.get(); data.get();
+					float v = data.getFloat();
+					matrix.set(x, y, v);
+					data.getFloat(); data.getFloat(); data.getFloat();
 				}
 			}
 		}
@@ -841,7 +830,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			view.setBackgroundColor(new ColorRGBA(0.5f, 0.5f, 0.5f, 1f));
 			FrameBuffer buffer = new FrameBuffer(size, size, 1);
 			buffer.setDepthBuffer(Image.Format.Depth);
-			buffer.setColorBuffer(Image.Format.ABGR8);
+			buffer.setColorBuffer(Image.Format.RGBA32F);
 			view.setOutputFrameBuffer(buffer);
 			view.attachScene(scene);
 			//render
@@ -849,25 +838,29 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			view.setEnabled(true);
 			app.getRenderManager().renderViewPort(view, 0);
 			//retrive data
-			ByteBuffer data = BufferUtils.createByteBuffer(size*size*4);
-			app.getRenderer().readFrameBuffer(buffer, data);
+			ByteBuffer data = BufferUtils.createByteBuffer(size*size*4*4);
+			app.getRenderer().readFrameBufferWithFormat(buffer, data, Image.Format.RGBA32F);
 			data.rewind();
 			for (int y=0; y<size; ++y) {
 				for (int x=0; x<size; ++x) {
-					double gx = (((data.get() & 0xff) / 256.0) - 0.5) * 2;
-					double gy = (((data.get() & 0xff) / 256.0) - 0.5) * 2;
+//					double gx = (((data.get() & 0xff) / 256.0) - 0.5) * 2;
+//					double gy = (((data.get() & 0xff) / 256.0) - 0.5) * 2;
+					double gx = (data.getFloat() - 0.5) * 2;
+					double gy = (data.getFloat() - 0.5) * 2;
 					double s = Math.sqrt(gx*gx + gy*gy);
 					if (s==0) {
 						gx=0; gy=0; s=1;
 					}
 					gradX.set(x, y, gx / s);
 					gradY.set(x, y, gy / s);
-					double v = (((data.get() & 0xff) / 255.0) - 0.5);
+//					double v = (((data.get() & 0xff) / 255.0) - 0.5);
+					double v = (data.getFloat() - 0.5);
 					if (Math.abs(v)<0.002) {
 						v=0;
 					}
 					gradH.set(x, y, v);
-					data.get();
+//					data.get();
+					data.getFloat();
 				}
 			}
 		}
