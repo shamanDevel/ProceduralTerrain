@@ -50,6 +50,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.debug.Arrow;
+import com.jme3.system.AppSettings;
 import com.jme3.terrain.geomipmap.TerrainLodControl;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.texture.Image;
@@ -105,6 +106,12 @@ public class TerrainHeighmapCreator extends SimpleApplication {
     public static void main(String[] args) {
         TerrainHeighmapCreator app = new TerrainHeighmapCreator();
 		app.getStateManager().detach(app.getStateManager().getState(FlyCamAppState.class));
+		AppSettings settings = new AppSettings(true);
+		settings.setUseJoysticks(true);
+		settings.setResolution(1280, 800);
+		settings.setVSync(true);
+		app.setSettings(settings);
+		app.setShowSettings(true);
         app.start();
     }
 

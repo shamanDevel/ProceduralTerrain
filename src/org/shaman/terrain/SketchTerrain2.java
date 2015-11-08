@@ -60,6 +60,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 	private static final int CURVE_RESOLUTION = 8;
 	private static final int CURVE_SAMPLES = 128;
 	private static final boolean DEBUG_DIFFUSION_SOLVER = false;
+	private static final int DIFFUSION_SOLVER_ITERATIONS = 100;
 	
 	private final TerrainHeighmapCreator app;
 	private final Heightmap map;
@@ -89,9 +90,9 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		
 		//add test feature curve
 		ControlPoint p1 = new ControlPoint(40, 40, 0, 0, 0, 0, 0, 0, 0, 0);
-		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 5*FastMath.DEG_TO_RAD, 10, 5*FastMath.DEG_TO_RAD, 10, 0, 0);
-		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 5*FastMath.DEG_TO_RAD, 15, 5*FastMath.DEG_TO_RAD, 15, 0, 0);
-		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 5*FastMath.DEG_TO_RAD, 10, 5*FastMath.DEG_TO_RAD, 10, 0, 0);
+		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 0*FastMath.DEG_TO_RAD, 20, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
+		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 0*FastMath.DEG_TO_RAD, 35, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
+		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 0*FastMath.DEG_TO_RAD, 20, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
 		ControlPoint p5 = new ControlPoint(160, 200, 0, 0, 0, 0, 0, 0, 0, 0);
 		ControlCurve c = new ControlCurve(new ControlPoint[]{p1, p2, p3, p4, p5});
 		addFeatureCurve(c);
@@ -199,14 +200,15 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		DiffusionSolver solver = new DiffusionSolver(map.getSize(), featureCurves.toArray(new ControlCurve[featureCurves.size()]));
 		Matrix mat = new Matrix(map.getSize(), map.getSize());
 		if (DEBUG_DIFFUSION_SOLVER) {
-			solver.saveMatrix(mat, "Iter0.png");
+			solver.saveMatrix(mat, "diffusion/Iter0.png");
 		}
 		//run solver
-		for (int i=1; i<=50; ++i) {
+		for (int i=1; i<=DIFFUSION_SOLVER_ITERATIONS; ++i) {
+			System.out.println("iteration "+i);
 			mat = solver.oneIteration(mat, i);
-			//if (DEBUG_DIFFUSION_SOLVER) {
-			if (i%10 == 0) {
-				solver.saveFloatMatrix(mat, "Iter"+i+".png");
+			if (DEBUG_DIFFUSION_SOLVER) {
+			//if (i%10 == 0) {
+				solver.saveFloatMatrix(mat, "diffusion/Iter"+i+".png");
 			}
 		}
 		LOG.info("solved");
@@ -426,7 +428,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 	private class DiffusionSolver {
 		//settings
 		private final double ALPHA_SCALE = 0.5;
-		private final float SLOPE_ALPHA_FACTOR = 0.0f;
+		private final float SLOPE_ALPHA_FACTOR = 0f;
 		
 		//input
 		private final int size;
@@ -498,12 +500,12 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 				
 				//save for debugging
 				if (DEBUG_DIFFUSION_SOLVER) {
-					saveMatrix(elevation, "Elevation.png");
-					saveMatrix(beta, "Beta.png");
-					saveMatrix(alpha, "Alpha.png");
-					saveFloatMatrix(gradX, "GradX.png");
-					saveFloatMatrix(gradY, "GradY.png");
-					saveFloatMatrix(gradH, "GradH.png");
+					saveMatrix(elevation, "diffusion/Elevation.png");
+					saveMatrix(beta, "diffusion/Beta.png");
+					saveMatrix(alpha, "diffusion/Alpha.png");
+					saveFloatMatrix(gradX, "diffusion/GradX.png");
+					saveFloatMatrix(gradY, "diffusion/GradY.png");
+					saveFloatMatrix(gradH, "diffusion/GradH.png");
 				}
 			}
 			
@@ -534,11 +536,17 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			for (int x=0; x<size; ++x) {
 				for (int y=0; y<size; ++y) {
 					double v = 0;
-					v += gradX.get(x, y)*gradX.get(x, y)
-							*last.get(clamp(x-(int) Math.signum(gradX.get(x, y))), y);
-					v += gradY.get(x, y)*gradY.get(x, y)
-							*last.get(x, clamp(y-(int) Math.signum(gradY.get(x, y))));
-					v -= last.get(x, y);
+					//v = gradH.get(x, y);
+					double gx = gradX.get(x, y);
+					double gy = gradY.get(x, y);
+					if (gx==0 && gy==0) {
+						v = 0; //no gradient
+					} else {
+//						v += last.get(x, y);
+						v -= gx*gx*last.get(clamp(x-(int) Math.signum(gx)), y);
+						v -= gy*gy*last.get(x, clamp(y-(int) Math.signum(gy)));
+					}
+//					v -= last.get(x, y);
 					gradient.set(x, y, -v);
 				}
 			}
@@ -546,12 +554,27 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			if (DEBUG_DIFFUSION_SOLVER) {
 				oldGradient = gradient.copy(); //Test
 			}
-			gradient.minusEquals(gradH);
-			gradient.arrayTimesEquals(alpha);
 			if (DEBUG_DIFFUSION_SOLVER) {
-				saveFloatMatrix(gradient, "Gradient"+iteration+".png");
+				saveFloatMatrix(gradient, "diffusion/Gradient"+iteration+".png");
 			}
-			mat.plusEquals(gradient);
+			Matrix gradChange = new Matrix(size, size);
+			for (int x=0; x<size; ++x) {
+				for (int y=0; y<size; ++y) {
+					double expected = gradH.get(x, y);
+					double actual = gradient.get(x, y);
+					double diff = expected + actual;
+					gradChange.set(x, y, diff);
+					if (diff != 0 && DEBUG_DIFFUSION_SOLVER) {
+						System.out.println("x="+x+", y="+y+", exp="+expected+", actual="+actual+", diff="+(diff*alpha.get(x, y))
+							+", gx="+((int) Math.signum(gradX.get(x, y)))+", gy="+((int) Math.signum(gradY.get(x, y))));
+					}
+				}
+			}
+			gradChange.arrayTimesEquals(alpha);
+			if (DEBUG_DIFFUSION_SOLVER) {
+				saveFloatMatrix(gradChange, "diffusion/GradChange"+iteration+".png");
+			}
+			mat.plusEquals(gradChange);
 			//Test
 			if (DEBUG_DIFFUSION_SOLVER) {
 				Matrix newGradient = new Matrix(size, size);
@@ -567,7 +590,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 					}
 				}
 				Matrix diff = oldGradient.minus(newGradient);
-				saveFloatMatrix(diff, "Diff"+iteration+".png");
+				saveFloatMatrix(diff, "diffusion/Diff"+iteration+".png");
 			}
 			
 			return mat;
@@ -590,7 +613,6 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			mesh.setLineWidth(1);
 			return mesh;
 		}
-		
 		private Mesh createPlateauMesh(ControlPoint[] points) {
 			Vector3f[] pos = new Vector3f[points.length*3];
 			ColorRGBA[] col = new ColorRGBA[points.length*3];
@@ -638,8 +660,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			m.setBuffer(VertexBuffer.Type.Index, 1, index);
 			m.setMode(Mesh.Mode.Triangles);
 			return m;
-		}
-		
+		}		
 		private Mesh createSlopeMesh(ControlPoint[] points) {
 			Vector3f[] pos = new Vector3f[points.length*4];
 			ColorRGBA[] col = new ColorRGBA[points.length*4];
@@ -829,9 +850,12 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			data.rewind();
 			for (int y=0; y<size; ++y) {
 				for (int x=0; x<size; ++x) {
-					double gx = (((data.get() & 0xff) / 255.0) - 0.5) * 2;
-					double gy = (((data.get() & 0xff) / 255.0) - 0.5) * 2;
+					double gx = (((data.get() & 0xff) / 256.0) - 0.5) * 2;
+					double gy = (((data.get() & 0xff) / 256.0) - 0.5) * 2;
 					double s = Math.sqrt(gx*gx + gy*gy);
+					if (s==0) {
+						gx=0; gy=0; s=1;
+					}
 					gradX.set(x, y, gx / s);
 					gradY.set(x, y, gy / s);
 					double v = (((data.get() & 0xff) / 255.0) - 0.5);
