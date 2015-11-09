@@ -72,6 +72,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 
 	private final ArrayList<ControlCurve> featureCurves;
 	private final ArrayList<Node> featureCurveNodes;
+	private final ArrayList<ControlCurveMesh> featureCurveMesh;
 	private boolean addNewCurves = true;
 	private int selectedCurveIndex;
 	private int selectedPointIndex;
@@ -81,6 +82,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		this.map = map;
 		this.featureCurves = new ArrayList<>();
 		this.featureCurveNodes = new ArrayList<>();
+		this.featureCurveMesh = new ArrayList<>();
 		init();
 	}
 	
@@ -93,9 +95,9 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		
 		//add test feature curve
 		ControlPoint p1 = new ControlPoint(40, 40, 0.05f, 0, 0, 0, 0, 0, 0, 0);
-		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 20f*FastMath.DEG_TO_RAD, 20, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
-		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 20f*FastMath.DEG_TO_RAD, 35, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
-		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 20f*FastMath.DEG_TO_RAD, 20, 0*FastMath.DEG_TO_RAD, 0, 0, 0);
+		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 20f*FastMath.DEG_TO_RAD, 20, 10*FastMath.DEG_TO_RAD, 10, 0, 0);
+		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 20f*FastMath.DEG_TO_RAD, 35, 10*FastMath.DEG_TO_RAD, 20, 0, 0);
+		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 20f*FastMath.DEG_TO_RAD, 20, 10*FastMath.DEG_TO_RAD, 10, 0, 0);
 		ControlPoint p5 = new ControlPoint(160, 200, 0.05f, 0, 0, 0, 0, 0, 0, 0);
 		ControlCurve c = new ControlCurve(new ControlPoint[]{p1, p2, p3, p4, p5});
 		addFeatureCurve(c);
@@ -180,6 +182,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			node.attachChild(g);
 		}
 		
+		/*
 		Material tubeMat = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
 		tubeMat.setBoolean("UseMaterialColors", true);
 		tubeMat.setColor("Diffuse", ColorRGBA.Blue);
@@ -200,6 +203,10 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			g.setLocalTranslation(P1.interpolateLocal(P2, 0.5f));
 			node.attachChild(g);
 		}
+		*/
+		ControlCurveMesh mesh = new ControlCurveMesh(curve, "Curve"+index, app);
+		node.attachChild(mesh.getTubeGeometry());
+		node.attachChild(mesh.getSlopeGeometry());
 		
 		node.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 		featureCurveNodes.add(node);
@@ -220,7 +227,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		}
 		//run solver
 		for (int i=1; i<=DIFFUSION_SOLVER_ITERATIONS; ++i) {
-			System.out.println("iteration "+i);
+			if (i%10 == 0) System.out.println("iteration "+i);
 			mat = solver.oneIteration(mat, i);
 			if (DEBUG_DIFFUSION_SOLVER) {
 			//if (i%10 == 0) {
