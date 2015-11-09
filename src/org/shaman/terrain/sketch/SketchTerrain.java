@@ -6,19 +6,15 @@
 package org.shaman.terrain.sketch;
 
 import Jama.Matrix;
+import com.jme3.collision.CollisionResult;
+import com.jme3.collision.CollisionResults;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
-import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.AnalogListener;
-import com.jme3.input.controls.KeyTrigger;
-import com.jme3.input.controls.MouseAxisTrigger;
+import com.jme3.input.controls.*;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
-import com.jme3.math.Vector3f;
+import com.jme3.math.*;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
@@ -45,6 +41,7 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.heightmap.Heightmap;
@@ -75,6 +72,9 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 
 	private final ArrayList<ControlCurve> featureCurves;
 	private final ArrayList<Node> featureCurveNodes;
+	private boolean addNewCurves = true;
+	private int selectedCurveIndex;
+	private int selectedPointIndex;
 	
 	public SketchTerrain(TerrainHeighmapCreator app, Heightmap map) {
 		this.app = app;
@@ -104,8 +104,9 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		initSketchPlane();
 		
 		//init actions
-		app.getInputManager().addMapping("SolveDiffusion", new KeyTrigger(KeyInput.KEY_RETURN));
-		app.getInputManager().addListener(this, "SolveDiffusion");
+//		app.getInputManager().addMapping("SolveDiffusion", new KeyTrigger(KeyInput.KEY_RETURN));
+		app.getInputManager().addMapping("MouseClicked", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+		app.getInputManager().addListener(this, "SolveDiffusion", "MouseClicked");
 		
 		//init light for shadow
 		DirectionalLight light = new DirectionalLight(new Vector3f(0, -1, 0));
@@ -163,7 +164,8 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	}
 	
 	private void addFeatureCurve(ControlCurve curve) {
-		Node node = new Node("feature"+(featureCurveNodes.size()+1));
+		int index = featureCurveNodes.size();
+		Node node = new Node("feature"+index);
 		featureCurves.add(curve);
 		
 		Material sphereMat = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
@@ -171,8 +173,8 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		sphereMat.setColor("Diffuse", ColorRGBA.Gray);
 		sphereMat.setColor("Ambient", ColorRGBA.White);
 		for (int i=0; i<curve.points.length; ++i) {
-			Sphere s = new Sphere(CURVE_RESOLUTION, CURVE_RESOLUTION, CURVE_SIZE*1.5f);
-			Geometry g = new Geometry("ControlPoint", s);
+			Sphere s = new Sphere(CURVE_RESOLUTION, CURVE_RESOLUTION, CURVE_SIZE*2f);
+			Geometry g = new Geometry("ControlPoint"+index+":"+i, s);
 			g.setMaterial(sphereMat);
 			g.setLocalTranslation(app.mapHeightmapToWorld(curve.points[i].x, curve.points[i].y, curve.points[i].height));
 			node.attachChild(g);
@@ -190,7 +192,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			Vector3f P1 = app.mapHeightmapToWorld(p1.x, p1.y, p1.height);
 			Vector3f P2 = app.mapHeightmapToWorld(p2.x, p2.y, p2.height);
 			Cylinder c = new Cylinder(CURVE_RESOLUTION, CURVE_RESOLUTION, CURVE_SIZE, P1.distance(P2), false);
-			Geometry g = new Geometry("Curve", c);
+			Geometry g = new Geometry("Curve"+index, c);
 			g.setMaterial(tubeMat);
 			Quaternion q = g.getLocalRotation();
 			q.lookAt(P2.subtract(P1), Vector3f.UNIT_Y);
@@ -200,6 +202,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		}
 		
 		node.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+		featureCurveNodes.add(node);
 		sceneNode.attachChild(node);
 	}
 
@@ -240,6 +243,16 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	public void onAction(String name, boolean isPressed, float tpf) {
 		if ("SolveDiffusion".equals(name) && isPressed) {
 			solveDiffusion();
+		} else if ("MouseClicked".equals(name) && isPressed) {
+			Vector3f dir = app.getCamera().getWorldCoordinates(app.getInputManager().getCursorPosition(), 1);
+			dir.subtractLocal(app.getCamera().getLocation());
+			dir.normalizeLocal();
+			Ray ray = new Ray(app.getCamera().getLocation(), dir);
+			if (addNewCurves) {
+				addNewPoint(ray);
+			} else {
+				pickCurve(ray);
+			}
 		}
 	}
 
@@ -255,40 +268,127 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		}
 	}
 	
-	private static class ControlPoint {
+	//Edit
+	private void addNewPoint(Ray ray) {
+		
+	} 
+	
+	private void pickCurve(Ray ray) {
+		CollisionResults results = new CollisionResults();
+		sceneNode.collideWith(ray, results);
+		if (results.size()==0) {
+			selectedCurveIndex = -1;
+			selectedPointIndex = -1;
+			selectCurve(-1, null);
+		} else {
+			CollisionResult result = results.getClosestCollision();
+			Geometry geom = result.getGeometry();
+			if (geom.getName().startsWith("Curve")) {
+				int index = Integer.parseInt(geom.getName().substring("Curve".length()));
+				selectedCurveIndex = index;
+				selectedPointIndex = -1;
+				selectCurve(index, null);
+			} else if (geom.getName().startsWith("ControlPoint")) {
+				String n = geom.getName().substring("ControlPoint".length());
+				String[] parts = n.split(":");
+				selectedCurveIndex = Integer.parseInt(parts[0]);
+				selectedPointIndex = Integer.parseInt(parts[1]);
+				selectCurve(selectedCurveIndex, featureCurves.get(selectedCurveIndex).points[selectedPointIndex]);
+			} else {
+				selectedCurveIndex = -1;
+				selectedPointIndex = -1;
+				selectCurve(-1, null);
+			}
+		}
+	}
+	
+	//GUI-Interface
+	public void guiAddCurves() {
+		addNewCurves = true;
+	}
+	public void guiEditCurves() {
+		addNewCurves = false;
+	}
+	private void selectCurve(int curveIndex, ControlPoint point) {
+		screenController.selectCurve(curveIndex, point);
+	}
+	public void guiDeleteCurve() {
+		if (selectedCurveIndex==-1) {
+			return;
+		}
+		Node n = featureCurveNodes.remove(selectedCurveIndex);
+		featureCurves.remove(selectedCurveIndex);
+		sceneNode.detachChild(n);
+		selectCurve(-1, null);
+	}
+	public void guiDeleteControlPoint() {
+		if (selectedCurveIndex==-1 || selectedPointIndex==-1) {
+			return;
+		}
+		ControlCurve c = featureCurves.get(selectedCurveIndex);
+		if (c.points.length<=2) {
+			LOG.warning("Cannot delete control point, at least 2 points are required");
+			return;
+		}
+		featureCurves.remove(selectedCurveIndex);
+		Node n = featureCurveNodes.remove(selectedCurveIndex);
+		sceneNode.detachChild(n);
+		c = new ControlCurve(ArrayUtils.remove(c.points, selectedPointIndex));
+		addFeatureCurve(c);
+	}
+	public void guiControlPointChanged() {
+		
+	}
+	private void setAvailablePresets(String[] presets) {
+		
+	}
+	public void guiPresetChanged(int index) {
+		
+	}
+	public void guiSolve() {
+		solveDiffusion();
+	}
+	
+	
+	public static class ControlPoint {
 		/**
 		 * Coordinates on the heightmap
 		 */
-		private float x, y;
+		public float x, y;
 		/**
 		 * the target height at that control point.
 		 * h_i in the paper.
 		 */
-		private float height;
+		public float height;
+		/**
+		 * True if the control point has an elevation constraint.
+		 * This enables the height- and plateau-property.
+		 */
+		public boolean hasElevation = true;
 		/**
 		 * The radius of the plateau on both sides of the feature curve at this point.
 		 * r_i in the paper.
 		 */
-		private float plateau;
+		public float plateau;
 		/**
 		 * The angle and extend of the slope on the left side.
 		 * a_i, theta_i in the paper.
 		 */
-		private float angle1, extend1;
+		public float angle1, extend1;
 		/**
 		 * The angle and extend of the slope on the right side.
 		 * b_i, phi_i in the paper.
 		 */
-		private float angle2, extend2;
+		public float angle2, extend2;
 		/**
 		 * Noise parameters: amplitude and roughness.
 		 */
-		private float noiseAmplitude, noiseRoughness;
+		public float noiseAmplitude, noiseRoughness;
 
-		private ControlPoint() {
+		public ControlPoint() {
 		}
 
-		private ControlPoint(float x, float y, float height, float plateau, float angle1, float extend1, 
+		public ControlPoint(float x, float y, float height, float plateau, float angle1, float extend1, 
 				float angle2, float extend2, float noiseAmplitude, float noiseRoughness) {
 			this.x = x;
 			this.y = y;
@@ -309,7 +409,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		
 	}
 	
-	private static class ControlCurve {
+	public static class ControlCurve {
 		private ControlPoint[] points;
 		private float[] times;
 
@@ -335,7 +435,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			LOG.info("Times: "+Arrays.toString(times));
 		}
 		
-		private ControlPoint interpolate(float time) {
+		public ControlPoint interpolate(float time) {
 			int i;
 			for (i=1; i<points.length; ++i) {
 				if (times[i-1]<=time && times[i]>=time) {
