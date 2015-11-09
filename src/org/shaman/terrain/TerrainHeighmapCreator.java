@@ -78,6 +78,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final int SIZE = 256;//1024;
 	private static final float SLOPE_SCALE = 200f;
 	private static final float SLOPE_POWER = 2f;
+	public static final float HEIGHMAP_HEIGHT_SCALE = 128;
 	
     private TerrainQuad terrain;
     private Material matTerrain;
@@ -296,14 +297,14 @@ public class TerrainHeighmapCreator extends SimpleApplication {
          * The total size is up to you. At 1025 it ran fine for me (200+FPS), however at
          * size=2049 it got really slow. But that is a jump from 2 million to 8 million triangles...
          */
-        terrain = new TerrainQuad("terrain", 65, SIZE+1, heightmap.getJMEHeightmap(128));
+        terrain = new TerrainQuad("terrain", 65, SIZE+1, heightmap.getJMEHeightmap(HEIGHMAP_HEIGHT_SCALE));
 //        TerrainLodControl control = new TerrainLodControl(terrain, getCamera());
 //        control.setLodCalculator( new DistanceLodCalculator(65, 2.7f) ); // patch size, and a multiplier
 //        terrain.addControl(control);
         terrain.setMaterial(matTerrain);
         terrain.setModelBound(new BoundingBox());
         terrain.updateModelBound();
-        terrain.setLocalTranslation(0, -SIZE/2, 0);
+        terrain.setLocalTranslation(0, -HEIGHMAP_HEIGHT_SCALE/2, 0);
         terrain.setLocalScale(1f, 1f, 1f);
         rootNode.attachChild(terrain);
 	}
@@ -316,7 +317,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	 */
 	public Vector3f getHeightmapPoint(int x, int y) {
 		float h = heightmap.getHeightAt(x, y);
-		return new Vector3f(x - SIZE/2, h*128 -SIZE/2, y - SIZE/2);
+		return new Vector3f(x - SIZE/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - SIZE/2);
 	}
 	
 	/**
@@ -327,11 +328,11 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	 */
 	public Vector3f getHeightmapPoint(float x, float y) {
 		float h = heightmap.getHeightInterpolating(x, y);
-		return new Vector3f(x - SIZE/2, h*128 -SIZE/2, y - SIZE/2);
+		return new Vector3f(x - SIZE/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - SIZE/2);
 	}
 	
 	public Vector3f mapHeightmapToWorld(float x, float y, float h) {
-		return new Vector3f(x - SIZE/2, h*128 -SIZE/2, y - SIZE/2);
+		return new Vector3f(x - SIZE/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - SIZE/2);
 	}
 	
 	public Spatial getHeightmapSpatial() {

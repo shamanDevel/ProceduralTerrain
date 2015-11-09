@@ -36,7 +36,7 @@ public class SketchTerrainScreenController implements ScreenController {
 	private Button solveButton;
 	
 	private boolean curveSelected;
-	private SketchTerrain.ControlPoint controlPoint;
+	private ControlPoint controlPoint;
 	private boolean disableInput = false;
 
 	public SketchTerrainScreenController(SketchTerrain sketchTerrain) {
@@ -75,7 +75,7 @@ public class SketchTerrainScreenController implements ScreenController {
 	}
 	
 	//Commands from SketchTerrain
-	public void selectCurve(int curveIndex, SketchTerrain.ControlPoint point) {
+	public void selectCurve(int curveIndex, ControlPoint point) {
 		if (curveIndex==-1) {
 			curveSelected = false;
 			controlPoint = null;
