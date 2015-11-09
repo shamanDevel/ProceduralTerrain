@@ -41,8 +41,8 @@ import org.shaman.terrain.heightmap.Heightmap;
  *
  * @author Sebastian Weiss
  */
-public class SketchTerrain implements AnalogListener, ActionListener {
-	private static final Logger LOG = Logger.getLogger(SketchTerrain.class.getName());
+public class SketchTerrain_old implements AnalogListener, ActionListener {
+	private static final Logger LOG = Logger.getLogger(SketchTerrain_old.class.getName());
 	private static final int MAX_STROKES = 10;
 	private static final int STROKE_WIDTH = 5;
 	private static final int STROKE_T_JUNCTION_TRHESHOLD = 20;
@@ -87,7 +87,7 @@ public class SketchTerrain implements AnalogListener, ActionListener {
 	private List<List<Vector2f>> features = new ArrayList<>();
 	private Node featureNode = new Node("features");
 
-	public SketchTerrain(TerrainHeighmapCreator app, Heightmap map) {
+	public SketchTerrain_old(TerrainHeighmapCreator app, Heightmap map) {
 		this.app = app;
 		this.map = map;
 		init();

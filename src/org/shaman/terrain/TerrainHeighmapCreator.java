@@ -31,6 +31,7 @@
  */
 package org.shaman.terrain;
 
+import org.shaman.terrain.sketch.SketchTerrain;
 import com.jme3.app.FlyCamAppState;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bounding.BoundingBox;
@@ -46,6 +47,7 @@ import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -59,6 +61,7 @@ import com.jme3.texture.Texture.WrapMode;
 import com.jme3.texture.Texture2D;
 import com.jme3.util.BufferUtils;
 import com.jme3.util.SkyFactory;
+import de.lessvoid.nifty.Nifty;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.logging.Logger;
@@ -89,6 +92,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
     private float darkRockScale = 16;
     private float grassScale = 32;
 	private CustomFlyByCamera camera;
+	
+	private NiftyJmeDisplay niftyDisplay;
+	private Nifty nifty;
     
 	private ArrayList<HeightmapProcessor.PropItem> properties = new ArrayList<>();
 	private int property = 0;
@@ -101,7 +107,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private Heightmap heightmap;
 	private Texture2D alphaMap;
 	
-	private SketchTerrain2 sketchTerrain;
+	private SketchTerrain sketchTerrain;
 
     public static void main(String[] args) {
         TerrainHeighmapCreator app = new TerrainHeighmapCreator();
@@ -115,7 +121,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         app.start();
     }
 
-	public void updateAlphaMap() {
+	public void updateAlphaMap() {		
 		Image image = alphaMap.getImage();
 		ByteBuffer data = image.getData(0);
 		if (data == null) {
@@ -145,6 +151,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         setupKeys();
 //		loadHintText();
 		
+		initNifty();
 		initHeightmap(false);
 		initScene();
 		initPropertyUI();
@@ -157,7 +164,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		propText.getParent().detachChild(propText);
 		selectionText.getParent().detachChild(selectionText);
 		//switch to terrain sketching
-		sketchTerrain = new SketchTerrain2(this, heightmap);
+		sketchTerrain = new SketchTerrain(this, heightmap);
 	}
 	
 	private void initHeightmap(boolean applyProcessors) {
@@ -210,6 +217,12 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		updateTerrain();
 		time2 = System.currentTimeMillis();
 		System.out.println("Time to update mesh: "+(time2-time1)/1000.0+" sec");
+	}
+	
+	private void initNifty() {
+		niftyDisplay = new NiftyJmeDisplay(assetManager, inputManager, audioRenderer, guiViewPort);
+        nifty = niftyDisplay.getNifty();
+        guiViewPort.addProcessor(niftyDisplay);
 	}
 	
 	private void initScene() {
@@ -284,7 +297,6 @@ public class TerrainHeighmapCreator extends SimpleApplication {
          * size=2049 it got really slow. But that is a jump from 2 million to 8 million triangles...
          */
         terrain = new TerrainQuad("terrain", 65, SIZE+1, heightmap.getJMEHeightmap(128));
-		terrain.setHeight(Vector2f.ZERO, speed);
 //        TerrainLodControl control = new TerrainLodControl(terrain, getCamera());
 //        control.setLodCalculator( new DistanceLodCalculator(65, 2.7f) ); // patch size, and a multiplier
 //        terrain.addControl(control);
@@ -324,6 +336,10 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	
 	public Spatial getHeightmapSpatial() {
 		return terrain;
+	}
+	
+	public Nifty getNifty() {
+		return nifty;
 	}
 	
 	private void initPropertyUI() {		

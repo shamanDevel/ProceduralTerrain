@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.shaman.terrain;
+package org.shaman.terrain.sketch;
 
 import Jama.Matrix;
 import com.jme3.input.KeyInput;
@@ -32,6 +32,7 @@ import com.jme3.shadow.DirectionalLightShadowRenderer;
 import com.jme3.texture.FrameBuffer;
 import com.jme3.texture.Image;
 import com.jme3.util.BufferUtils;
+import de.lessvoid.nifty.Nifty;
 import java.awt.Graphics;
 import java.awt.Transparency;
 import java.awt.color.ColorSpace;
@@ -45,14 +46,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import org.apache.commons.lang3.StringUtils;
+import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.heightmap.Heightmap;
 
 /**
  *
  * @author Sebastian Weiss
  */
-public class SketchTerrain2 implements ActionListener, AnalogListener {
-	private static final Logger LOG = Logger.getLogger(SketchTerrain2.class.getName());
+public class SketchTerrain implements ActionListener, AnalogListener {
+	private static final Logger LOG = Logger.getLogger(SketchTerrain.class.getName());
 	private static final float PLANE_QUAD_SIZE = 200;
 	private static final float INITIAL_PLANE_DISTANCE = 150f;
 	private static final float PLANE_MOVE_SPEED = 0.02f;
@@ -60,7 +62,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 	private static final int CURVE_RESOLUTION = 8;
 	private static final int CURVE_SAMPLES = 128;
 	private static final boolean DEBUG_DIFFUSION_SOLVER = false;
-	private static final int DIFFUSION_SOLVER_ITERATIONS = 500;
+	private static final int DIFFUSION_SOLVER_ITERATIONS = 1000;
 	
 	private final TerrainHeighmapCreator app;
 	private final Heightmap map;
@@ -69,11 +71,12 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 	private Node sceneNode;
 	private float planeDistance = INITIAL_PLANE_DISTANCE;
 	private Spatial sketchPlane;
+	private SketchTerrainScreenController screenController;
 
 	private final ArrayList<ControlCurve> featureCurves;
 	private final ArrayList<Node> featureCurveNodes;
 	
-	public SketchTerrain2(TerrainHeighmapCreator app, Heightmap map) {
+	public SketchTerrain(TerrainHeighmapCreator app, Heightmap map) {
 		this.app = app;
 		this.map = map;
 		this.featureCurves = new ArrayList<>();
@@ -112,6 +115,16 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 		shadowRenderer.setLight(light);
 		app.getHeightmapSpatial().setShadowMode(RenderQueue.ShadowMode.Receive);
 		app.getViewPort().addProcessor(shadowRenderer);
+		
+		initNifty();
+	}
+	private void initNifty() {
+		Nifty nifty = app.getNifty();
+		screenController = new SketchTerrainScreenController(this);
+		nifty.registerScreenController(screenController);
+		nifty.addXml("org/shaman/terrain/sketch/SketchTerrainScreen.xml");
+		nifty.gotoScreen("SketchTerrain");
+//		nifty.setDebugOptionPanelColors(true);
 	}
 	private void initSketchPlane() {
 		Quad quad = new Quad(PLANE_QUAD_SIZE*2, PLANE_QUAD_SIZE*2);
@@ -885,7 +898,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			try {
 				ImageIO.write(result, "png", new File(filename));
 			} catch (IOException ex) {
-				Logger.getLogger(SketchTerrain2.class.getName()).log(Level.SEVERE, null, ex);
+				Logger.getLogger(SketchTerrain.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
 		
@@ -909,7 +922,7 @@ public class SketchTerrain2 implements ActionListener, AnalogListener {
 			try {
 				ImageIO.write(result, "png", new File(filename));
 			} catch (IOException ex) {
-				Logger.getLogger(SketchTerrain2.class.getName()).log(Level.SEVERE, null, ex);
+				Logger.getLogger(SketchTerrain.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
 	}

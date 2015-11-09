@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty xmlns="https://raw.githubusercontent.com/void256/nifty-gui/1.4/nifty-core/src/main/resources/nifty.xsd" 
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	   xsi:schemaLocation="https://raw.githubusercontent.com/void256/nifty-gui/1.4/nifty-core/src/main/resources/nifty.xsd">
+
+	<useStyles filename="nifty-default-styles.xml" />
+	<useControls filename="nifty-default-controls.xml" />
+	
+	<screen id="SketchTerrain" controller="org.shaman.terrain.sketch.SketchTerrainScreenController">
+		<layer childLayout="absolute">
+			<panel height="100%" width="100%" childLayout="vertical">
+				<panel id="NavigationPanel" width="100%" height="30px" childLayout="horizontal" backgroundColor="#000a">
+					<control name="label" text="Step1" width="70px" />
+					<control name="label" text="Step2" width="70px" />
+				</panel>
+				<panel childLayout="vertical" backgroundColor="#0008">
+					<panel id="PropertiesPanel" width="250px" height="100%" childLayout="vertical">
+						<panel childLayout="horizontal">
+							<control name="label" text="Add curve:" margin="2px"/>
+							<control id="AddCurveCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text=" " width="5px" />
+							<control name="label" text="Edit curve:" margin="2px"/>
+							<control id="EditCurveCheckBox" name="checkbox" margin="2px"/>
+						</panel>
+						
+						<panel childLayout="absolute" height="20px"/>
+						<control name="label" textHAlign="left" text="Edit curve:" width="122px" margin="2px"/>
+						<control id="DeleteCurveButton" name="button" label="Delete Curve" width="150px" margin="2px"/>
+						<control id="DeleteControlPointButton" name="button" label="Delete Control Point" width="150px" margin="2px"/>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Elevation constraint:" width="122px" margin="2px"/>
+							<control id="ElevationCheckBox" name="checkbox" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Plateau Size:" width="122px" margin="2px"/>
+							<control id="PlateauSlider" name="horizontalSlider" width="120px" margin="2px"
+									 min="0" max="100" initial="5" stepSize="1" buttonStepSize="5"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Slope size left:" width="122px" margin="2px"/>
+							<control id="SlopeSizeLeftSlider" name="horizontalSlider" width="120px" margin="2px"
+									 min="0" max="100" initial="5" stepSize="1" buttonStepSize="5"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Slope angle left:" width="122px" margin="2px"/>
+							<control id="SlopeAngleLeftSlider" name="horizontalSlider" width="120px" margin="2px"
+									 min="-90" max="90" initial="-5" stepSize="1" buttonStepSize="1"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Slope size right:" width="122px" margin="2px"/>
+							<control id="SlopeSizeRightSlider" name="horizontalSlider" width="120px" margin="2px"
+									 min="0" max="100" initial="5" stepSize="1" buttonStepSize="5"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Slope angle right:" width="122px" margin="2px"/>
+							<control id="SlopeAngleRightSlider" name="horizontalSlider" width="120px" margin="2px"
+									 min="-90" max="90" initial="-5" stepSize="1" buttonStepSize="1"/>
+						</panel>
+						
+						<panel childLayout="absolute" height="20px"/>
+						<control name="label" textHAlign="left"text="Presets for new curves:" margin="2px"/>
+						<control id="PresetListBox" name="listBox" vertical="optional" horizontal="optional" 
+								 displayItems="4" selection="Single" width="246px" margin="2px" />
+						
+						<panel childLayout="absolute" height="20px"/>
+						<control id="SolveButton" name="button" label="Solve" width="246px" margin="2px"/>
+					</panel>
+				</panel>
+			</panel>
+		</layer>
+	</screen>
+	
+</nifty>
