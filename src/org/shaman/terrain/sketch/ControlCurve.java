@@ -21,10 +21,14 @@ public class ControlCurve {
 	private float[] times;
 
 	public ControlCurve(ControlPoint[] points) {
-		if (points.length < 2) {
-			throw new IllegalArgumentException("At least two control points have to be specified");
-		}
+		setPoints(points);
+	}
+	
+	public void setPoints(ControlPoint[] points) {
 		this.points = points;
+		if (points.length<2) {
+			return;
+		}
 		//approximate geodesic sampling by the euclidian distance
 		float[] distances = new float[points.length];
 		distances[0] = 0;
@@ -39,13 +43,16 @@ public class ControlCurve {
 		LOG.info("Control points:\n" + StringUtils.join(points, '\n'));
 		LOG.info("Distances: " + Arrays.toString(distances));
 		LOG.info("Times: " + Arrays.toString(times));
-	} //approximate geodesic sampling by the euclidian distance
+	}
 
 	public ControlPoint[] getPoints() {
 		return points;
 	}
 
 	public ControlPoint interpolate(float time) {
+		if (points.length<2) {
+			return points[0];
+		}
 		int i;
 		for (i = 1; i < points.length; ++i) {
 			if (times[i - 1] <= time && times[i] >= time) {

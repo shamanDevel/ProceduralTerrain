@@ -74,8 +74,14 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	private final ArrayList<Node> featureCurveNodes;
 	private final ArrayList<ControlCurveMesh> featureCurveMesh;
 	private boolean addNewCurves = true;
+	
 	private int selectedCurveIndex;
 	private int selectedPointIndex;
+	
+	private ControlCurve newCurve;
+	private Node newCurveNode;
+	private ControlCurveMesh newCurveMesh;
+	private long lastTime;
 	
 	public SketchTerrain(TerrainHeighmapCreator app, Heightmap map) {
 		this.app = app;
@@ -170,25 +176,29 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		Node node = new Node("feature"+index);
 		featureCurves.add(curve);
 		
-		Material sphereMat = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
-		sphereMat.setBoolean("UseMaterialColors", true);
-		sphereMat.setColor("Diffuse", ColorRGBA.Gray);
-		sphereMat.setColor("Ambient", ColorRGBA.White);
-		for (int i=0; i<curve.getPoints().length; ++i) {
-			Sphere s = new Sphere(CURVE_RESOLUTION, CURVE_RESOLUTION, CURVE_SIZE*3f);
-			Geometry g = new Geometry("ControlPoint"+index+":"+i, s);
-			g.setMaterial(sphereMat);
-			g.setLocalTranslation(app.mapHeightmapToWorld(curve.getPoints()[i].x, curve.getPoints()[i].y, curve.getPoints()[i].height));
-			node.attachChild(g);
-		}
+		addControlPointsToNode(curve.getPoints(), node, index);
 		
 		ControlCurveMesh mesh = new ControlCurveMesh(curve, "Curve"+index, app);
 		node.attachChild(mesh.getTubeGeometry());
 		node.attachChild(mesh.getSlopeGeometry());
 		
 		node.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+		mesh.getSlopeGeometry().setShadowMode(RenderQueue.ShadowMode.Off);
 		featureCurveNodes.add(node);
 		sceneNode.attachChild(node);
+	}
+	private void addControlPointsToNode(ControlPoint[] points, Node node, int index) {
+		Material sphereMat = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
+		sphereMat.setBoolean("UseMaterialColors", true);
+		sphereMat.setColor("Diffuse", ColorRGBA.Gray);
+		sphereMat.setColor("Ambient", ColorRGBA.White);
+		for (int i=0; i<points.length; ++i) {
+			Sphere s = new Sphere(CURVE_RESOLUTION, CURVE_RESOLUTION, CURVE_SIZE*3f);
+			Geometry g = new Geometry(index<0 ? "dummy" : ("ControlPoint"+index+":"+i), s);
+			g.setMaterial(sphereMat);
+			g.setLocalTranslation(app.mapHeightmapToWorld(points[i].x, points[i].y, points[i].height));
+			node.attachChild(g);
+		}
 	}
 
 	public void onUpdate(float tpf) {
@@ -255,8 +265,60 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	
 	//Edit
 	private void addNewPoint(Ray ray) {
-		
-	} 
+		long time = System.currentTimeMillis();
+		if (time < lastTime+500) {
+			//finish current curve
+			if (newCurve==null) {
+				return;
+			}
+			newCurveMesh = null;
+			sceneNode.detachChild(newCurveNode);
+			newCurveNode = null;
+			if (newCurve.getPoints().length>=2) {
+				addFeatureCurve(newCurve);
+			}
+			newCurve = null;
+			LOG.info("new feature added");
+			screenController.setMessage("");
+			return;
+		}
+		lastTime = time;
+		//create new point
+		CollisionResults results = new CollisionResults();
+		sketchPlane.collideWith(ray, results);
+		if (results.size()==0) {
+			return;
+		}
+		Vector3f point = results.getClosestCollision().getContactPoint();
+		point = app.mapWorldToHeightmap(point);
+		ControlPoint p = createNewControlPoint(point.x, point.y, point.z);
+		//add to curve
+		if (newCurve==null) {
+			LOG.info("start a new feature");
+			newCurve = new ControlCurve(new ControlPoint[]{p});
+			newCurveNode = new Node();
+			addControlPointsToNode(newCurve.getPoints(), newCurveNode, -1);
+			newCurveMesh = new ControlCurveMesh(newCurve, "dummy", app);
+			newCurveNode.attachChild(newCurveMesh.getSlopeGeometry());
+			newCurveNode.attachChild(newCurveMesh.getTubeGeometry());
+			sceneNode.attachChild(newCurveNode);
+			screenController.setMessage("ADDING A NEW FEATURE");
+		} else {
+			newCurve.setPoints(ArrayUtils.add(newCurve.getPoints(), p));
+			newCurveNode.detachAllChildren();
+			addControlPointsToNode(newCurve.getPoints(), newCurveNode, -1);
+			newCurveMesh.updateMesh();
+			newCurveNode.attachChild(newCurveMesh.getSlopeGeometry());
+			newCurveNode.attachChild(newCurveMesh.getTubeGeometry());
+		}
+		newCurveNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+		newCurveMesh.getSlopeGeometry().setShadowMode(RenderQueue.ShadowMode.Off);
+	}
+	
+	private ControlPoint createNewControlPoint(float x, float y, float h) {
+		ControlPoint p = new ControlPoint(x, y, h, 2, 0, 0, 0, 0, 0, 0);
+		return p;
+	}
 	
 	private void pickCurve(Ray ray) {
 		CollisionResults results = new CollisionResults();

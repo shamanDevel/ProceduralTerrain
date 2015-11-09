@@ -335,6 +335,13 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		return new Vector3f(x - SIZE/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - SIZE/2);
 	}
 	
+	public Vector3f mapWorldToHeightmap(Vector3f world) {
+		float x = world.x + SIZE/2;
+		float y = world.z + SIZE/2;
+		float h = (world.y + HEIGHMAP_HEIGHT_SCALE/2) / HEIGHMAP_HEIGHT_SCALE;
+		return new Vector3f(x, y, h);
+	}
+	
 	public Spatial getHeightmapSpatial() {
 		return terrain;
 	}

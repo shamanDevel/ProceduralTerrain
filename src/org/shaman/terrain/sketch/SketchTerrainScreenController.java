@@ -34,6 +34,7 @@ public class SketchTerrainScreenController implements ScreenController {
 	private Slider slopeAngleRightSlider;
 	private ListBox<String> presetListBox;
 	private Button solveButton;
+	private Label messageLabel;
 	
 	private boolean curveSelected;
 	private ControlPoint controlPoint;
@@ -64,6 +65,7 @@ public class SketchTerrainScreenController implements ScreenController {
 		slopeAngleRightSlider = screen.findNiftyControl("SlopeAngleRightSlider", Slider.class);
 		presetListBox = screen.findNiftyControl("PresetListBox", ListBox.class);
 		solveButton = screen.findNiftyControl("SolveButton", Button.class);
+		messageLabel = screen.findNiftyControl("MessageLabel", Label.class);
 		
 		addCurveCheckBox.setChecked(true);
 		updatePhase();
@@ -75,6 +77,11 @@ public class SketchTerrainScreenController implements ScreenController {
 	}
 	
 	//Commands from SketchTerrain
+	
+	public void setMessage(String message) {
+		messageLabel.setText(message);
+	}
+	
 	public void selectCurve(int curveIndex, ControlPoint point) {
 		if (curveIndex==-1) {
 			curveSelected = false;
