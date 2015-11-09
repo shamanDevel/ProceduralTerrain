@@ -12,12 +12,16 @@ import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import java.util.Arrays;
 import java.util.List;
+import org.shaman.terrain.TerrainHeighmapCreator;
 
 /**
  *
  * @author Sebastian Weiss
  */
 public class SketchTerrainScreenController implements ScreenController {
+	private static final float SLOPE_SIZE_SCALE = 4f;
+	private static final float SLOPE_ANGLE_SCALE = TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE / 2;
+	
 	private final SketchTerrain sketchTerrain;
 	
 	private Nifty nifty;
@@ -93,10 +97,10 @@ public class SketchTerrainScreenController implements ScreenController {
 				disableInput = true;
 				elevationConstraintCheckBox.setChecked(point.hasElevation);
 				plateauSizeSlider.setValue(point.plateau);
-				slopeSizeLeftSlider.setValue(point.extend1);
-				slopeAngleLeftSlider.setValue(point.angle1);
-				slopeSizeRightSlider.setValue(point.extend2);
-				slopeAngleRightSlider.setValue(point.angle2);
+				slopeSizeLeftSlider.setValue(point.extend1 * SLOPE_SIZE_SCALE);
+				slopeAngleLeftSlider.setValue(point.angle1 * SLOPE_ANGLE_SCALE);
+				slopeSizeRightSlider.setValue(point.extend2 * SLOPE_SIZE_SCALE);
+				slopeAngleRightSlider.setValue(point.angle2 * SLOPE_ANGLE_SCALE);
 				disableInput = false;
 			}
 		}
@@ -161,13 +165,13 @@ public class SketchTerrainScreenController implements ScreenController {
 		if (e.getSlider()==plateauSizeSlider) {
 			controlPoint.plateau = e.getValue();
 		} else if (e.getSlider()==slopeSizeLeftSlider) {
-			controlPoint.extend1 = e.getValue();
+			controlPoint.extend1 = e.getValue() / SLOPE_SIZE_SCALE;
 		} else if (e.getSlider()==slopeAngleLeftSlider) {
-			controlPoint.angle1 = e.getValue();
+			controlPoint.angle1 = e.getValue() / SLOPE_ANGLE_SCALE;
 		} else if (e.getSlider()==slopeSizeRightSlider) {
-			controlPoint.extend2 = e.getValue();
+			controlPoint.extend2 = e.getValue() / SLOPE_SIZE_SCALE;
 		} else if (e.getSlider()==slopeAngleRightSlider) {
-			controlPoint.angle2 = e.getValue();
+			controlPoint.angle2 = e.getValue() / SLOPE_ANGLE_SCALE;
 		}
 		sketchTerrain.guiControlPointChanged();
 	}

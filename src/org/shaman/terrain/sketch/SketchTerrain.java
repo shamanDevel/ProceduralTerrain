@@ -185,6 +185,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		node.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 		mesh.getSlopeGeometry().setShadowMode(RenderQueue.ShadowMode.Off);
 		featureCurveNodes.add(node);
+		featureCurveMesh.add(mesh);
 		sceneNode.attachChild(node);
 	}
 	private void addControlPointsToNode(ControlPoint[] points, Node node, int index) {
@@ -384,7 +385,12 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		addFeatureCurve(c);
 	}
 	public void guiControlPointChanged() {
-		
+		if (selectedCurveIndex==-1 || selectedPointIndex==-1) {
+			return;
+		}
+		System.out.println("control point changed: "+featureCurves.get(selectedCurveIndex).getPoints()[selectedPointIndex]);
+		ControlCurveMesh mesh = featureCurveMesh.get(selectedCurveIndex);
+		mesh.updateMesh();
 	}
 	private void setAvailablePresets(String[] presets) {
 		
