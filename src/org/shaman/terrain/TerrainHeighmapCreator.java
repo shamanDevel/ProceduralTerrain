@@ -153,10 +153,10 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 //		loadHintText();
 		
 		initNifty();
-		initHeightmap(false);
+		initHeightmap(true);
 		initScene();
 		initPropertyUI();
-		nextStep();
+		//nextStep();
     }
 	
 	private void nextStep() {

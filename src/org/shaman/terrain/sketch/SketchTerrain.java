@@ -63,6 +63,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	
 	private final TerrainHeighmapCreator app;
 	private final Heightmap map;
+	private final Heightmap originalMap;
 	
 	private Node guiNode;
 	private Node sceneNode;
@@ -89,6 +90,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	public SketchTerrain(TerrainHeighmapCreator app, Heightmap map) {
 		this.app = app;
 		this.map = map;
+		this.originalMap = map.clone();
 		this.featureCurves = new ArrayList<>();
 		this.featureCurveNodes = new ArrayList<>();
 		this.featureCurveMesh = new ArrayList<>();
@@ -105,13 +107,13 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		app.getRootNode().attachChild(sceneNode);
 		
 		//add test feature curve
-		ControlPoint p1 = new ControlPoint(40, 40, 0.05f, 0, 0, 0, 0, 0, 0, 0);
-		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 20f*FastMath.DEG_TO_RAD, 20, 70*FastMath.DEG_TO_RAD, 5, 0, 0);
-		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 20f*FastMath.DEG_TO_RAD, 35, 70*FastMath.DEG_TO_RAD, 7, 0, 0);
-		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 20f*FastMath.DEG_TO_RAD, 20, 70*FastMath.DEG_TO_RAD, 5, 0, 0);
-		ControlPoint p5 = new ControlPoint(160, 200, 0.05f, 0, 0, 0, 0, 0, 0, 0);
-		ControlCurve c = new ControlCurve(new ControlPoint[]{p1, p2, p3, p4, p5});
-		addFeatureCurve(c);
+//		ControlPoint p1 = new ControlPoint(40, 40, 0.05f, 0, 0, 0, 0, 0, 0, 0);
+//		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 20f*FastMath.DEG_TO_RAD, 20, 70*FastMath.DEG_TO_RAD, 5, 0, 0);
+//		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 20f*FastMath.DEG_TO_RAD, 35, 70*FastMath.DEG_TO_RAD, 7, 0, 0);
+//		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 20f*FastMath.DEG_TO_RAD, 20, 70*FastMath.DEG_TO_RAD, 5, 0, 0);
+//		ControlPoint p5 = new ControlPoint(160, 200, 0.05f, 0, 0, 0, 0, 0, 0, 0);
+//		ControlCurve c = new ControlCurve(new ControlPoint[]{p1, p2, p3, p4, p5});
+//		addFeatureCurve(c);
 		
 		//init sketch plane
 		initSketchPlane();
@@ -217,6 +219,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		//create solver
 		DiffusionSolver solver = new DiffusionSolver(map.getSize(), featureCurves.toArray(new ControlCurve[featureCurves.size()]));
 		Matrix mat = new Matrix(map.getSize(), map.getSize());
+		//Save
 		if (DEBUG_DIFFUSION_SOLVER) {
 			solver.saveFloatMatrix(mat, "diffusion/Iter0.png",1);
 		}
@@ -233,7 +236,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		//fill heighmap
 		for (int x=0; x<map.getSize(); ++x) {
 			for (int y=0; y<map.getSize(); ++y) {
-				map.setHeightAt(x, y, (float) mat.get(x, y));
+				map.setHeightAt(x, y, (float) mat.get(x, y) + originalMap.getHeightAt(x, y));
 			}
 		}
 		app.updateAlphaMap();
@@ -498,6 +501,13 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			vertexColorMat.setBoolean("VertexColor", false);
 			vertexColorMat.setColor("Color", ColorRGBA.White);
 			fillMatrix(beta, elevationNode, false);
+			
+			//copy existing heightmap data
+			for (int x=0; x<map.getSize(); ++x) {
+				for (int y=0; y<map.getSize(); ++y) {
+					elevation.set(x, y, elevation.get(x, y) - originalMap.getHeightAt(x, y));
+				}
+			}
 			
 			alpha.timesEquals(ALPHA_SCALE);
 			beta.timesEquals(BETA_SCALE);
