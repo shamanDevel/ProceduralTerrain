@@ -356,6 +356,13 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	}
 	public void guiEditCurves() {
 		addNewCurves = false;
+		if (newCurve != null) {
+			newCurveMesh = null;
+			sceneNode.detachChild(newCurveNode);
+			newCurveNode = null;
+			newCurve = null;
+			screenController.setMessage("");
+		}
 	}
 	private void selectCurve(int curveIndex, ControlPoint point) {
 		screenController.selectCurve(curveIndex, point);
@@ -649,12 +656,12 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 				dy /= sum;
 				pos[4*i + 0] = p.add(points[i].plateau * -dy, points[i].plateau * dx, 0);
 				pos[4*i + 1] = p.add(
-						(points[i].plateau + FastMath.cos(points[i].angle1 * FastMath.DEG_TO_RAD)*points[i].extend1) * -dy, 
-						(points[i].plateau + FastMath.cos(points[i].angle1 * FastMath.DEG_TO_RAD)*points[i].extend1) * dx, 0);
+						(points[i].plateau + FastMath.cos(points[i].angle1)*points[i].extend1) * -dy, 
+						(points[i].plateau + FastMath.cos(points[i].angle1)*points[i].extend1) * dx, 0);
 				pos[4*i + 2] = p.add(points[i].plateau * dy, points[i].plateau * -dx, 0);
 				pos[4*i + 3] = p.add(
-						(points[i].plateau + FastMath.cos(points[i].angle2 * FastMath.DEG_TO_RAD)*points[i].extend2) * dy, 
-						(points[i].plateau + FastMath.cos(points[i].angle2 * FastMath.DEG_TO_RAD)*points[i].extend2) * -dx, 0);
+						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2) * dy, 
+						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2) * -dx, 0);
 				ColorRGBA c1, c2, c3, c4;
 				c1 = new ColorRGBA(-dy/2 + 0.5f, dx/2 + 0.5f, -FastMath.sin(points[i].angle1) + 0.5f, 1);
 				c2 = c1;
@@ -710,18 +717,18 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 				float factor = SLOPE_ALPHA_FACTOR;
 				pos[6*i + 0] = p.add(points[i].plateau * -dy, points[i].plateau * dx, 0);
 				pos[6*i + 1] = p.add(
-						(points[i].plateau + FastMath.cos(points[i].angle1 * FastMath.DEG_TO_RAD)*points[i].extend1*factor) * -dy, 
-						(points[i].plateau + FastMath.cos(points[i].angle1 * FastMath.DEG_TO_RAD)*points[i].extend1*factor) * dx, 0);
+						(points[i].plateau + FastMath.cos(points[i].angle1)*points[i].extend1*factor) * -dy, 
+						(points[i].plateau + FastMath.cos(points[i].angle1)*points[i].extend1*factor) * dx, 0);
 				pos[6*i + 2] = p.add(
-						(points[i].plateau + FastMath.cos(points[i].angle1 * FastMath.DEG_TO_RAD)*points[i].extend1) * -dy, 
-						(points[i].plateau + FastMath.cos(points[i].angle1 * FastMath.DEG_TO_RAD)*points[i].extend1) * dx, 0);
+						(points[i].plateau + FastMath.cos(points[i].angle1)*points[i].extend1) * -dy, 
+						(points[i].plateau + FastMath.cos(points[i].angle1)*points[i].extend1) * dx, 0);
 				pos[6*i + 3] = p.add(points[i].plateau * dy, points[i].plateau * -dx, 0);
 				pos[6*i + 4] = p.add(
-						(points[i].plateau + FastMath.cos(points[i].angle2 * FastMath.DEG_TO_RAD)*points[i].extend2*factor) * dy, 
-						(points[i].plateau + FastMath.cos(points[i].angle2 * FastMath.DEG_TO_RAD)*points[i].extend2*factor) * -dx, 0);
+						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2*factor) * dy, 
+						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2*factor) * -dx, 0);
 				pos[6*i + 5] = p.add(
-						(points[i].plateau + FastMath.cos(points[i].angle2 * FastMath.DEG_TO_RAD)*points[i].extend2) * dy, 
-						(points[i].plateau + FastMath.cos(points[i].angle2 * FastMath.DEG_TO_RAD)*points[i].extend2) * -dx, 0);
+						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2) * dy, 
+						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2) * -dx, 0);
 				ColorRGBA c1 = new ColorRGBA(0, 0, 0, 1);
 				ColorRGBA c2 = new ColorRGBA(1, 1, 1, 1);
 				col[6*i + 0] = c1;

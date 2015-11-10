@@ -189,13 +189,13 @@ public class ControlCurveMesh {
 			Vector3f l1 = app.mapHeightmapToWorld(p.x - p.plateau*dy, p.y + p.plateau*dx, p.height);
 			Vector3f r1 = app.mapHeightmapToWorld(p.x + p.plateau*dy, p.y - p.plateau*dx, p.height);
 			Vector3f l2 = app.mapHeightmapToWorld(
-					p.x - (p.plateau + FastMath.cos(p.angle1 * FastMath.DEG_TO_RAD)*p.extend1)*dy, 
-					p.y + (p.plateau + FastMath.cos(p.angle1 * FastMath.DEG_TO_RAD)*p.extend1)*dx, 
-					p.height - FastMath.sin(p.angle1 * FastMath.DEG_TO_RAD)*p.extend1);
+					p.x - (p.plateau + FastMath.cos(p.angle1)*p.extend1)*dy, 
+					p.y + (p.plateau + FastMath.cos(p.angle1)*p.extend1)*dx, 
+					p.height - FastMath.sin(p.angle1)*p.extend1/TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE);
 			Vector3f r2 = app.mapHeightmapToWorld(
-					p.x + (p.plateau + FastMath.cos(p.angle2 * FastMath.DEG_TO_RAD)*p.extend2)*dy, 
-					p.y - (p.plateau + FastMath.cos(p.angle2 * FastMath.DEG_TO_RAD)*p.extend2)*dx, 
-					p.height - FastMath.sin(p.angle2 * FastMath.DEG_TO_RAD)*p.extend2);
+					p.x + (p.plateau + FastMath.cos(p.angle2)*p.extend2)*dy, 
+					p.y - (p.plateau + FastMath.cos(p.angle2)*p.extend2)*dx, 
+					p.height - FastMath.sin(p.angle2)*p.extend2/TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE);
 			
 			positions.add(c);
 			positions.add(l1);

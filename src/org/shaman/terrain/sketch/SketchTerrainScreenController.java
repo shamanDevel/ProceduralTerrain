@@ -5,6 +5,7 @@
  */
 package org.shaman.terrain.sketch;
 
+import com.jme3.math.FastMath;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.controls.*;
@@ -20,7 +21,7 @@ import org.shaman.terrain.TerrainHeighmapCreator;
  */
 public class SketchTerrainScreenController implements ScreenController {
 	private static final float SLOPE_SIZE_SCALE = 4f;
-	private static final float SLOPE_ANGLE_SCALE = TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE / 2;
+	private static final float SLOPE_ANGLE_SCALE = FastMath.RAD_TO_DEG * 1.2f;
 	
 	private final SketchTerrain sketchTerrain;
 	

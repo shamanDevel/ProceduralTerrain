@@ -35,12 +35,12 @@
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Plateau Size:" width="122px" margin="2px"/>
 							<control id="PlateauSlider" name="horizontalSlider" width="120px" margin="2px"
-									 min="0" max="100" initial="5" stepSize="1" buttonStepSize="5"/>
+									 min="0" max="200" initial="5" stepSize="1" buttonStepSize="5"/>
 						</panel>
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Slope size left:" width="122px" margin="2px"/>
 							<control id="SlopeSizeLeftSlider" name="horizontalSlider" width="120px" margin="2px"
-									 min="0" max="100" initial="5" stepSize="1" buttonStepSize="5"/>
+									 min="0" max="200" initial="5" stepSize="1" buttonStepSize="5"/>
 						</panel>
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Slope angle left:" width="122px" margin="2px"/>
@@ -50,7 +50,7 @@
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Slope size right:" width="122px" margin="2px"/>
 							<control id="SlopeSizeRightSlider" name="horizontalSlider" width="120px" margin="2px"
-									 min="0" max="100" initial="5" stepSize="1" buttonStepSize="5"/>
+									 min="0" max="200" initial="5" stepSize="1" buttonStepSize="5"/>
 						</panel>
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Slope angle right:" width="122px" margin="2px"/>
