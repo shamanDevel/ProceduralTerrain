@@ -83,12 +83,17 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	private ControlCurveMesh newCurveMesh;
 	private long lastTime;
 	
+	private final CurvePreset[] presets;
+	private int selectedPreset;
+	
 	public SketchTerrain(TerrainHeighmapCreator app, Heightmap map) {
 		this.app = app;
 		this.map = map;
 		this.featureCurves = new ArrayList<>();
 		this.featureCurveNodes = new ArrayList<>();
 		this.featureCurveMesh = new ArrayList<>();
+		this.presets = DefaultCurvePresets.DEFAULT_PRESETS;
+		selectedPreset = 0;
 		init();
 	}
 	
@@ -133,6 +138,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		nifty.registerScreenController(screenController);
 		nifty.addXml("org/shaman/terrain/sketch/SketchTerrainScreen.xml");
 		nifty.gotoScreen("SketchTerrain");
+		sendAvailablePresets();
 //		nifty.setDebugOptionPanelColors(true);
 	}
 	private void initSketchPlane() {
@@ -317,8 +323,8 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	}
 	
 	private ControlPoint createNewControlPoint(float x, float y, float h) {
-		ControlPoint p = new ControlPoint(x, y, h, 2, 0, 0, 0, 0, 0, 0);
-		return p;
+		ControlPoint[] points = newCurve==null ? new ControlPoint[0] : newCurve.getPoints();
+		return presets[selectedPreset].createControlPoint(x, y, h, points, map);
 	}
 	
 	private void pickCurve(Ray ray) {
@@ -399,11 +405,15 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		ControlCurveMesh mesh = featureCurveMesh.get(selectedCurveIndex);
 		mesh.updateMesh();
 	}
-	private void setAvailablePresets(String[] presets) {
-		
+	private void sendAvailablePresets() {
+		String[] names = new String[presets.length];
+		for (int i=0; i<presets.length; ++i) {
+			names[i] = presets[i].getName();
+		}
+		screenController.setAvailablePresets(names);
 	}
 	public void guiPresetChanged(int index) {
-		
+		selectedPreset = index;
 	}
 	public void guiSolve() {
 		solveDiffusion();
@@ -481,21 +491,20 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 				fillSlopeMatrix(slopeGeom);
 				slopeGeom.setMesh(createSlopeAlphaMesh(points));
 				fillMatrix(alpha, slopeGeom);
-				
-				alpha.timesEquals(ALPHA_SCALE);
-				beta.timesEquals(BETA_SCALE);
-				gradH.timesEquals(GRADIENT_SCALE);
-				
-				//save for debugging
-				if (DEBUG_DIFFUSION_SOLVER) {
-					saveMatrix(elevation, "diffusion/Elevation.png");
-					saveMatrix(beta, "diffusion/Beta.png");
-					saveMatrix(alpha, "diffusion/Alpha.png");
-					saveFloatMatrix(gradX, "diffusion/GradX.png");
-					saveFloatMatrix(gradY, "diffusion/GradY.png");
-					saveFloatMatrix(gradH, "diffusion/GradH.png");
-				}
 			}
+			alpha.timesEquals(ALPHA_SCALE);
+			beta.timesEquals(BETA_SCALE);
+			gradH.timesEquals(GRADIENT_SCALE);
+
+			//save for debugging
+			//if (DEBUG_DIFFUSION_SOLVER) {
+				saveMatrix(elevation, "diffusion/Elevation.png");
+				saveMatrix(beta, "diffusion/Beta.png");
+				saveMatrix(alpha, "diffusion/Alpha.png");
+				saveFloatMatrix(gradX, "diffusion/GradX.png");
+				saveFloatMatrix(gradY, "diffusion/GradY.png");
+				saveFloatMatrix(gradH, "diffusion/GradH.png");
+			//}
 			
 			LOG.info("curves rasterized");
 		}
@@ -578,7 +587,8 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			ColorRGBA[] col = new ColorRGBA[points.length];
 			for (int i=0; i<points.length; ++i) {
 				pos[i] = new Vector3f(points[i].x, points[i].y, 1-points[i].height);
-				col[i] = new ColorRGBA(points[i].height, points[i].height, points[i].height, 1);
+				float height = points[i].hasElevation ? points[i].height : 0;
+				col[i] = new ColorRGBA(height, height, height, 1);
 			}
 			Mesh mesh = new Mesh();
 			mesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(pos));
@@ -608,7 +618,8 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 				dy /= sum;
 				pos[3*i + 1] = pos[3*i].add(points[i].plateau * -dy, points[i].plateau * dx, 0);
 				pos[3*i + 2] = pos[3*i].add(points[i].plateau * dy, points[i].plateau * -dx, 0);
-				col[3*i] = new ColorRGBA(points[i].height, points[i].height, points[i].height, 1);
+				float height = points[i].hasElevation ? points[i].height : 0;
+				col[3*i] = new ColorRGBA(height, height, height, 1);
 				col[3*i+1] = col[3*i];
 				col[3*i+2] = col[3*i];
 			}
@@ -806,7 +817,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 //					matrix.set(x, y, (d & 0xff) / 255.0);
 //					data.get(); data.get(); data.get();
 					float v = data.getFloat();
-					matrix.set(x, y, v);
+					matrix.set(x, y, v + matrix.get(x, y));
 					data.getFloat(); data.getFloat(); data.getFloat();
 				}
 			}
@@ -847,14 +858,14 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 					if (s==0) {
 						gx=0; gy=0; s=1;
 					}
-					gradX.set(x, y, gx / s);
-					gradY.set(x, y, gy / s);
+					gradX.set(x, y, (gx / s) + gradX.get(x, y));
+					gradY.set(x, y, (gy / s) + gradY.get(x, y));
 //					double v = (((data.get() & 0xff) / 255.0) - 0.5);
 					double v = (data.getFloat() - 0.5);
 					if (Math.abs(v)<0.002) {
 						v=0;
 					}
-					gradH.set(x, y, v);
+					gradH.set(x, y, v + gradH.get(x, y));
 //					data.get();
 					data.getFloat();
 				}

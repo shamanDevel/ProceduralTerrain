@@ -61,7 +61,7 @@
 						<panel childLayout="absolute" height="20px"/>
 						<control name="label" textHAlign="left"text="Presets for new curves:" margin="2px"/>
 						<control id="PresetListBox" name="listBox" vertical="optional" horizontal="optional" 
-								 displayItems="4" selection="Single" width="246px" margin="2px" />
+								 displayItems="4" selection="Single" width="246px" forceSelection="true" margin="2px" />
 						
 						<panel childLayout="absolute" height="20px"/>
 						<control id="SolveButton" name="button" label="Solve" width="246px" margin="2px"/>

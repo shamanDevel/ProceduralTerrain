@@ -40,6 +40,7 @@ public class SketchTerrainScreenController implements ScreenController {
 	private ListBox<String> presetListBox;
 	private Button solveButton;
 	private Label messageLabel;
+	private String[] presetNames;
 	
 	private boolean curveSelected;
 	private ControlPoint controlPoint;
@@ -71,6 +72,11 @@ public class SketchTerrainScreenController implements ScreenController {
 		presetListBox = screen.findNiftyControl("PresetListBox", ListBox.class);
 		solveButton = screen.findNiftyControl("SolveButton", Button.class);
 		messageLabel = screen.findNiftyControl("MessageLabel", Label.class);
+		
+		if (presetNames != null) {
+			presetListBox.addAllItems(Arrays.asList(presetNames));
+			presetListBox.selectItemByIndex(0);
+		}
 		
 		addCurveCheckBox.setChecked(true);
 		updatePhase();
@@ -108,7 +114,11 @@ public class SketchTerrainScreenController implements ScreenController {
 		updatePhase();
 	}
 	public void setAvailablePresets(String[] presets) {
-		presetListBox.addAllItems(Arrays.asList(presets));
+		if (presetListBox == null) {
+			presetNames = presets;
+		} else {
+			presetListBox.addAllItems(Arrays.asList(presets));
+		}
 	}
 	
 	private void updatePhase() {
