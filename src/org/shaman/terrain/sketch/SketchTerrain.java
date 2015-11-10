@@ -218,7 +218,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		DiffusionSolver solver = new DiffusionSolver(map.getSize(), featureCurves.toArray(new ControlCurve[featureCurves.size()]));
 		Matrix mat = new Matrix(map.getSize(), map.getSize());
 		if (DEBUG_DIFFUSION_SOLVER) {
-			solver.saveMatrix(mat, "diffusion/Iter0.png");
+			solver.saveFloatMatrix(mat, "diffusion/Iter0.png",1);
 		}
 		//run solver
 		for (int i=1; i<=DIFFUSION_SOLVER_ITERATIONS; ++i) {
@@ -226,7 +226,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			mat = solver.oneIteration(mat, i);
 			if (DEBUG_DIFFUSION_SOLVER) {
 			//if (i%10 == 0) {
-				solver.saveFloatMatrix(mat, "diffusion/Iter"+i+".png");
+				solver.saveFloatMatrix(mat, "diffusion/Iter"+i+".png",1);
 			}
 		}
 		LOG.info("solved");
@@ -453,6 +453,16 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			gradY = new Matrix(size, size);
 			gradH = new Matrix(size, size);
 			
+			//render meshes
+			Material vertexColorMat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+			vertexColorMat.setBoolean("VertexColor", true);
+			vertexColorMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+			vertexColorMat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+			vertexColorMat.getAdditionalRenderState().setDepthTest(true);
+			vertexColorMat.getAdditionalRenderState().setDepthWrite(true);
+			Node elevationNode = new Node();
+			Node gradientNode = new Node();
+			
 			for (ControlCurve curve : curves) {
 				//sample curve
 				int samples = 32;
@@ -461,50 +471,47 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 					points[i] = curve.interpolate(i / (float) samples);
 				}
 				
-				//render meshes
-				Material vertexColorMat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-				vertexColorMat.setBoolean("VertexColor", true);
-				vertexColorMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
-				
 				Geometry lineGeom = new Geometry("line", createLineMesh(points));
 				lineGeom.setMaterial(vertexColorMat);
 				lineGeom.setQueueBucket(RenderQueue.Bucket.Gui);
 				Geometry plateauGeom = new Geometry("plateau", createPlateauMesh(points));
 				plateauGeom.setMaterial(vertexColorMat);
 				plateauGeom.setQueueBucket(RenderQueue.Bucket.Gui);
-				Node node = new Node();
-				node.attachChild(lineGeom);
-				node.attachChild(plateauGeom);
-				node.updateModelBound();
-				node.setCullHint(Spatial.CullHint.Never);
-				fillMatrix(elevation, node);
+				elevationNode.attachChild(lineGeom);
+				elevationNode.attachChild(plateauGeom);
 				
-				vertexColorMat.setBoolean("VertexColor", false);
-				vertexColorMat.setColor("Color", ColorRGBA.White);
-				fillMatrix(beta, node);
-				
-				vertexColorMat.setBoolean("VertexColor", true);
-				vertexColorMat.clearParam("Color");
 				Geometry slopeGeom = new Geometry("slope", createSlopeMesh(points));
 				slopeGeom.setMaterial(vertexColorMat);
 				slopeGeom.setQueueBucket(RenderQueue.Bucket.Gui);
-				fillSlopeMatrix(slopeGeom);
-				slopeGeom.setMesh(createSlopeAlphaMesh(points));
-				fillMatrix(alpha, slopeGeom);
+				gradientNode.attachChild(slopeGeom);
 			}
+			
+			elevationNode.setCullHint(Spatial.CullHint.Never);
+			gradientNode.setCullHint(Spatial.CullHint.Never);
+			
+			for (Spatial s : elevationNode.getChildren()) {
+				fillMatrix(elevation, s, true);
+			}
+			
+			fillSlopeMatrix(gradientNode);
+			
+			vertexColorMat.setBoolean("VertexColor", false);
+			vertexColorMat.setColor("Color", ColorRGBA.White);
+			fillMatrix(beta, elevationNode, false);
+			
 			alpha.timesEquals(ALPHA_SCALE);
 			beta.timesEquals(BETA_SCALE);
 			gradH.timesEquals(GRADIENT_SCALE);
 
 			//save for debugging
-			//if (DEBUG_DIFFUSION_SOLVER) {
+			if (DEBUG_DIFFUSION_SOLVER) {
 				saveMatrix(elevation, "diffusion/Elevation.png");
 				saveMatrix(beta, "diffusion/Beta.png");
 				saveMatrix(alpha, "diffusion/Alpha.png");
-				saveFloatMatrix(gradX, "diffusion/GradX.png");
-				saveFloatMatrix(gradY, "diffusion/GradY.png");
-				saveFloatMatrix(gradH, "diffusion/GradH.png");
-			//}
+				saveFloatMatrix(gradX, "diffusion/GradX.png",1);
+				saveFloatMatrix(gradY, "diffusion/GradY.png",1);
+				saveFloatMatrix(gradH, "diffusion/GradH.png",50);
+			}
 			
 			LOG.info("curves rasterized");
 		}
@@ -550,12 +557,12 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 				oldGradient = gradient.copy(); //Test
 			}
 			if (DEBUG_DIFFUSION_SOLVER) {
-				saveFloatMatrix(gradient, "diffusion/Gradient"+iteration+".png");
+				saveFloatMatrix(gradient, "diffusion/Gradient"+iteration+".png",1);
 			}
 			Matrix gradChange = gradH.plus(gradient);
 			gradChange.arrayTimesEquals(alpha);
 			if (DEBUG_DIFFUSION_SOLVER) {
-				saveFloatMatrix(gradChange, "diffusion/GradChange"+iteration+".png");
+				saveFloatMatrix(gradChange, "diffusion/GradChange"+iteration+".png",1);
 			}
 			mat.plusEquals(gradChange);
 			//Test
@@ -573,7 +580,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 					}
 				}
 				Matrix diff = oldGradient.minus(newGradient);
-				saveFloatMatrix(diff, "diffusion/Diff"+iteration+".png");
+				saveFloatMatrix(diff, "diffusion/Diff"+iteration+".png",1);
 			}
 			
 			return mat;
@@ -601,7 +608,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			Vector3f[] pos = new Vector3f[points.length*3];
 			ColorRGBA[] col = new ColorRGBA[points.length*3];
 			for (int i=0; i<points.length; ++i) {
-				pos[3*i] = new Vector3f(points[i].x, points[i].y, 1-points[i].height);
+				pos[3*i] = new Vector3f(points[i].x, points[i].y, points[i].height*100-100);
 				float dx,dy;
 				if (i==0) {
 					dx = points[i+1].x - points[i].x;
@@ -616,8 +623,8 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 				float sum = (float) Math.sqrt(dx*dx + dy*dy);
 				dx /= sum;
 				dy /= sum;
-				pos[3*i + 1] = pos[3*i].add(points[i].plateau * -dy, points[i].plateau * dx, 0);
-				pos[3*i + 2] = pos[3*i].add(points[i].plateau * dy, points[i].plateau * -dx, 0);
+				pos[3*i + 1] = pos[3*i].add(points[i].plateau * -dy, points[i].plateau * dx, points[i].height*100-100);
+				pos[3*i + 2] = pos[3*i].add(points[i].plateau * dy, points[i].plateau * -dx, points[i].height*100-100);
 				float height = points[i].hasElevation ? points[i].height : 0;
 				col[3*i] = new ColorRGBA(height, height, height, 1);
 				col[3*i+1] = col[3*i];
@@ -675,9 +682,9 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2) * -dx, 0);
 				ColorRGBA c1, c2, c3, c4;
 				c1 = new ColorRGBA(-dy/2 + 0.5f, dx/2 + 0.5f, -FastMath.sin(points[i].angle1) + 0.5f, 1);
-				c2 = c1;
+				c2 = new ColorRGBA(c1.r, c1.g, c1.b, 0);
 				c3 = new ColorRGBA(dy/2 + 0.5f, -dx/2 + 0.5f, -FastMath.sin(points[i].angle2) + 0.5f, 1);
-				c4 = c3;
+				c4 = new ColorRGBA(c3.r, c3.g, c3.b, 0);
 				col[4*i + 0] = c1;
 				col[4*i + 1] = c2;
 				col[4*i + 2] = c3;
@@ -706,6 +713,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			m.setMode(Mesh.Mode.Triangles);
 			return m;
 		}
+		@Deprecated
 		private Mesh createSlopeAlphaMesh(ControlPoint[] points) {
 			Vector3f[] pos = new Vector3f[points.length*6];
 			ColorRGBA[] col = new ColorRGBA[points.length*6];
@@ -792,7 +800,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 		 * @param matrix
 		 * @param scene 
 		 */
-		private void fillMatrix(Matrix matrix, Spatial scene) {
+		private void fillMatrix(Matrix matrix, Spatial scene, boolean max) {
 			//init
 			Camera cam = new Camera(size, size);
 			cam.setParallelProjection(true);
@@ -816,8 +824,14 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 //					byte d = data.get();
 //					matrix.set(x, y, (d & 0xff) / 255.0);
 //					data.get(); data.get(); data.get();
-					float v = data.getFloat();
-					matrix.set(x, y, v + matrix.get(x, y));
+					double v = data.getFloat();
+					double old = matrix.get(x, y);
+					if (max) {
+						v = Math.max(v, old);
+					} else {
+						v += old;
+					}
+					matrix.set(x, y, v);
 					data.getFloat(); data.getFloat(); data.getFloat();
 				}
 			}
@@ -834,7 +848,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			cam.setParallelProjection(true);
 			ViewPort view = new ViewPort("Off", cam);
 			view.setClearFlags(true, true, true);
-			view.setBackgroundColor(new ColorRGBA(0.5f, 0.5f, 0.5f, 1f));
+			view.setBackgroundColor(new ColorRGBA(0.5f, 0.5f, 0.5f, 0f));
 			FrameBuffer buffer = new FrameBuffer(size, size, 1);
 			buffer.setDepthBuffer(Image.Format.Depth);
 			buffer.setColorBuffer(Image.Format.RGBA32F);
@@ -867,7 +881,8 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 					}
 					gradH.set(x, y, v + gradH.get(x, y));
 //					data.get();
-					data.getFloat();
+					double a = data.getFloat();
+					alpha.set(x, y, a);
 				}
 			}
 		}
@@ -896,12 +911,12 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			}
 		}
 		
-		private void saveFloatMatrix(Matrix matrix, String filename) {
+		private void saveFloatMatrix(Matrix matrix, String filename, double scale) {
 			byte[] buffer = new byte[size*size];
 			int i=0;
 			for (int x=0; x<size; ++x) {
 				for (int y=0; y<size; ++y) {
-					buffer[i] = (byte) ((matrix.get(x, y)/2 + 0.5) * 255);
+					buffer[i] = (byte) ((matrix.get(x, y)*scale/2 + 0.5) * 255);
 					i++;
 				}
 			}
