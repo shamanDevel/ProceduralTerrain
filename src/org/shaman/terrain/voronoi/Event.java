@@ -26,6 +26,6 @@ public class Event implements Comparable<Event> {
 
 	@Override
 	public int compareTo(Event o) {
-		return Float.compare(this.y, o.y);
+		return -Float.compare(this.y, o.y);
 	}
 }

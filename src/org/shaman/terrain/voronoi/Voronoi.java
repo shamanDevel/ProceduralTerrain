@@ -9,7 +9,8 @@ import com.jme3.math.Vector2f;
 import java.util.*;
 
 /**
- *
+ * C++ to Java port of the voronoi diagram algorithm from
+ * http://blog.ivank.net/fortunes-algorithm-and-implementation.html .
  * @author Sebastian Weiss
  */
 public class Voronoi {
@@ -18,14 +19,14 @@ public class Voronoi {
 	private float width, height;
 	private Parabola root;
 	private float ly;
-//	private HashSet<Event> deleted;
+	private HashSet<Event> deleted;
 	private ArrayList<Vector2f> points;
 	private PriorityQueue<Event> queue;
 	
 	public Voronoi() {
 		edges = new ArrayList<>();
 		points = new ArrayList<>();
-//		deleted = new HashSet<>();
+		deleted = new HashSet<>();
 		queue = new PriorityQueue<>();
 	}
 	/**
@@ -47,7 +48,7 @@ public class Voronoi {
 		points.clear();
 		edges.clear();
 		queue.clear();
-//		deleted.clear();
+		deleted.clear();
 		
 		for (Vector2f i : places) {
 			queue.add(new Event(i, true));
@@ -56,6 +57,10 @@ public class Voronoi {
 		while (!queue.isEmpty()) {
 			Event e = queue.poll();
 			ly = e.point.y;
+			if (deleted.contains(e)) {
+				deleted.remove(e);
+				continue;
+			}
 			if (e.pe) {
 				insertParabola(e.point);
 			} else {
@@ -72,7 +77,19 @@ public class Voronoi {
 			}
 		}
 		
-		return Collections.unmodifiableList(edges);
+		return new ArrayList<>(edges);
+	}
+	
+	/**
+	 * Closes the box: the cells are surrounded by a box with the specified
+	 * dimensions. All border cells that were previous at infinity are capped
+	 * at that box.
+	 * @param edges the list of edges, edges are modified and added
+	 * @param w the width of the box
+	 * @param h the height of the box
+	 */
+	public void closeEdges(ArrayList<Edge> edges, int w, int h) {
+		//TODO
 	}
 	
 	private void insertParabola(Vector2f p) {
@@ -99,7 +116,7 @@ public class Voronoi {
 		
 		Parabola par = getParabolaByX(p.x);
 		if (par.cEvent != null) {
-			queue.remove(par.cEvent);
+			deleted.add(par.cEvent);
 			par.cEvent = null;
 		}
 		
@@ -134,12 +151,14 @@ public class Voronoi {
 		Parabola p0 = Parabola.getLeftChild(xl);
 		Parabola p2 = Parabola.getRightChild(xr);
 		
+		assert (p0 != p2);
+		
 		if (p0.cEvent != null) {
-			queue.remove(p0.cEvent);
+			deleted.add(p0.cEvent);
 			p0.cEvent = null;
 		}
 		if (p2.cEvent != null) {
-			queue.remove(p2.cEvent);
+			deleted.add(p2.cEvent);
 			p2.cEvent = null;
 		}
 		
@@ -242,10 +261,10 @@ public class Voronoi {
 		return par;
 	}
 	private float getY(Vector2f p, float x) {
-		float dp = 2*(p.x - ly);
+		float dp = 2*(p.y - ly);
 		float a1 = 1/dp;
 		float b1 = -2*p.x/dp;
-		float c1 = ly+dp/4 + p.y*p.y/dp;
+		float c1 = ly+dp/4 + p.x*p.x/dp;
 		return a1*x*x + b1*x + c1;
 	}
 	private void checkCircle(Parabola b) {
