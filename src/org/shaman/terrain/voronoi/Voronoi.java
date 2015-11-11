@@ -39,7 +39,7 @@ public class Voronoi {
 	 * @param h the height of the sweeping area
 	 * @return a list of edges
 	 */
-	public List<Edge> getEdges(List<Vector2d> v, int w, int h) {
+	public List<Edge> getEdges(List<Vector2d> v, float w, float h) {
 		places = new ArrayList<>(v);
 		width = w;
 		height = h;
@@ -84,12 +84,60 @@ public class Voronoi {
 	 * Closes the box: the cells are surrounded by a box with the specified
 	 * dimensions. All border cells that were previous at infinity are capped
 	 * at that box.
-	 * @param edges the list of edges, edges are modified and added
+	 * @param edges the list of edges, this list is destroyed
 	 * @param w the width of the box
 	 * @param h the height of the box
+	 * @return the list with the edges clamped to the borders
 	 */
-	public void closeEdges(ArrayList<Edge> edges, int w, int h) {
-		//TODO
+	public static List<Edge> closeEdges(List<Edge> edges, float w, float h) {
+		ArrayList<Edge> output = new ArrayList<>();
+		for (Edge edge : edges) {
+			boolean sInside = isInside(edge.start, w, h);
+			boolean eInside = isInside(edge.end, w, h);
+			if (sInside && eInside) {
+				output.add(edge); //normal edge inside
+				continue;
+			} else if (!sInside && !eInside) {
+				continue; //completely outside, ignore it
+			}
+			//border edge, cut with border
+			Vector2d p = edgeBoxIntersection(edge, w, h);
+			if (sInside) {
+				edge.end = p;
+			} else {
+				edge.start = p;
+			}
+			output.add(edge);
+			//TODO: may add edge along the border
+		}
+		return output;
+	}
+	private static boolean isInside(Vector2d v, float w, float h) {
+		if (v.x<0 || v.y<0 || v.x>=w || v.y>=h) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+	private static Vector2d edgeBoxIntersection(Edge e, float w, float h) {
+		double a = e.start.x;
+		double b = e.start.y;
+		double x = e.end.x;
+		double y = e.end.y;
+		double t = a/(a-x);
+		if (t<0 || t>1) {
+			t = b/(b-y);
+		}
+		if (t<0 || t>1) {
+			t = (w-a)/(x-a);
+		}
+		if (t<0 || t>1) {
+			t = (h-b)/(y-b);
+		}
+		if (t<0 || t>1) {
+			return null;
+		}
+		return new Vector2d(a + t*(x-a), b + t*(y-b));
 	}
 	
 	private void insertParabola(Vector2d p) {

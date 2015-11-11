@@ -13,6 +13,7 @@ import java.util.Random;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.vecmath.Vector2d;
+import org.shaman.terrain.polygonal.VoronoiUtils;
 
 /**
  *
@@ -55,11 +56,24 @@ public class DisplayVoronoiDiagram extends JFrame {
 			float y = rand.nextFloat() * h * scale;
 			points.add(new Vector2d(x, y));
 		}
+		
+		long time1 = System.currentTimeMillis();
 		edges = voronoi.getEdges(points, w*scale, h*scale);
+		edges = Voronoi.closeEdges(edges, w*scale, h*scale);
+		//relax n times
+		int m = 3;
+		for (int i=0; i<m; ++i) {
+			points = VoronoiUtils.generateRelaxedSites(points, edges);
+			edges = voronoi.getEdges(points, w*scale, h*scale);
+			edges = Voronoi.closeEdges(edges, w*scale, h*scale);
+		}
+		long time2 = System.currentTimeMillis();
 		System.out.println("edges: ("+edges.size()+")");
+		
 		for (Edge e : edges) {
 			System.out.println(" "+e.start+" -- "+e.end);
 		}
+		System.out.println("time to compute: "+(time2-time1)+" msec");
 		panel.repaint();
 	}
 	
