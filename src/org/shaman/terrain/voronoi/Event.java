@@ -5,19 +5,20 @@
  */
 package org.shaman.terrain.voronoi;
 
-import com.jme3.math.Vector2f;
+import javax.vecmath.Vector2d;
+
 
 /**
  *
  * @author Sebastian Weiss
  */
 public class Event implements Comparable<Event> {
-	Vector2f point;
+	Vector2d point;
 	boolean pe;
-	float y;
+	double y;
 	Parabola arch;
 	
-	Event(Vector2f p, boolean pev) {
+	Event(Vector2d p, boolean pev) {
 		point = p;
 		pe = pev;
 		y = p.y;
@@ -26,6 +27,6 @@ public class Event implements Comparable<Event> {
 
 	@Override
 	public int compareTo(Event o) {
-		return -Float.compare(this.y, o.y);
+		return -Double.compare(this.y, o.y);
 	}
 }

@@ -5,8 +5,8 @@
  */
 package org.shaman.terrain.voronoi;
 
-import com.jme3.math.Vector2f;
 import java.util.*;
+import javax.vecmath.Vector2d;
 
 /**
  * C++ to Java port of the voronoi diagram algorithm from
@@ -14,13 +14,13 @@ import java.util.*;
  * @author Sebastian Weiss
  */
 public class Voronoi {
-	private ArrayList<Vector2f> places;
+	private ArrayList<Vector2d> places;
 	private ArrayList<Edge> edges;
-	private float width, height;
+	private double width, height;
 	private Parabola root;
-	private float ly;
+	private double ly;
 	private HashSet<Event> deleted;
-	private ArrayList<Vector2f> points;
+	private ArrayList<Vector2d> points;
 	private PriorityQueue<Event> queue;
 	
 	public Voronoi() {
@@ -39,7 +39,7 @@ public class Voronoi {
 	 * @param h the height of the sweeping area
 	 * @return a list of edges
 	 */
-	public List<Edge> getEdges(List<Vector2f> v, int w, int h) {
+	public List<Edge> getEdges(List<Vector2d> v, int w, int h) {
 		places = new ArrayList<>(v);
 		width = w;
 		height = h;
@@ -50,7 +50,7 @@ public class Voronoi {
 		queue.clear();
 		deleted.clear();
 		
-		for (Vector2f i : places) {
+		for (Vector2d i : places) {
 			queue.add(new Event(i, true));
 		}
 		
@@ -92,18 +92,18 @@ public class Voronoi {
 		//TODO
 	}
 	
-	private void insertParabola(Vector2f p) {
+	private void insertParabola(Vector2d p) {
 		if (root==null) {
 			root = new Parabola(p);
 			return;
 		}
 		
 		if (root.isLeaf && root.site.y-p.y < 1) {
-			Vector2f fp = root.site;
+			Vector2d fp = root.site;
 			root.isLeaf = false;
 			root.setLeft(new Parabola(fp));
 			root.setRight(new Parabola(p));
-			Vector2f s = new Vector2f((p.x+fp.x)/2, height);
+			Vector2d s = new Vector2d((p.x+fp.x)/2, height);
 			points.add(s);
 			if (p.x > fp.x) {
 				root.edge = new Edge(s, fp, p);
@@ -120,7 +120,7 @@ public class Voronoi {
 			par.cEvent = null;
 		}
 		
-		Vector2f start = new Vector2f(p.x, getY(par.site, p.x));
+		Vector2d start = new Vector2d(p.x, getY(par.site, p.x));
 		points.add(start);
 		Edge el = new Edge(start, par.site, p);
 		Edge er = new Edge(start, p, par.site);
@@ -162,7 +162,7 @@ public class Voronoi {
 			p2.cEvent = null;
 		}
 		
-		Vector2f p = new Vector2f(e.point.x, getY(p1.site, e.point.x));
+		Vector2d p = new Vector2d(e.point.x, getY(p1.site, e.point.x));
 		points.add(p);
 		
 		xl.edge.end = p;
@@ -202,44 +202,44 @@ public class Voronoi {
 		if (n.isLeaf) {
 			return;
 		}
-		float mx;
+		double mx;
 		if (n.edge.direction.x > 0) {
 			mx = Math.max(width, n.edge.start.x + 10);
 		} else {
 			mx = Math.min(0, n.edge.start.x - 10);
 		}
-		Vector2f end = new Vector2f(mx, mx*n.edge.f + n.edge.g);
+		Vector2d end = new Vector2d(mx, mx*n.edge.f + n.edge.g);
 		n.edge.end = end;
 		points.add(end);
 		
 		finishEdge(n.left());
 		finishEdge(n.right());
 	}
-	private float getXOfEdge(Parabola par, float y) {
+	private double getXOfEdge(Parabola par, double y) {
 		Parabola left = Parabola.getLeftChild(par);
 		Parabola right = Parabola.getRightChild(par);
 		
-		Vector2f p = left.site;
-		Vector2f r = right.site;
+		Vector2d p = left.site;
+		Vector2d r = right.site;
 		
-		float dp = 2 * (p.y - y);
-		float a1 = 1/dp;
-		float b1 = -2 * p.x / dp;
-		float c1 = y + dp/4 + p.x*p.x/dp;
+		double dp = 2 * (p.y - y);
+		double a1 = 1/dp;
+		double b1 = -2 * p.x / dp;
+		double c1 = y + dp/4 + p.x*p.x/dp;
 		dp = 2*(r.y-y);
-		float a2 = 1/dp;
-		float b2 = -2*r.x/dp;
-		float c2 = ly + dp/4 + r.x*r.x/dp;
+		double a2 = 1/dp;
+		double b2 = -2*r.x/dp;
+		double c2 = ly + dp/4 + r.x*r.x/dp;
 		
-		float a = a1-a2;
-		float b = b1-b2;
-		float c = c1-c2;
+		double a = a1-a2;
+		double b = b1-b2;
+		double c = c1-c2;
 		
-		float disc = b*b - 4*a*c;
-		float x1 = (float) ((-b + Math.sqrt(disc)) / (2*a));
-		float x2 = (float) ((-b - Math.sqrt(disc)) / (2*a));
+		double disc = b*b - 4*a*c;
+		double x1 = (-b + Math.sqrt(disc)) / (2*a);
+		double x2 = ((-b - Math.sqrt(disc)) / (2*a));
 		
-		float ry;
+		double ry;
 		if (p.y < r.y) {
 			ry = Math.max(x1, x2);
 		} else {
@@ -247,9 +247,9 @@ public class Voronoi {
 		}
 		return ry;
 	}
-	private Parabola getParabolaByX(float xx) {
+	private Parabola getParabolaByX(double xx) {
 		Parabola par = root;
-		float x = 0;
+		double x = 0;
 		while (!par.isLeaf) {
 			x = getXOfEdge(par, ly);
 			if (x>xx) {
@@ -260,11 +260,11 @@ public class Voronoi {
 		}
 		return par;
 	}
-	private float getY(Vector2f p, float x) {
-		float dp = 2*(p.y - ly);
-		float a1 = 1/dp;
-		float b1 = -2*p.x/dp;
-		float c1 = ly+dp/4 + p.x*p.x/dp;
+	private double getY(Vector2d p, double x) {
+		double dp = 2*(p.y - ly);
+		double a1 = 1/dp;
+		double b1 = -2*p.x/dp;
+		double c1 = ly+dp/4 + p.x*p.x/dp;
 		return a1*x*x + b1*x + c1;
 	}
 	private void checkCircle(Parabola b) {
@@ -275,30 +275,30 @@ public class Voronoi {
 		if (a==null || c==null || a.site==c.site) {
 			return;
 		}
-		Vector2f s = getEdgeIntersection(lp.edge, rp.edge);
+		Vector2d s = getEdgeIntersection(lp.edge, rp.edge);
 		if (s==null) {
 			return;
 		}
-		float dx = a.site.x - s.x;
-		float dy = a.site.y - s.y;
-		float d = (float) Math.sqrt(dx*dx + dy*dy);
+		double dx = a.site.x - s.x;
+		double dy = a.site.y - s.y;
+		double d = Math.sqrt(dx*dx + dy*dy);
 		if (s.y - d >= ly) {
 			return;
 		}
-		Event e = new Event(new Vector2f(s.x, s.y - d), false);
+		Event e = new Event(new Vector2d(s.x, s.y - d), false);
 		points.add(e.point);
 		b.cEvent = e;
 		e.arch = b;
 		queue.add(e);
 	}
-	private Vector2f getEdgeIntersection(Edge a, Edge b) {
-		float x = (b.g - a.g) / (a.f - b.f);
-		float y = a.f * x + a.g;
+	private Vector2d getEdgeIntersection(Edge a, Edge b) {
+		double x = (b.g - a.g) / (a.f - b.f);
+		double y = a.f * x + a.g;
 		if ((x-a.start.x) / a.direction.x < 0) return null;
 		if ((y-a.start.y) / a.direction.y < 0) return null;
 		if ((x-b.start.x) / b.direction.x < 0) return null;
 		if ((y-b.start.y) / b.direction.y < 0) return null;
-		Vector2f p = new Vector2f(x, y);
+		Vector2d p = new Vector2d(x, y);
 		points.add(p);
 		return p;
 	}

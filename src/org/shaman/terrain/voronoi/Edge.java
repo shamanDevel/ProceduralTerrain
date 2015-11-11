@@ -5,23 +5,24 @@
  */
 package org.shaman.terrain.voronoi;
 
-import com.jme3.math.Vector2f;
+import javax.vecmath.Vector2d;
+
 
 /**
  *
  * @author Sebastian Weiss
  */
 public class Edge {
-	Vector2f start;
-	Vector2f end;
-	Vector2f direction;
-	Vector2f left;
-	Vector2f right;
-	float f;
-	float g;
+	Vector2d start;
+	Vector2d end;
+	Vector2d direction;
+	Vector2d left;
+	Vector2d right;
+	double f;
+	double g;
 	Edge neighbour;
 	
-	Edge(Vector2f s, Vector2f a, Vector2f b) {
+	Edge(Vector2d s, Vector2d a, Vector2d b) {
 		start = s;
 		left = a;
 		right = b;
@@ -29,14 +30,23 @@ public class Edge {
 		end = null;
 		f = (b.x - a.x) / (a.y - b.y);
 		g = s.y - f*s.x;
-		direction = new Vector2f(b.y - a.y, -(b.x-a.x));
+		direction = new Vector2d(b.y - a.y, -(b.x-a.x));
 	}
 
-	public Vector2f getStart() {
+	public Vector2d getStart() {
 		return start;
 	}
 
-	public Vector2f getEnd() {
+	public Vector2d getEnd() {
 		return end;
 	}
+
+	public Vector2d getLeft() {
+		return left;
+	}
+
+	public Vector2d getRight() {
+		return right;
+	}
+	
 }

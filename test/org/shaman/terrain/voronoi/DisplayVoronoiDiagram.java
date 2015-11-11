@@ -5,7 +5,6 @@
  */
 package org.shaman.terrain.voronoi;
 
-import com.jme3.math.Vector2f;
 import java.awt.*;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
@@ -13,19 +12,20 @@ import java.util.List;
 import java.util.Random;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.vecmath.Vector2d;
 
 /**
  *
  * @author Sebastian Weiss
  */
 public class DisplayVoronoiDiagram extends JFrame {
-	private static final int w = 500;
-	private static final int h = 500;
-	private static final int scale = 20;
-	private static final int n = 50;
+	private static final int w = 800;
+	private static final int h = 800;
+	private static final int scale = 100;
+	private static final int n = 1000;
 	
 	private JPanel panel;
-	private List<Vector2f> points;
+	private List<Vector2d> points;
 	private List<Edge> edges;
 
 	public DisplayVoronoiDiagram() throws HeadlessException {
@@ -53,7 +53,7 @@ public class DisplayVoronoiDiagram extends JFrame {
 		for (int i=0; i<n; ++i) {
 			float x = rand.nextFloat() * w * scale;
 			float y = rand.nextFloat() * h * scale;
-			points.add(new Vector2f(x, y));
+			points.add(new Vector2d(x, y));
 		}
 		edges = voronoi.getEdges(points, w*scale, h*scale);
 		System.out.println("edges: ("+edges.size()+")");
@@ -68,15 +68,29 @@ public class DisplayVoronoiDiagram extends JFrame {
 		G.setStroke(new BasicStroke(3));
 		G.setPaint(Color.RED);
 		for (Edge e : edges) {
-			float x1 = e.start.x / scale;
-			float y1 = e.start.y / scale;
-			float x2 = e.end.x / scale;
-			float y2 = e.end.y / scale;
-			Line2D l = new Line2D.Float(x1, y1, x2, y2);
+			double x1 = e.start.x / scale;
+			double y1 = e.start.y / scale;
+			double x2 = e.end.x / scale;
+			double y2 = e.end.y / scale;
+			Line2D l = new Line2D.Double(x1, y1, x2, y2);
+			G.draw(l);
+		}
+		G.setPaint(Color.GRAY);
+		G.setStroke(new BasicStroke(1));
+		for (Edge e : edges) {
+			double x1 = (e.start.x + e.end.x) / 2 / scale;
+			double y1 = (e.start.y + e.end.y) / 2 / scale;
+			double x2 = e.left.x / scale;
+			double y2 = e.left.y / scale;
+			double x3 = e.right.x / scale;
+			double y3 = e.right.y / scale;
+			Line2D l = new Line2D.Double(x1, y1, x2, y2);
+			G.draw(l);
+			l.setLine(x1, y1, x3, y3);
 			G.draw(l);
 		}
 		G.setPaint(Color.BLACK);
-		for (Vector2f p : points) {
+		for (Vector2d p : points) {
 			int x = (int) (p.x / scale);
 			int y = (int) (p.y / scale);
 			G.fillOval(x-1, y-1, 3, 3);

@@ -5,7 +5,7 @@
  */
 package org.shaman.terrain.voronoi;
 
-import com.jme3.math.Vector2f;
+import javax.vecmath.Vector2d;
 
 /**
  *
@@ -13,7 +13,7 @@ import com.jme3.math.Vector2f;
  */
 class Parabola {
 	boolean isLeaf;
-	Vector2f site;
+	Vector2d site;
 	Edge edge;
 	Event cEvent;
 	Parabola parent;
@@ -28,7 +28,7 @@ class Parabola {
 		parent = null;
 	}
 	
-	Parabola(Vector2f s) {
+	Parabola(Vector2d s) {
 		site = s;
 		isLeaf = true;
 		cEvent = null;
