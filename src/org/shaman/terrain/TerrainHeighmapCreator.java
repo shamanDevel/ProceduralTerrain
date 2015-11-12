@@ -66,6 +66,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 import org.shaman.terrain.heightmap.*;
+import org.shaman.terrain.polygonal.PolygonalMapGenerator;
 
 
 /**
@@ -109,6 +110,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private Texture2D alphaMap;
 	
 	private SketchTerrain sketchTerrain;
+	private PolygonalMapGenerator polygonalMapGenerator;
 
     public static void main(String[] args) {
         TerrainHeighmapCreator app = new TerrainHeighmapCreator();
@@ -155,7 +157,10 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		initNifty();
 		initHeightmap(true);
 		initScene();
-		initPropertyUI();
+//		initPropertyUI();
+		
+		polygonalMapGenerator = new PolygonalMapGenerator(this);
+		
 		//nextStep();
     }
 	
@@ -516,7 +521,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 			camera.setEnabled(true);
 			camera.setMoveSpeed(200);
 		}
-		updatePropertyUI();
+//		updatePropertyUI();
 		if (sketchTerrain != null) {
 			sketchTerrain.onUpdate(tpf);
 		}

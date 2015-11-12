@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty xmlns="https://raw.githubusercontent.com/void256/nifty-gui/1.4/nifty-core/src/main/resources/nifty.xsd" 
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	   xsi:schemaLocation="https://raw.githubusercontent.com/void256/nifty-gui/1.4/nifty-core/src/main/resources/nifty.xsd">
+
+	<useStyles filename="nifty-default-styles.xml" />
+	<useControls filename="nifty-default-controls.xml" />
+	
+	<screen id="Polygonal" controller="org.shaman.terrain.polygonal.PolygonalScreenController">
+		<!-- main layer -->
+		<layer childLayout="absolute">
+			<panel height="100%" width="100%" childLayout="vertical">
+				<panel id="NavigationPanel" width="100%" height="30px" childLayout="horizontal" backgroundColor="#000a">
+					<control name="label" text="Step1" width="70px" />
+					<control name="label" text="Step2" width="70px" />
+				</panel>
+				<panel childLayout="vertical" backgroundColor="#0008">
+					<panel id="PropertiesPanel" width="250px" height="100%" childLayout="vertical">
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" width="70px" text="Seed:" margin="2px"/>
+							<control id="SeedTextField" name="textfield" width="118px" margin="2px"/>
+							<control id="SeedButton" name="button" label="New" width="50px" margin="2px" />
+						</panel>
+						
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Point count:" width="100px" margin="2px"/>
+							<control id="PointCountDropDown" name="dropDown" width="142px" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Relaxation:" width="100px" margin="2px"/>
+							<control id="RelaxationDropDown" name="dropDown" width="142px" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Coastline:" width="100px" margin="2px"/>
+							<control id="CoastlineDropBox" name="dropDown" width="142px" margin="2px"/>
+						</panel>
+						
+						<panel childLayout="absolute" height="20px"/>
+						
+						<control id="GenerateElevationButton" name="button" label="Generate Elevation" 
+								 width="150px" margin="2px"/>
+						<panel childLayout="horizontal">
+							<control id="ElevationCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Draw Elevation" margin="2px"/>
+						</panel>
+						
+						<panel childLayout="absolute" height="20px"/>
+						
+						<control id="GenerateBiomesButton" name="button" label="Generate Biomes" 
+								 width="150px" margin="2px"/>
+						<panel childLayout="horizontal">
+							<control id="TemperatureCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Show+Draw Temperature" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control id="MoistureCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Show+Draw Moisture" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control id="BiomesCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Show Biomes" margin="2px"/>
+						</panel>
+						<!--
+						<image filename="org/shaman/terrain/polygonal/Biomes.png"
+							   filter="true" margin="2px" width="246px" height="133px"/>
+						-->
+						
+						<panel childLayout="absolute" height="20px"/>
+						<control name="label" textHAlign="left" text="Final Map:" width="122px" margin="2px"/>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" width="70px" text="Seed:" margin="2px"/>
+							<control id="MapSeedTextField" name="textfield" width="118px" margin="2px"/>
+							<control id="MapSeedButton" name="button" label="New" width="50px" margin="2px" />
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Map size:" width="100px" margin="2px"/>
+							<control id="MapSizeDropDown" name="dropDown" width="142px" margin="2px"/>
+						</panel>
+					</panel>
+				</panel>
+			</panel>
+		</layer>
+		<!-- message layer -->
+		<layer childLayout="absolute">
+			<panel childLayout="vertical" height="100%" width="100%">
+				<panel childLayout="absolute" height="50px"/>
+				<panel childLayout="horizontal" width="100%" height="100px">
+					<control id="MessageLabel" name="label" textHAlign="center" 
+							 text="" width="100%" color="#f00f" />
+				</panel>
+			</panel>
+		</layer>
+	</screen>
+	
+</nifty>
