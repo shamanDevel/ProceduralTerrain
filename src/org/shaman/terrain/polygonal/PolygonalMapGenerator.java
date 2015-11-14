@@ -7,13 +7,15 @@ package org.shaman.terrain.polygonal;
 
 import com.jme3.scene.Node;
 import de.lessvoid.nifty.Nifty;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
+import javax.vecmath.Vector2d;
 import org.shaman.terrain.AbstractTerrainStep;
 import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.heightmap.Heightmap;
 import org.shaman.terrain.sketch.SketchTerrain;
+import org.shaman.terrain.voronoi.Edge;
+import org.shaman.terrain.voronoi.Voronoi;
 
 /**
  *
@@ -23,7 +25,17 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	private static final Logger LOG = Logger.getLogger(PolygonalMapGenerator.class.getName());
 	private static final Class<? extends AbstractTerrainStep> NEXT_STEP = SketchTerrain.class;
 
+	//GUI and settings
 	private PolygonalScreenController screenController;
+	private int seed;
+	private int pointCount;
+	private int relaxationIterations;
+	
+	//computation
+	private Voronoi voronoi;
+	private List<Vector2d> points;
+	private List<Edge> edges;
+	private Random voronoiRandom;
 
 	public PolygonalMapGenerator() {
 	}
@@ -31,6 +43,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	private void init() {
 		guiNode.detachAllChildren();
 		sceneNode.detachAllChildren();
+		
+		voronoi = new Voronoi();
 		
 		Nifty nifty = app.getNifty();
 		screenController = new PolygonalScreenController(this);
@@ -58,6 +72,36 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		app.setCameraEnabled(false);
 	}
 	
+	/**
+	 * The first step, compute the cells
+	 */
+	private void computeCells() {
+		LOG.info("compute cells");
+		
+		//Generate points
+		voronoiRandom = new Random(seed);
+		points = new ArrayList<>(pointCount);
+		float scale = 100 * pointCount;
+		for (int i=0; i<pointCount; ++i) {
+			float x = voronoiRandom.nextFloat() * scale;
+			float y = voronoiRandom.nextFloat() * scale;
+			points.add(new Vector2d(x, y));
+		}
+		
+		//compute voronoi diagram
+		edges = voronoi.getEdges(points, scale, scale);
+		edges = Voronoi.closeEdges(edges, scale, scale);
+		
+		//relax points
+		for (int i=0; i<relaxationIterations; ++i) {
+			points = VoronoiUtils.generateRelaxedSites(points, edges);
+			edges = voronoi.getEdges(points, scale, scale);
+			edges = Voronoi.closeEdges(edges, scale, scale);
+		}
+		
+		LOG.info("done");
+	}
+	
 	void guiNextStep() {
 		//generate map
 		//TODO
@@ -70,4 +114,23 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		//activate next step
 		nextStep(NEXT_STEP, prop);
 	}
+	void guiInitialValues(int seed, int pointCount, int relaxationIterations) {
+		this.seed = seed;
+		this.pointCount = pointCount;
+		this.relaxationIterations = relaxationIterations;
+		computeCells();
+	}
+	void guiSeedChanged(int seed) {
+		this.seed = seed;
+		computeCells();
+	}
+	void guiPointCountChanged(int count) {
+		this.pointCount = count;
+		computeCells();
+	}
+	void guiRelaxationChanged(int iterations) {
+		this.relaxationIterations = iterations;
+		computeCells();
+	}
+	
 }

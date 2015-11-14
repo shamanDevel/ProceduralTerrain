@@ -14,7 +14,7 @@
 					<control name="label" text="Polygonal" width="100px" />
 					<control id="NextStepButton" name="button" label="Sketch" width="100px" />
 				</panel>
-				<panel childLayout="vertical" backgroundColor="#0008">
+				<panel childLayout="vertical" backgroundColor="#5558">
 					<panel id="PropertiesPanel" width="250px" height="100%" childLayout="vertical">
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" width="70px" text="Seed:" margin="2px"/>
@@ -24,15 +24,15 @@
 						
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Point count:" width="100px" margin="2px"/>
-							<control id="PointCountDropDown" name="dropDown" width="142px" margin="2px"/>
+							<control id="PointCountDropDown" name="dropDown" displayItems="6" width="142px" margin="2px"/>
 						</panel>
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Relaxation:" width="100px" margin="2px"/>
-							<control id="RelaxationDropDown" name="dropDown" width="142px" margin="2px"/>
+							<control id="RelaxationDropDown" name="dropDown" displayItems="5" width="142px" margin="2px"/>
 						</panel>
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Coastline:" width="100px" margin="2px"/>
-							<control id="CoastlineDropBox" name="dropDown" width="142px" margin="2px"/>
+							<control id="CoastlineDropDown" name="dropDown" displayItems="2" width="142px" margin="2px"/>
 						</panel>
 						
 						<panel childLayout="absolute" height="20px"/>
@@ -74,7 +74,7 @@
 						</panel>
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Map size:" width="100px" margin="2px"/>
-							<control id="MapSizeDropDown" name="dropDown" width="142px" margin="2px"/>
+							<control id="MapSizeDropDown" name="dropDown" displayItems="6" width="142px" margin="2px"/>
 						</panel>
 					</panel>
 				</panel>

@@ -7,10 +7,11 @@ package org.shaman.terrain.polygonal;
 
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
-import de.lessvoid.nifty.controls.Button;
-import de.lessvoid.nifty.controls.ButtonClickedEvent;
+import de.lessvoid.nifty.controls.*;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
+import java.util.Arrays;
+import java.util.Random;
 
 /**
  *
@@ -18,9 +19,24 @@ import de.lessvoid.nifty.screen.ScreenController;
  */
 public class PolygonalScreenController implements ScreenController {
 	private final PolygonalMapGenerator generator;
+	private final Random rand = new Random();
 	
 	private Screen screen;
 	private Button nextStepButton;
+	private TextField seedTextField;
+	private Button seedButton;
+	private DropDown<Integer> pointCountDropDown;
+	private DropDown<String> relaxationDropDown;
+	private DropDown<String> coastlineDropDown;
+	private Button generateElevationButton;
+	private CheckBox elevationCheckBox;
+	private Button generateBiomesButton;
+	private CheckBox temperatureCheckBox;
+	private CheckBox moistureCheckBox;
+	private CheckBox biomesCheckBox;
+	private TextField mapSeedTextField;
+	private Button mapSeedButton;
+	private DropDown<Integer> mapSizeDropDown;
 
 	public PolygonalScreenController(PolygonalMapGenerator generator) {
 		this.generator = generator;
@@ -32,8 +48,42 @@ public class PolygonalScreenController implements ScreenController {
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public void onStartScreen() {
 		nextStepButton = screen.findNiftyControl("NextStepButton", Button.class);
+		seedTextField = screen.findNiftyControl("SeedTextField", TextField.class);
+		seedButton = screen.findNiftyControl("SeedButton", Button.class);
+		pointCountDropDown = screen.findNiftyControl("PointCountDropDown", DropDown.class);
+		relaxationDropDown = screen.findNiftyControl("RelaxationDropDown", DropDown.class);
+		coastlineDropDown = screen.findNiftyControl("CoastlineDropDown", DropDown.class);
+		generateElevationButton = screen.findNiftyControl("GenerateElevationButton", Button.class);
+		elevationCheckBox = screen.findNiftyControl("ElevationCheckBox", CheckBox.class);
+		generateBiomesButton = screen.findNiftyControl("GenerateBiomesButton", Button.class);
+		temperatureCheckBox = screen.findNiftyControl("TemperatureCheckBox", CheckBox.class);
+		moistureCheckBox = screen.findNiftyControl("MoistureCheckBox", CheckBox.class);
+		biomesCheckBox = screen.findNiftyControl("BiomesCheckBox", CheckBox.class);
+		mapSeedTextField = screen.findNiftyControl("MapSeedTextField", TextField.class);
+		mapSeedButton = screen.findNiftyControl("MapSeedButton", Button.class);
+		mapSizeDropDown = screen.findNiftyControl("MapSizeDropDown", DropDown.class);
+		
+		pointCountDropDown.addAllItems(Arrays.asList(500, 1000, 2000, 4000, 6000, 8000));
+		relaxationDropDown.addAllItems(Arrays.asList("no relaxation", "1x", "2x", "3x", "4x"));
+		coastlineDropDown.addAllItems(Arrays.asList("perlin", "circular"));
+		mapSizeDropDown.addAllItems(Arrays.asList(256, 512, 1024, 2048, 4096, 8192));
+		
+		String seed1 = randomSeed();
+		String seed2 = randomSeed();
+		seedTextField.setText(seed1);
+		pointCountDropDown.selectItemByIndex(2);
+		relaxationDropDown.selectItemByIndex(2);
+		coastlineDropDown.selectItemByIndex(0);
+		mapSeedTextField.setText(seed2);
+		mapSizeDropDown.selectItemByIndex(1);
+		generator.guiInitialValues(seed1.hashCode(), 2000, 2);
+	}
+	
+	private String randomSeed() {
+		return Long.toHexString(Math.abs(rand.nextLong() % (1l<<48)));
 	}
 
 	@Override
@@ -46,6 +96,38 @@ public class PolygonalScreenController implements ScreenController {
 		System.out.println("button "+id+" clicked: "+e);
 		if (nextStepButton == e.getButton()) {
 			generator.guiNextStep();
+		} else if (seedButton == e.getButton()) {
+			String seed = randomSeed();
+			seedTextField.setText(seed);
+			generator.guiSeedChanged(seed.hashCode());
+		} else if (mapSeedButton == e.getButton()) {
+			String seed = randomSeed();
+			mapSeedTextField.setText(seed);
+			
+		}
+	}
+	
+	@NiftyEventSubscriber(pattern = ".*CheckBox")
+	public void onCheckBoxClick(String id, CheckBoxStateChangedEvent e) {
+		System.out.println("checkbox "+id+" changed: "+e);
+		
+	}
+	
+	@NiftyEventSubscriber(pattern = ".*DropDown")
+	public void onSelectionChange(String id, DropDownSelectionChangedEvent e) {
+		System.out.println("dropdown "+id+" changed: "+e.getSelection());
+		if (pointCountDropDown == e.getDropDown()) {
+			generator.guiPointCountChanged(pointCountDropDown.getSelection());
+		} else if (relaxationDropDown == e.getDropDown()) {
+			generator.guiRelaxationChanged(relaxationDropDown.getSelectedIndex());
+		}
+	}
+	
+	@NiftyEventSubscriber(pattern = ".*TextField")
+	public void onSeedChange(String id, TextFieldChangedEvent e) {
+		System.out.println("textfield "+id+" changed: "+e.getText());
+		if (seedTextField==e.getTextFieldControl()) {
+			generator.guiSeedChanged(e.getText().hashCode());
 		}
 	}
 }
