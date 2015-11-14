@@ -64,6 +64,8 @@ import com.jme3.util.SkyFactory;
 import de.lessvoid.nifty.Nifty;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.shaman.terrain.heightmap.*;
 import org.shaman.terrain.polygonal.PolygonalMapGenerator;
@@ -76,10 +78,17 @@ import org.shaman.terrain.polygonal.PolygonalMapGenerator;
  */
 public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final Logger LOG = Logger.getLogger(TerrainHeighmapCreator.class.getName());
-	private static final int SIZE = 256;//1024;
 	private static final float SLOPE_SCALE = 200f;
 	private static final float SLOPE_POWER = 2f;
 	public static final float HEIGHMAP_HEIGHT_SCALE = 128;
+	
+	@SuppressWarnings("unchecked")
+	private static final Class<? extends AbstractTerrainStep>[] STEPS = new Class[] {
+		RandomHeightmapGenerator.class,
+		SketchTerrain.class
+	};
+	private static final int FIRST_STEP_INDEX = 0;
+	private AbstractTerrainStep[] steps;
 	
     private TerrainQuad terrain;
     private Material matTerrain;
@@ -97,15 +106,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	
 	private NiftyJmeDisplay niftyDisplay;
 	private Nifty nifty;
-    
-	private ArrayList<HeightmapProcessor.PropItem> properties = new ArrayList<>();
-	private int property = 0;
-	private boolean propertiesEnabled = true;
-	private boolean changed;
-	private BitmapText titleText;
-	private BitmapText selectionText;
-	private BitmapText propText;
-	private HeightmapProcessor processors;
+	
 	private Heightmap heightmap;
 	private Texture2D alphaMap;
 	
@@ -123,107 +124,34 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		app.setShowSettings(true);
         app.start();
     }
-
-	public void updateAlphaMap() {		
-		Image image = alphaMap.getImage();
-		ByteBuffer data = image.getData(0);
-		if (data == null) {
-			data = BufferUtils.createByteBuffer(SIZE*SIZE*4);
-		}
-		data.rewind();
-		for (int x=0; x<SIZE; ++x) {
-			for (int y=0; y<SIZE; ++y) {
-				float slope = heightmap.getSlopeAt(y, SIZE-x-1);
-				slope = (float) Math.pow(slope * SLOPE_SCALE, SLOPE_POWER);
-				float g = Math.max(0, 1-slope);
-				float r = 1-g;
-				data.put((byte) (255*r)).put((byte) (255*g)).put((byte) 0).put((byte) 0);
-			}
-		}
-		data.rewind();
-		image.setFormat(Image.Format.RGBA8);
-		image.setWidth(SIZE);
-		image.setHeight(SIZE);
-		image.setData(0, data);
-		alphaMap.setMagFilter(Texture.MagFilter.Bilinear);
-		matTerrain.setTexture("AlphaMap", alphaMap);
-	}
 	
     @Override
     public void simpleInitApp() {
+		steps = new AbstractTerrainStep[STEPS.length];
+		for (int i=0; i<STEPS.length; ++i) {
+			try {
+				steps[i] = STEPS[i].newInstance();
+			} catch (InstantiationException | IllegalAccessException ex) {
+				Logger.getLogger(TerrainHeighmapCreator.class.getName()).log(Level.SEVERE, "Unable to create step", ex);
+				stop();
+				return;
+			}
+			stateManager.attach(steps[i]);
+		}
+		steps[FIRST_STEP_INDEX].properties = new HashMap<>();
+		steps[FIRST_STEP_INDEX].setEnabled(true);
+		
         setupKeys();
 //		loadHintText();
 		
 		initNifty();
-		initHeightmap(true);
 		initScene();
 //		initPropertyUI();
 		
-		polygonalMapGenerator = new PolygonalMapGenerator(this);
+//		polygonalMapGenerator = new PolygonalMapGenerator(this);
 		
 		//nextStep();
     }
-	
-	private void nextStep() {
-		propertiesEnabled = false;
-		titleText.getParent().detachChild(titleText);
-		propText.getParent().detachChild(propText);
-		selectionText.getParent().detachChild(selectionText);
-		//switch to terrain sketching
-		sketchTerrain = new SketchTerrain(this, heightmap);
-	}
-	
-	private void initHeightmap(boolean applyProcessors) {
-		if (!applyProcessors) {
-			//short cut to SketchTerrain
-			heightmap = new Heightmap(SIZE);
-			return;
-		}
-		//create processors
-		ChainProcessor noiseChain = new ChainProcessor();
-		float initFrequency = 2;
-		for (int i=0; i<7; ++i) {
-			PerlinNoiseProcessor noise = new PerlinNoiseProcessor(i+1, Math.pow(2, initFrequency+i), Math.pow(0.3, i+1));
-			noiseChain.add(noise);
-		}
-		noiseChain.add(new NormalizationProcessor());
-		ChainProcessor voronoiChain = new ChainProcessor();
-		voronoiChain.add(new VoronoiProcessor());
-//		voronoiChain.add(new DistortionProcessor(0.01f, 8));
-		voronoiChain.add(new NormalizationProcessor());
-		ChainProcessor finalChain = new ChainProcessor();
-		finalChain.add(new SplitCombineProcessor(
-				new HeightmapProcessor[]{noiseChain, voronoiChain}, 
-				new float[]{0.6f, 0.3f}));
-		finalChain.add(new DistortionProcessor());
-		finalChain.add(new ThermalErosionProcessor());
-		processors = finalChain;
-		properties.addAll(processors.getProperties());
-		processors.reseed();
-		heightmap = processors.apply(new Heightmap(SIZE));
-		changed = false;
-	}
-	
-	private void updateHeightmap() {
-		long time1 = System.currentTimeMillis();
-		if (!changed) {
-			processors.reseed();
-		}
-		heightmap = processors.apply(new Heightmap(SIZE));
-		changed = false;
-		long time2 = System.currentTimeMillis();
-		System.out.println("Time to apply processors: "+(time2-time1)/1000.0+" sec");
-		
-		time1 = System.currentTimeMillis();
-		updateAlphaMap();
-		time2 = System.currentTimeMillis();
-		System.out.println("Time to update alpha map: "+(time2-time1)/1000.0+" sec");
-		
-		time1 = System.currentTimeMillis();
-		updateTerrain();
-		time2 = System.currentTimeMillis();
-		System.out.println("Time to update mesh: "+(time2-time1)/1000.0+" sec");
-	}
 	
 	private void initNifty() {
 		niftyDisplay = new NiftyJmeDisplay(assetManager, inputManager, audioRenderer, guiViewPort);
@@ -243,20 +171,20 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         matTerrain.setFloat("Shininess", 0.0f);
 
         // ALPHA map (for splat textures)
-		alphaMap = new Texture2D(SIZE, SIZE, Image.Format.ABGR8);
-		updateAlphaMap();
+		alphaMap = new Texture2D(256, 256, Image.Format.ABGR8);
+//		updateAlphaMap();
         
         // DARK ROCK texture
         Texture darkRock = assetManager.loadTexture("org/shaman/terrain/rock2.jpg");
         darkRock.setWrap(WrapMode.Repeat);
         matTerrain.setTexture("DiffuseMap", darkRock);
-        matTerrain.setFloat("DiffuseMap_0_scale", darkRockScale/(float)SIZE);
+        matTerrain.setFloat("DiffuseMap_0_scale", darkRockScale/(float)256);
         
         // GRASS texture
         Texture grass = assetManager.loadTexture("org/shaman/terrain/grass.jpg");
         grass.setWrap(WrapMode.Repeat);
         matTerrain.setTexture("DiffuseMap_1", grass);
-        matTerrain.setFloat("DiffuseMap_1_scale", grassScale/(float)SIZE);
+        matTerrain.setFloat("DiffuseMap_1_scale", grassScale/(float)256);
         
         // NORMAL MAPS
         Texture normalMapRock = assetManager.loadTexture("org/shaman/terrain/rock_normal.png");
@@ -273,7 +201,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         
         createSky();
 
-		updateTerrain();
+//		updateTerrain();
         
         //Material debugMat = assetManager.loadMaterial("Common/Materials/VertexColor.j3m");
         //terrain.generateDebugTangents(debugMat);
@@ -289,6 +217,47 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         
         rootNode.attachChild(createAxisMarker(20));
 	}
+	
+	private void loadHintText() {
+        hintText = new BitmapText(guiFont, false);
+        hintText.setSize(guiFont.getCharSet().getRenderedSize());
+        hintText.setLocalTranslation(0, getCamera().getHeight(), 0);
+        hintText.setText("Hit T to switch to wireframe");
+        guiNode.attachChild(hintText);
+    }
+	
+	public void setTerrain(Heightmap map) {
+		this.heightmap = map;
+		alphaMap = new Texture2D(map.getSize(), map.getSize(), Image.Format.ABGR8);
+		updateAlphaMap();
+		updateTerrain();
+	}
+	
+	public void updateAlphaMap() {		
+		Image image = alphaMap.getImage();
+		ByteBuffer data = image.getData(0);
+		if (data == null) {
+			data = BufferUtils.createByteBuffer(heightmap.getSize()*heightmap.getSize()*4);
+		}
+		data.rewind();
+		for (int x=0; x<heightmap.getSize(); ++x) {
+			for (int y=0; y<heightmap.getSize(); ++y) {
+				float slope = heightmap.getSlopeAt(y, heightmap.getSize()-x-1);
+				slope = (float) Math.pow(slope * SLOPE_SCALE, SLOPE_POWER);
+				float g = Math.max(0, 1-slope);
+				float r = 1-g;
+				data.put((byte) (255*r)).put((byte) (255*g)).put((byte) 0).put((byte) 0);
+			}
+		}
+		data.rewind();
+		image.setFormat(Image.Format.RGBA8);
+		image.setWidth(heightmap.getSize());
+		image.setHeight(heightmap.getSize());
+		image.setData(0, data);
+		alphaMap.setMagFilter(Texture.MagFilter.Bilinear);
+		matTerrain.setTexture("AlphaMap", alphaMap);
+	}
+	
 	public void updateTerrain() {
 		if (terrain != null) {
 			rootNode.detachChild(terrain);
@@ -302,7 +271,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
          * The total size is up to you. At 1025 it ran fine for me (200+FPS), however at
          * size=2049 it got really slow. But that is a jump from 2 million to 8 million triangles...
          */
-        terrain = new TerrainQuad("terrain", 65, SIZE+1, heightmap.getJMEHeightmap(HEIGHMAP_HEIGHT_SCALE));
+        terrain = new TerrainQuad("terrain", 65, heightmap.getSize()+1, heightmap.getJMEHeightmap(HEIGHMAP_HEIGHT_SCALE));
 //        TerrainLodControl control = new TerrainLodControl(terrain, getCamera());
 //        control.setLodCalculator( new DistanceLodCalculator(65, 2.7f) ); // patch size, and a multiplier
 //        terrain.addControl(control);
@@ -322,7 +291,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	 */
 	public Vector3f getHeightmapPoint(int x, int y) {
 		float h = heightmap.getHeightAt(x, y);
-		return new Vector3f(x - SIZE/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - SIZE/2);
+		return new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
 	}
 	
 	/**
@@ -333,16 +302,16 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	 */
 	public Vector3f getHeightmapPoint(float x, float y) {
 		float h = heightmap.getHeightInterpolating(x, y);
-		return new Vector3f(x - SIZE/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - SIZE/2);
+		return new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
 	}
 	
 	public Vector3f mapHeightmapToWorld(float x, float y, float h) {
-		return new Vector3f(x - SIZE/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - SIZE/2);
+		return new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
 	}
 	
 	public Vector3f mapWorldToHeightmap(Vector3f world) {
-		float x = world.x + SIZE/2;
-		float y = world.z + SIZE/2;
+		float x = world.x + heightmap.getSize()/2;
+		float y = world.z + heightmap.getSize()/2;
 		float h = (world.y + HEIGHMAP_HEIGHT_SCALE/2) / HEIGHMAP_HEIGHT_SCALE;
 		return new Vector3f(x, y, h);
 	}
@@ -354,89 +323,6 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	public Nifty getNifty() {
 		return nifty;
 	}
-	
-	private void initPropertyUI() {		
-		//acreate ui
-		BitmapFont font = assetManager.loadFont("Interface/Fonts/Console.fnt");
-		titleText = new BitmapText(font);
-		titleText.setText(
-				"Use arrow keys to select the property and modify it\n"
-				+ "Press Enter to apply changes, press Enter again to generate new seeds\n"
-				+ "Press Space to end this step and continue to terrain sketching");
-		titleText.setLocalTranslation(0, settings.getHeight(), 0);
-		guiNode.attachChild(titleText);
-		selectionText = new BitmapText(font);
-		selectionText.setText("->");
-		selectionText.setLocalTranslation(0, settings.getHeight() - titleText.getHeight() - 5, 0);
-		guiNode.attachChild(selectionText);
-		propText = new BitmapText(font);
-		propText.setText("");
-		propText.setLocalTranslation(selectionText.getLineWidth() + 5, settings.getHeight() - titleText.getHeight() - 5, 0);
-		guiNode.attachChild(propText);
-		//add action listener
-		inputManager.addMapping("PropUp", new KeyTrigger(KeyInput.KEY_RIGHT));
-		inputManager.addMapping("PropDown", new KeyTrigger(KeyInput.KEY_LEFT));
-		inputManager.addMapping("NextProp", new KeyTrigger(KeyInput.KEY_DOWN));
-		inputManager.addMapping("PrevProp", new KeyTrigger(KeyInput.KEY_UP));
-		inputManager.addMapping("ApplyChanges", new KeyTrigger(KeyInput.KEY_RETURN));
-		inputManager.addMapping("NextStep", new KeyTrigger(KeyInput.KEY_SPACE));
-		inputManager.addListener(new ActionListener() {
-			@Override
-			public void onAction(String name, boolean isPressed, float tpf) {
-				if (!isPressed) return;
-				if (!propertiesEnabled) return;
-				switch (name) {
-					case "NextProp":
-						property = Math.min(properties.size() - 1, property + 1);
-						break;
-					case "PrevProp":
-						property = Math.max(0, property - 1);
-						break;
-					case "PropUp":
-						changed |= properties.get(property).change(true);
-//						updateHeightmap();
-						break;
-					case "PropDown":
-						changed |= properties.get(property).change(false);
-//						updateHeightmap();
-						break;
-					case "ApplyChanges":
-						updateHeightmap();
-						break;
-					case "NextStep":
-						nextStep();
-						break;
-					default:
-						return;
-				}
-			}
-		}, "PropUp", "PropDown", "NextProp", "PrevProp", "ApplyChanges", "NextStep");
-	}
-	private void updatePropertyUI() {
-		StringBuilder str = new StringBuilder();
-		StringBuilder str2 = new StringBuilder();
-		for (int i=0; i<properties.size(); ++i) {
-			if (i>0) {
-				str.append('\n');
-				str2.append('\n');
-			}
-			HeightmapProcessor.PropItem item = properties.get(i);
-			str.append(item.getText());
-			if (i == property) {
-				str2.append("->");
-			}
-		}
-		propText.setText(str);
-		selectionText.setText(str2);
-	}
-
-    private void loadHintText() {
-        hintText = new BitmapText(guiFont, false);
-        hintText.setSize(guiFont.getCharSet().getRenderedSize());
-        hintText.setLocalTranslation(0, getCamera().getHeight(), 0);
-        hintText.setText("Hit T to switch to wireframe");
-        guiNode.attachChild(hintText);
-    }
 
     private void setupKeys() {
         inputManager.addMapping("wireframe", new KeyTrigger(KeyInput.KEY_T));
@@ -520,10 +406,6 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 			firstUpdate = false;
 			camera.setEnabled(true);
 			camera.setMoveSpeed(200);
-		}
-//		updatePropertyUI();
-		if (sketchTerrain != null) {
-			sketchTerrain.onUpdate(tpf);
 		}
 	}
 	

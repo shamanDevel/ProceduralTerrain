@@ -43,6 +43,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.shaman.terrain.AbstractTerrainStep;
 import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.heightmap.Heightmap;
 
@@ -50,7 +51,7 @@ import org.shaman.terrain.heightmap.Heightmap;
  *
  * @author Sebastian Weiss
  */
-public class SketchTerrain implements ActionListener, AnalogListener {
+public class SketchTerrain extends AbstractTerrainStep implements ActionListener, AnalogListener {
 	private static final Logger LOG = Logger.getLogger(SketchTerrain.class.getName());
 	private static final float PLANE_QUAD_SIZE = 200;
 	private static final float INITIAL_PLANE_DISTANCE = 150f;
@@ -61,12 +62,9 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	private static final boolean DEBUG_DIFFUSION_SOLVER = false;
 	private static final int DIFFUSION_SOLVER_ITERATIONS = 1000;
 	
-	private final TerrainHeighmapCreator app;
-	private final Heightmap map;
-	private final Heightmap originalMap;
+	private Heightmap map;
+	private Heightmap originalMap;
 	
-	private Node guiNode;
-	private Node sceneNode;
 	private float planeDistance = INITIAL_PLANE_DISTANCE;
 	private Spatial sketchPlane;
 	private SketchTerrainScreenController screenController;
@@ -87,24 +85,38 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 	private final CurvePreset[] presets;
 	private int selectedPreset;
 	
-	public SketchTerrain(TerrainHeighmapCreator app, Heightmap map) {
-		this.app = app;
-		this.map = map;
-		this.originalMap = map.clone();
+	public SketchTerrain() {
 		this.featureCurves = new ArrayList<>();
 		this.featureCurveNodes = new ArrayList<>();
 		this.featureCurveMesh = new ArrayList<>();
 		this.presets = DefaultCurvePresets.DEFAULT_PRESETS;
+	}
+
+	@Override
+	protected void enable() {
+		this.map = (Heightmap) properties.get(AbstractTerrainStep.KEY_HEIGHTMAP);
+		if (this.map == null) {
+			throw new IllegalStateException("SketchTerrain requires a heightmap");
+		}
+		this.originalMap = this.map.clone();
 		selectedPreset = 0;
 		init();
+	}
+
+	@Override
+	protected void disable() {
+		app.getInputManager().removeListener(this);
+	}
+
+	@Override
+	public void update(float tpf) {
+		
 	}
 	
 	private void init() {
 		//init nodes
-		guiNode = new Node("sketchGUI");
-		app.getGuiNode().attachChild(guiNode);
-		sceneNode = new Node("sketch3D");
-		app.getRootNode().attachChild(sceneNode);
+		guiNode.detachAllChildren();
+		sceneNode.detachAllChildren();
 		
 		//add test feature curve
 //		ControlPoint p1 = new ControlPoint(40, 40, 0.05f, 0, 0, 0, 0, 0, 0, 0);
@@ -209,10 +221,6 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 			node.attachChild(g);
 		}
 	}
-
-	public void onUpdate(float tpf) {
-		
-	}
 	
 	private void solveDiffusion() {
 		LOG.info("Solve diffusion");
@@ -239,8 +247,7 @@ public class SketchTerrain implements ActionListener, AnalogListener {
 				map.setHeightAt(x, y, (float) mat.get(x, y) + originalMap.getHeightAt(x, y));
 			}
 		}
-		app.updateAlphaMap();
-		app.updateTerrain();
+		app.setTerrain(map);
 		LOG.info("terrain updated");
 	}
 	
