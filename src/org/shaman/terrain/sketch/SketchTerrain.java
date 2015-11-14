@@ -118,14 +118,8 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		guiNode.detachAllChildren();
 		sceneNode.detachAllChildren();
 		
-		//add test feature curve
-//		ControlPoint p1 = new ControlPoint(40, 40, 0.05f, 0, 0, 0, 0, 0, 0, 0);
-//		ControlPoint p2 = new ControlPoint(80, 70, 0.2f, 10, 20f*FastMath.DEG_TO_RAD, 20, 70*FastMath.DEG_TO_RAD, 5, 0, 0);
-//		ControlPoint p3 = new ControlPoint(120, 130, 0.3f, 10, 20f*FastMath.DEG_TO_RAD, 35, 70*FastMath.DEG_TO_RAD, 7, 0, 0);
-//		ControlPoint p4 = new ControlPoint(150, 160, 0.15f, 10, 20f*FastMath.DEG_TO_RAD, 20, 70*FastMath.DEG_TO_RAD, 5, 0, 0);
-//		ControlPoint p5 = new ControlPoint(160, 200, 0.05f, 0, 0, 0, 0, 0, 0, 0);
-//		ControlCurve c = new ControlCurve(new ControlPoint[]{p1, p2, p3, p4, p5});
-//		addFeatureCurve(c);
+		//initial terrain 
+		app.setTerrain(originalMap);
 		
 		//init sketch plane
 		initSketchPlane();

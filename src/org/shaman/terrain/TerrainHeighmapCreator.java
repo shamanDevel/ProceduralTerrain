@@ -84,7 +84,8 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	
 	@SuppressWarnings("unchecked")
 	private static final Class<? extends AbstractTerrainStep>[] STEPS = new Class[] {
-		RandomHeightmapGenerator.class,
+		//RandomHeightmapGenerator.class,
+		PolygonalMapGenerator.class,
 		SketchTerrain.class
 	};
 	private static final int FIRST_STEP_INDEX = 0;
@@ -103,6 +104,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
     private float darkRockScale = 16;
     private float grassScale = 32;
 	private CustomFlyByCamera camera;
+	private Spatial sky;
 	
 	private NiftyJmeDisplay niftyDisplay;
 	private Nifty nifty;
@@ -226,8 +228,21 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         guiNode.attachChild(hintText);
     }
 	
+	/**
+	 * Sets the terrain to the new heightmap, updates the sizes, alpha map and
+	 * terrain mesh.
+	 * If you pass {@code null}, the heightmap is disabled.
+	 * @param map the new map
+	 */
 	public void setTerrain(Heightmap map) {
 		this.heightmap = map;
+		if (map == null) {
+			if (terrain != null) {
+				rootNode.detachChild(terrain);
+			}
+			terrain = null;
+			return;
+		}
 		alphaMap = new Texture2D(map.getSize(), map.getSize(), Image.Format.ABGR8);
 		updateAlphaMap();
 		updateTerrain();
@@ -363,9 +378,26 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         Texture up = assetManager.loadTexture("Textures/Sky/Lagoon/lagoon_up.jpg");
         Texture down = assetManager.loadTexture("Textures/Sky/Lagoon/lagoon_down.jpg");
 
-        Spatial sky = SkyFactory.createSky(assetManager, west, east, north, south, up, down);
+        sky = SkyFactory.createSky(assetManager, west, east, north, south, up, down);
         rootNode.attachChild(sky);
     }
+	
+	/**
+	 * Enables or disables the sky.
+	 * @param enabled {@code true} to display the sky, {@code false} to hide it
+	 */
+	public void setSkyEnabled(boolean enabled) {
+		sky.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+	}
+	
+	/**
+	 * Enables or disables the camera.
+	 * If the camera is disabled, you cannot longer move around.
+	 * @param enabled 
+	 */
+	public void setCameraEnabled(boolean enabled) {
+		camera.setEnabled(enabled);
+	}
     
     protected Node createAxisMarker(float arrowSize) {
 

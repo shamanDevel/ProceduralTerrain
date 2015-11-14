@@ -6,6 +6,9 @@
 package org.shaman.terrain.polygonal;
 
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.NiftyEventSubscriber;
+import de.lessvoid.nifty.controls.Button;
+import de.lessvoid.nifty.controls.ButtonClickedEvent;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 
@@ -15,6 +18,9 @@ import de.lessvoid.nifty.screen.ScreenController;
  */
 public class PolygonalScreenController implements ScreenController {
 	private final PolygonalMapGenerator generator;
+	
+	private Screen screen;
+	private Button nextStepButton;
 
 	public PolygonalScreenController(PolygonalMapGenerator generator) {
 		this.generator = generator;
@@ -22,12 +28,12 @@ public class PolygonalScreenController implements ScreenController {
 
 	@Override
 	public void bind(Nifty nifty, Screen screen) {
-		
+		this.screen = screen;
 	}
 
 	@Override
 	public void onStartScreen() {
-		
+		nextStepButton = screen.findNiftyControl("NextStepButton", Button.class);
 	}
 
 	@Override
@@ -35,4 +41,11 @@ public class PolygonalScreenController implements ScreenController {
 		
 	}
 	
+	@NiftyEventSubscriber(pattern = ".*Button")
+	public void onButtonClick(String id, ButtonClickedEvent e) {
+		System.out.println("button "+id+" clicked: "+e);
+		if (nextStepButton == e.getButton()) {
+			generator.guiNextStep();
+		}
+	}
 }
