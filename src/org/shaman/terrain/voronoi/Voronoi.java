@@ -7,6 +7,9 @@ package org.shaman.terrain.voronoi;
 
 import java.util.*;
 import javax.vecmath.Vector2d;
+import org.apache.commons.collections4.MultiMap;
+import org.apache.commons.collections4.map.DefaultedMap;
+import org.apache.commons.collections4.map.MultiValueMap;
 
 /**
  * C++ to Java port of the voronoi diagram algorithm from
@@ -91,6 +94,7 @@ public class Voronoi {
 	 */
 	public static List<Edge> closeEdges(List<Edge> edges, float w, float h) {
 		ArrayList<Edge> output = new ArrayList<>();
+		MultiMap<Vector2d, Vector2d> borders = new MultiValueMap<>();
 		for (Edge edge : edges) {
 			boolean sInside = isInside(edge.start, w, h);
 			boolean eInside = isInside(edge.end, w, h);
@@ -108,7 +112,53 @@ public class Voronoi {
 				edge.start = p;
 			}
 			output.add(edge);
-			//TODO: may add edge along the border
+			borders.put(edge.left, p);
+			borders.put(edge.right, p);
+		}
+		//connect borders
+		ArrayList<Vector2d> borderCenters = new ArrayList<>();
+		borderCenters.addAll(borders.keySet());
+//		for (Vector2d center : borders.keySet()) {
+//			@SuppressWarnings("unchecked")
+//			Collection<Vector2d> ex = (Collection<Vector2d>) borders.get(center);
+//			if (ex.size() == 2) {
+//				Vector2d[] points = ex.toArray(new Vector2d[2]);
+//				Edge e = new Edge();
+//				e.start = points[0];
+//				e.end = points[1];
+//				e.left = center;
+//				output.add(e);
+//			} else {
+//				System.err.println("illegal edge borders: "+center+" -> "+ex);
+//				errors.add(center); //for some reason, these cannot be processed, use extra step
+//			}
+//		}
+		//process erounous centers
+		for (Vector2d center : borderCenters) {
+			//Find corners
+			DefaultedMap<Vector2d, Integer> cornerCounter = new DefaultedMap<>(0);
+			for (Edge e : output) {
+				if (e.left == center || e.right == center) {
+					cornerCounter.put(e.start, cornerCounter.get(e.start) + 1);
+					cornerCounter.put(e.end, cornerCounter.get(e.end) + 1);
+				}
+			}
+//			System.err.println("corner counter for center "+center+": "+cornerCounter);
+			ArrayList<Vector2d> corners = new ArrayList<>(2);
+			for (Map.Entry<Vector2d, Integer> entry : cornerCounter.entrySet()) {
+				if (entry.getValue()==1) {
+					corners.add(entry.getKey());
+				}
+			}
+			if (corners.size() == 2) {
+				Edge e = new Edge();
+				e.start = corners.get(0);
+				e.end = corners.get(1);
+				e.left = center;
+				output.add(e);
+			} else {
+				System.err.println("illegal corner map");
+			}
 		}
 		return output;
 	}
@@ -120,21 +170,28 @@ public class Voronoi {
 		}
 	}
 	private static Vector2d edgeBoxIntersection(Edge e, float w, float h) {
-		double a = e.start.x;
-		double b = e.start.y;
-		double x = e.end.x;
-		double y = e.end.y;
-		double t = a/(a-x);
-		if (t<0 || t>1) {
-			t = b/(b-y);
+		double a,b,x,y;
+		if (isInside(e.end, w, h)) {
+			a = e.end.x;
+			b = e.end.y;
+			x = e.start.x;
+			y = e.start.y;
+		} else {
+			a = e.start.x;
+			b = e.start.y;
+			x = e.end.x;
+			y = e.end.y;
 		}
-		if (t<0 || t>1) {
-			t = (w-a)/(x-a);
-		}
-		if (t<0 || t>1) {
-			t = (h-b)/(y-b);
-		}
-		if (t<0 || t>1) {
+		double t1 = a/(a-x);
+		double t2 = b/(b-y);
+		double t3 = (w-a)/(x-a);
+		double t4 = (h-b)/(y-b);
+		if (t1<0 || t1>1) t1 = Double.POSITIVE_INFINITY;
+		if (t2<0 || t2>1) t2 = Double.POSITIVE_INFINITY;
+		if (t3<0 || t3>1) t3 = Double.POSITIVE_INFINITY;
+		if (t4<0 || t4>1) t4 = Double.POSITIVE_INFINITY;
+		double t = Math.min(Math.min(t1, t2), Math.min(t3, t4));
+		if (t == Double.POSITIVE_INFINITY) {
 			return null;
 		}
 		return new Vector2d(a + t*(x-a), b + t*(y-b));

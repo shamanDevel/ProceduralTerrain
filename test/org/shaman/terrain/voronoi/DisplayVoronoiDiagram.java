@@ -6,6 +6,8 @@
 package org.shaman.terrain.voronoi;
 
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +38,7 @@ public class DisplayVoronoiDiagram extends JFrame {
 
 			@Override
 			public void paintComponent(Graphics g) {
+				super.paintComponent(g);
 				paintPanel(g);
 			}
 			
@@ -45,6 +48,16 @@ public class DisplayVoronoiDiagram extends JFrame {
 		panel.setPreferredSize(new Dimension(w, h));
 		pack();
 		generateVoronoi();
+		addKeyListener(new KeyAdapter() {
+
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+					generateVoronoi();
+				}
+			}
+			
+		});
 	}
 	
 	private void generateVoronoi() {
@@ -61,24 +74,26 @@ public class DisplayVoronoiDiagram extends JFrame {
 		edges = voronoi.getEdges(points, w*scale, h*scale);
 		edges = Voronoi.closeEdges(edges, w*scale, h*scale);
 		//relax n times
-		int m = 3;
+		int m = 5;
 		for (int i=0; i<m; ++i) {
 			points = VoronoiUtils.generateRelaxedSites(points, edges);
 			edges = voronoi.getEdges(points, w*scale, h*scale);
 			edges = Voronoi.closeEdges(edges, w*scale, h*scale);
 		}
 		long time2 = System.currentTimeMillis();
-		System.out.println("edges: ("+edges.size()+")");
 		
-		for (Edge e : edges) {
-			System.out.println(" "+e.start+" -- "+e.end);
-		}
+		System.out.println("edges: ("+edges.size()+")");
+//		for (Edge e : edges) {
+//			System.out.println(" "+e.start+" -- "+e.end);
+//		}
 		System.out.println("time to compute: "+(time2-time1)+" msec");
 		panel.repaint();
 	}
 	
 	private void paintPanel(Graphics g) {
 		Graphics2D G = (Graphics2D) g;
+		G.translate(10, 10);
+		G.scale(0.95, 0.95);
 		G.setStroke(new BasicStroke(3));
 		G.setPaint(Color.RED);
 		for (Edge e : edges) {
@@ -96,12 +111,14 @@ public class DisplayVoronoiDiagram extends JFrame {
 			double y1 = (e.start.y + e.end.y) / 2 / scale;
 			double x2 = e.left.x / scale;
 			double y2 = e.left.y / scale;
-			double x3 = e.right.x / scale;
-			double y3 = e.right.y / scale;
 			Line2D l = new Line2D.Double(x1, y1, x2, y2);
 			G.draw(l);
-			l.setLine(x1, y1, x3, y3);
-			G.draw(l);
+			if (e.right != null) {
+				double x3 = e.right.x / scale;
+				double y3 = e.right.y / scale;
+				l.setLine(x1, y1, x3, y3);
+				G.draw(l);
+			}
 		}
 		G.setPaint(Color.BLACK);
 		for (Vector2d p : points) {
