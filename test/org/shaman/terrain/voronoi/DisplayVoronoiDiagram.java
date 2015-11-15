@@ -9,7 +9,7 @@ import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.geom.Line2D;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
 import java.util.Random;
 import javax.swing.JFrame;
@@ -24,8 +24,8 @@ import org.shaman.terrain.polygonal.VoronoiUtils;
 public class DisplayVoronoiDiagram extends JFrame {
 	private static final int w = 800;
 	private static final int h = 800;
-	private static final int scale = 100;
-	private static final int n = 1000;
+	private static final int scale = 200;
+	private static final int n = 2000;
 	
 	private JPanel panel;
 	private List<Vector2d> points;
@@ -63,24 +63,35 @@ public class DisplayVoronoiDiagram extends JFrame {
 	private void generateVoronoi() {
 		Random rand = new Random();
 		Voronoi voronoi = new Voronoi();
-		points = new ArrayList<>(n);
+		Set<Vector2d> pointSet = new HashSet<>();
 		for (int i=0; i<n; ++i) {
-			float x = rand.nextFloat() * w * scale;
-			float y = rand.nextFloat() * h * scale;
-			points.add(new Vector2d(x, y));
+			float x = (rand.nextFloat() * w * scale);
+			float y = (rand.nextFloat() * h * scale);
+			pointSet.add(new Vector2d(x, y));
 		}
+		points = new ArrayList<>(n);
+		points.addAll(pointSet);
 		
 		long time1 = System.currentTimeMillis();
 		edges = voronoi.getEdges(points, w*scale, h*scale);
 		edges = Voronoi.closeEdges(edges, w*scale, h*scale);
 		//relax n times
-		int m = 5;
+		int m = 1;
 		for (int i=0; i<m; ++i) {
 			points = VoronoiUtils.generateRelaxedSites(points, edges);
 			edges = voronoi.getEdges(points, w*scale, h*scale);
 			edges = Voronoi.closeEdges(edges, w*scale, h*scale);
 		}
 		long time2 = System.currentTimeMillis();
+		
+		for (Iterator<Edge> it = edges.iterator(); it.hasNext(); ) {
+			Edge e = it.next();
+			Vector2d v = new Vector2d(e.getStart().x - e.getEnd().x, e.getEnd().y - e.getEnd().y);
+			if (v.length() > 0.05 * w * scale) {
+				System.out.println("long edge: "+e);
+//				it.remove();
+			}
+		}
 		
 		System.out.println("edges: ("+edges.size()+")");
 //		for (Edge e : edges) {
@@ -101,6 +112,14 @@ public class DisplayVoronoiDiagram extends JFrame {
 			double y1 = e.start.y / scale;
 			double x2 = e.end.x / scale;
 			double y2 = e.end.y / scale;
+			
+			Vector2d v = new Vector2d(e.getStart().x - e.getEnd().x, e.getEnd().y - e.getEnd().y);
+			if (v.length() > 0.05 * w * scale) {
+				G.setPaint(Color.BLUE);
+			} else {
+				G.setPaint(Color.RED);
+			}
+			
 			Line2D l = new Line2D.Double(x1, y1, x2, y2);
 			G.draw(l);
 		}

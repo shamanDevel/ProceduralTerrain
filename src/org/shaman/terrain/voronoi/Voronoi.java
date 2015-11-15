@@ -116,8 +116,8 @@ public class Voronoi {
 			borders.put(edge.right, p);
 		}
 		//connect borders
-		ArrayList<Vector2d> borderCenters = new ArrayList<>();
-		borderCenters.addAll(borders.keySet());
+//		ArrayList<Vector2d> borderCenters = new ArrayList<>();
+//		borderCenters.addAll(borders.keySet());
 //		for (Vector2d center : borders.keySet()) {
 //			@SuppressWarnings("unchecked")
 //			Collection<Vector2d> ex = (Collection<Vector2d>) borders.get(center);
@@ -133,33 +133,34 @@ public class Voronoi {
 //				errors.add(center); //for some reason, these cannot be processed, use extra step
 //			}
 //		}
-		//process erounous centers
-		for (Vector2d center : borderCenters) {
-			//Find corners
-			DefaultedMap<Vector2d, Integer> cornerCounter = new DefaultedMap<>(0);
-			for (Edge e : output) {
-				if (e.left == center || e.right == center) {
-					cornerCounter.put(e.start, cornerCounter.get(e.start) + 1);
-					cornerCounter.put(e.end, cornerCounter.get(e.end) + 1);
-				}
-			}
-//			System.err.println("corner counter for center "+center+": "+cornerCounter);
-			ArrayList<Vector2d> corners = new ArrayList<>(2);
-			for (Map.Entry<Vector2d, Integer> entry : cornerCounter.entrySet()) {
-				if (entry.getValue()==1) {
-					corners.add(entry.getKey());
-				}
-			}
-			if (corners.size() == 2) {
-				Edge e = new Edge();
-				e.start = corners.get(0);
-				e.end = corners.get(1);
-				e.left = center;
-				output.add(e);
-			} else {
-				System.err.println("illegal corner map");
-			}
-		}
+//		//process erounous centers
+//		for (Vector2d center : borderCenters) {
+//			//Find corners
+//			DefaultedMap<Vector2d, Integer> cornerCounter = new DefaultedMap<>(0);
+//			for (Edge e : output) {
+//				if (e.left == center || e.right == center) {
+//					cornerCounter.put(e.start, cornerCounter.get(e.start) + 1);
+//					cornerCounter.put(e.end, cornerCounter.get(e.end) + 1);
+//				}
+//			}
+////			System.err.println("corner counter for center "+center+": "+cornerCounter);
+//			ArrayList<Vector2d> corners = new ArrayList<>(2);
+//			for (Map.Entry<Vector2d, Integer> entry : cornerCounter.entrySet()) {
+//				if (entry.getValue()==1) {
+//					corners.add(entry.getKey());
+//				}
+//			}
+//			if (corners.size() == 2) {
+//				Edge e = new Edge();
+//				e.start = corners.get(0);
+//				e.end = corners.get(1);
+//				e.left = center;
+//				output.add(e);
+//			} else {
+//				System.err.println("illegal corner map");
+//			}
+//		}
+		
 		return output;
 	}
 	private static boolean isInside(Vector2d v, float w, float h) {

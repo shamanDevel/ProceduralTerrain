@@ -71,4 +71,25 @@ public class VoronoiUtils {
 		}
 		return newCenters;
 	}
+	
+	/**
+	 * For some reason, in some constellation the voronoi algorithm does not
+	 * produce a correct result. This method checks by a heuristic if this
+	 * situation is the case.
+	 * 
+	 * @param edges
+	 * @param size
+	 * @return 
+	 */
+	public static boolean isValid(List<Edge> edges, float size) {
+		float epsilon = 0.05f * size;
+		epsilon *= epsilon;
+		for (Edge e : edges) {
+			Vector2d v = new Vector2d(e.getStart().x - e.getEnd().x, e.getStart().y - e.getEnd().y);
+			if (v.lengthSquared() > epsilon) {
+				return false;
+			}
+		}
+		return true;
+	}
 }

@@ -21,6 +21,9 @@ public class Edge {
 	double f;
 	double g;
 	Edge neighbour;
+
+	public Edge() {
+	}
 	
 	Edge(Vector2d s, Vector2d a, Vector2d b) {
 		start = s;
@@ -47,6 +50,11 @@ public class Edge {
 
 	public Vector2d getRight() {
 		return right;
+	}
+
+	@Override
+	public String toString() {
+		return "Edge{" + "start=" + start + ", end=" + end + ", direction=" + direction + ", left=" + left + ", right=" + right + ", neighbour=" + neighbour + '}';
 	}
 	
 }
