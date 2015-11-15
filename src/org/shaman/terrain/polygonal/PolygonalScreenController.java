@@ -79,7 +79,7 @@ public class PolygonalScreenController implements ScreenController {
 		coastlineDropDown.selectItemByIndex(0);
 		mapSeedTextField.setText(seed2);
 		mapSizeDropDown.selectItemByIndex(1);
-		generator.guiInitialValues(seed1.hashCode(), 2000, 2);
+		generator.guiInitialValues(seed1.hashCode(), 2000, 2, PolygonalMapGenerator.Coastline.PERLIN);
 	}
 	
 	private String randomSeed() {
@@ -120,6 +120,8 @@ public class PolygonalScreenController implements ScreenController {
 			generator.guiPointCountChanged(pointCountDropDown.getSelection());
 		} else if (relaxationDropDown == e.getDropDown()) {
 			generator.guiRelaxationChanged(relaxationDropDown.getSelectedIndex());
+		} else if (coastlineDropDown == e.getDropDown()) {
+			generator.guiCoastlineChanged(PolygonalMapGenerator.Coastline.values()[coastlineDropDown.getSelectedIndex()]);
 		}
 	}
 	

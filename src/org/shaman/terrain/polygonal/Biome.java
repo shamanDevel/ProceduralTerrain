@@ -5,28 +5,37 @@
  */
 package org.shaman.terrain.polygonal;
 
+import com.jme3.math.ColorRGBA;
+
 /**
  *
  * @author Sebastian Weiss
  */
 public enum Biome {
 	
-	SNOW,
-	TUNDRA,
-	BARE,
-	SCORCHED,
-	TAIGA,
-	SHRUBLAND,
-	TEMPERATE_DESERT,
-	TEMPERATE_RAIN_FOREST,
-	TEMPERATE_DECIDUOUS_FOREST,
-	GRASSLAND,
-	TROPICAL_RAIN_FOREST,
-	TROPICAL_SEASONAL_FOREST,
-	SUBTROPICAL_DESERT,
+	SNOW(new ColorRGBA(1, 1, 1, 1)),
+	TUNDRA(new ColorRGBA(0.8f, 0.8f, 0.8f, 1)),
+	BARE(new ColorRGBA(0.6f, 0.6f, 0.6f, 1)),
+	SCORCHED(new ColorRGBA(0.4f, 0.4f, 0.4f, 0.4f)),
+	TAIGA(new ColorRGBA(0.5f, 0.7f, 0.5f, 1)),
+	SHRUBLAND(new ColorRGBA(0.7f, 0.7f, 0.5f, 1)),
+	TEMPERATE_DESERT(new ColorRGBA(0.5f, 0.5f, 0.3f, 1)),
+	TEMPERATE_RAIN_FOREST(new ColorRGBA(0.1f, 0.9f, 0.1f, 1)),
+	TEMPERATE_DECIDUOUS_FOREST(new ColorRGBA(0.3f, 0.5f, 0, 1)),
+	GRASSLAND(new ColorRGBA(0.6f, 0.8f, 0, 1)),
+	TROPICAL_RAIN_FOREST(new ColorRGBA(0, 0.5f, 0, 1)),
+	TROPICAL_SEASONAL_FOREST(new ColorRGBA(0.3f, 0.6f, 0, 1)),
+	SUBTROPICAL_DESERT(new ColorRGBA(1, 0.6f, 0, 1)),
 	
-	BEACH,
-	WATER;
+	BEACH(new ColorRGBA(0.9f, 0.9f, 0, 1)),
+	LAKE(new ColorRGBA(0, 0.4f, 0.8f, 1)),
+	OCEAN(new ColorRGBA(0, 0, 0.5f, 1));
+
+	private Biome(ColorRGBA color) {
+		this.color = color;
+	}
+	
+	public final ColorRGBA color;
 	
 	/**
 	 * Retrives the biome based on the temperature and moisture.

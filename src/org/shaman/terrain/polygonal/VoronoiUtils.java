@@ -82,7 +82,7 @@ public class VoronoiUtils {
 	 * @return 
 	 */
 	public static boolean isValid(List<Edge> edges, float size) {
-		float epsilon = 0.05f * size;
+		float epsilon = 0.2f * size;
 		epsilon *= epsilon;
 		for (Edge e : edges) {
 			Vector2d v = new Vector2d(e.getStart().x - e.getEnd().x, e.getStart().y - e.getEnd().y);
