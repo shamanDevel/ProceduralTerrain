@@ -10,10 +10,7 @@ import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
-import com.jme3.scene.Geometry;
-import com.jme3.scene.Mesh;
-import com.jme3.scene.Node;
-import com.jme3.scene.VertexBuffer;
+import com.jme3.scene.*;
 import com.jme3.util.BufferUtils;
 import de.lessvoid.nifty.Nifty;
 import java.nio.FloatBuffer;
@@ -57,7 +54,11 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	private List<Edge> voronoiEdges;
 	private Graph graph;
 	private Random voronoiRandom;
+	
 	private Node graphNode;
+	private Node edgeNode;
+	private Node biomesNode;
+	private Node elevationNode;
 
 	public PolygonalMapGenerator() {
 	}
@@ -97,11 +98,23 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		}
 		graphNode.setLocalTranslation(x, y, 0);
 		graphNode.setLocalScale(w, h, 1);
+		graphNode.setCullHint(Spatial.CullHint.Never);
+		edgeNode = new Node("edges");
+		biomesNode = new Node("biomes");
+		elevationNode = new Node("elevation");
+		edgeNode.setCullHint(Spatial.CullHint.Never);
+		biomesNode.setCullHint(Spatial.CullHint.Never);
+		elevationNode.setCullHint(Spatial.CullHint.Always);
+		graphNode.attachChild(elevationNode);
+		graphNode.attachChild(biomesNode);
+		graphNode.attachChild(edgeNode);
+		guiNode.attachChild(graphNode);
 		
 		initialized = true;
 		computeVoronoi();
 		//display graph
 		updateGraphNode();
+		updateBiomesGeometry();
 	}
 
 	@Override
@@ -248,7 +261,9 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		}
 		LOG.info("border corners: "+borderCorners);
 		LOG.info("graph created");
+		
 		//next step
+		updateGraphNode();
 		assignCoastline();
 	}
 	
@@ -382,6 +397,79 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		}
 		LOG.log(Level.INFO, "ocean cells: {0}, lake cells: {1}, land cells: {2}", 
 				new Object[]{oceanCount, lakeCount, landCount});
+		
+		updateBiomesGeometry();
+	}
+	
+	/**
+	 * Step 4: assign elevation
+	 */
+	private void assignElevation() {
+		if (graph==null) {
+			return;
+		}
+		Random rand = new Random(seed * 2);
+		//initialize border corners with zero elevation
+		Queue<Graph.Corner> q = new ArrayDeque<>();
+		for (Graph.Corner c : graph.corners) {
+			if (c.border) {
+				c.elevation = 0;
+				q.add(c);
+			} else {
+				c.elevation = Float.POSITIVE_INFINITY;
+			}
+		}
+		// Traverse the graph and assign elevations to each point. As we
+		// move away from the map border, increase the elevations. This
+		// guarantees that rivers always have a way down to the coast by
+		// going downhill (no local minima).
+		while (!q.isEmpty()) {
+			Graph.Corner c = q.poll();
+			for (Graph.Corner a : c.adjacent) {
+				float elevation = c.elevation + 0.01f;
+				if (!c.water && !a.water) {
+					elevation += 1;
+				}
+				//add some more randomness
+				elevation += rand.nextDouble()/4;
+				if (elevation < a.elevation) {
+					a.elevation = elevation;
+					q.add(a);
+				}
+			}
+		}
+		
+		//redistribute elevation
+		float SCALE_FACTOR = 1.1f;
+		ArrayList<Graph.Corner> corners = new ArrayList<>(graph.corners); //TODO: may only use land corners
+		Collections.sort(corners, new Comparator<Graph.Corner>() {
+			@Override
+			public int compare(Graph.Corner o1, Graph.Corner o2) {
+				return Float.compare(o1.elevation, o2.elevation);
+			}
+		});
+		for (int i=0; i < corners.size(); i++) {
+		  // Let y(x) be the total area that we want at elevation <= x.
+		  // We want the higher elevations to occur less than lower
+		  // ones, and set the area to be y(x) = 1 - (1-x)^2.
+		  float y = (float) i/ (float) (corners.size()-1);
+		  float x = (float) (Math.sqrt(SCALE_FACTOR) - Math.sqrt(SCALE_FACTOR*(1-y)));
+		  if (x > 1.0) x = 1;  // TODO: does this break downslopes?
+		  corners.get(i).elevation = x;
+		}
+		
+		//assign elevation to centers
+		for (Graph.Center c : graph.centers) {
+			float elevation = 0;
+			for (Graph.Corner corner : c.corners) {
+				elevation += corner.elevation;
+			}
+			elevation /= c.corners.size();
+			c.elevation = elevation;
+		}
+		
+		//update mesh
+		updateElevationGeometry();
 	}
 	
 	//display graph
@@ -389,10 +477,37 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		if (graphNode==null) {
 			return;
 		}
-		graphNode.detachAllChildren();
-		Material mat;
-		Geometry geom;
 		
+		//edges
+		Mesh edgeMesh = new Mesh();
+		FloatBuffer pos = BufferUtils.createVector3Buffer(graph.corners.size());
+		IntBuffer index = BufferUtils.createIntBuffer(graph.edges.size()*2);
+		pos.rewind();
+		for (Graph.Corner c : graph.corners) {
+			pos.put(c.point.x).put(c.point.y).put(0);
+		}
+		pos.rewind();
+		index.rewind();
+		for (Graph.Edge e : graph.edges) {
+			index.put(e.v0.index).put(e.v1.index);
+		}
+		index.rewind();
+		edgeMesh.setBuffer(VertexBuffer.Type.Position, 3, pos);
+		edgeMesh.setBuffer(VertexBuffer.Type.Index, 1, index);
+		edgeMesh.setMode(Mesh.Mode.Lines);
+		edgeMesh.setLineWidth(1);
+		edgeMesh.updateCounts();
+		edgeMesh.updateBound();
+		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		mat.setColor("Color", ColorRGBA.Gray);
+		Geometry edgeGeom = new Geometry("edgeGeom", edgeMesh);
+		edgeGeom.setMaterial(mat);
+		edgeGeom.setCullHint(Spatial.CullHint.Never);
+		edgeNode.detachAllChildren();
+		edgeNode.attachChild(edgeGeom);
+		LOG.info("edge geometry updated");
+	}
+	private void updateBiomesGeometry() {
 		//biomes
 		ArrayList<Vector3f> posList = new ArrayList<>();
 		ArrayList<Integer> indexList = new ArrayList<>();
@@ -420,38 +535,59 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		biomesMesh.setBuffer(VertexBuffer.Type.Index, 1, BufferUtils.createIntBuffer(ArrayUtils.toPrimitive(indexList.toArray(new Integer[indexList.size()]))));
 		biomesMesh.setMode(Mesh.Mode.Triangles);
 		biomesMesh.updateCounts();
-		mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
 		mat.setBoolean("VertexColor", true);
 		mat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
-		geom = new Geometry("biomes", biomesMesh);
-		geom.setMaterial(mat);
-		graphNode.attachChild(geom);
-		
-		//edges
-		Mesh edgeMesh = new Mesh();
-		FloatBuffer pos = BufferUtils.createVector3Buffer(graph.corners.size());
-		IntBuffer index = BufferUtils.createIntBuffer(graph.edges.size()*2);
-		pos.rewind();
-		for (Graph.Corner c : graph.corners) {
-			pos.put(c.point.x).put(c.point.y).put(0);
+		Geometry biomesGeom = new Geometry("biomesGeom", biomesMesh);
+		biomesGeom.setMaterial(mat);
+		biomesNode.detachAllChildren();
+		biomesNode.attachChild(biomesGeom);
+		LOG.info("biomes geometry updated");
+	}
+	private void updateElevationGeometry() {
+		//biomes
+		ArrayList<Vector3f> posList = new ArrayList<>();
+		ArrayList<Integer> indexList = new ArrayList<>();
+		ArrayList<ColorRGBA> colorList = new ArrayList<>();
+		Map<Graph.Corner, Integer> cornerIndices = new HashMap<>();
+		for (Graph.Center c : graph.centers) {
+			int i = posList.size();
+			posList.add(new Vector3f(c.location.x, c.location.y, 1));
+			if (c.biome == Biome.LAKE || c.biome == Biome.OCEAN) {
+				colorList.add(c.biome.color);
+			} else {
+				colorList.add(new ColorRGBA(Math.max(0, c.elevation*2-1), Math.min(1, c.elevation*2), Math.max(0, c.elevation*2-1), 1));
+			}
+			cornerIndices.clear();
+			for (Graph.Corner corner : c.corners) {
+				cornerIndices.put(corner, posList.size());
+				posList.add(new Vector3f(corner.point.x, corner.point.y, 1));
+				if (c.biome == Biome.LAKE || c.biome == Biome.OCEAN) {
+					colorList.add(c.biome.color);
+				} else {
+					colorList.add(new ColorRGBA(Math.max(0, corner.elevation*2-1), Math.min(1, corner.elevation*2), Math.max(0, corner.elevation*2-1), 1));
+				}
+			}
+			for (Graph.Edge edge : c.borders) {
+				indexList.add(i);
+				indexList.add(cornerIndices.get(edge.v0));
+				indexList.add(cornerIndices.get(edge.v1));
+			}
 		}
-		pos.rewind();
-		index.rewind();
-		for (Graph.Edge e : graph.edges) {
-			index.put(e.v0.index).put(e.v1.index);
-		}
-		index.rewind();
-		edgeMesh.setBuffer(VertexBuffer.Type.Position, 3, pos);
-		edgeMesh.setBuffer(VertexBuffer.Type.Index, 1, index);
-		edgeMesh.setMode(Mesh.Mode.Lines);
-		edgeMesh.setLineWidth(1);
-		edgeMesh.updateCounts();
-		edgeMesh.updateBound();
-		mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-		mat.setColor("Color", ColorRGBA.Gray);
-		geom = new Geometry("edges", edgeMesh);
-		geom.setMaterial(mat);
-		graphNode.attachChild(geom);
+		Mesh elevation = new Mesh();
+		elevation.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(posList.toArray(new Vector3f[posList.size()])));
+		elevation.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(colorList.toArray(new ColorRGBA[colorList.size()])));
+		elevation.setBuffer(VertexBuffer.Type.Index, 1, BufferUtils.createIntBuffer(ArrayUtils.toPrimitive(indexList.toArray(new Integer[indexList.size()]))));
+		elevation.setMode(Mesh.Mode.Triangles);
+		elevation.updateCounts();
+		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		mat.setBoolean("VertexColor", true);
+		mat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+		Geometry elevationGeom = new Geometry("elevationGeom", elevation);
+		elevationGeom.setMaterial(mat);
+		elevationNode.detachAllChildren();
+		elevationNode.attachChild(elevationGeom);
+		LOG.info("elevation geometry updated");
 	}
 	
 	void guiNextStep() {
@@ -472,32 +608,36 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		this.relaxationIterations = relaxationIterations;
 		this.coastline = coastline;
 		computeVoronoi();
-		//display graph
-		updateGraphNode();
 	}
 	void guiSeedChanged(int seed) {
 		this.seed = seed;
 		computeVoronoi();
-		//display graph
-		updateGraphNode();
 	}
 	void guiPointCountChanged(int count) {
 		this.pointCount = count;
 		computeVoronoi();
-		//display graph
-		updateGraphNode();
 	}
 	void guiRelaxationChanged(int iterations) {
 		this.relaxationIterations = iterations;
 		computeVoronoi();
-		//display graph
-		updateGraphNode();
 	}
 	void guiCoastlineChanged(Coastline coastline) {
 		this.coastline = coastline;
 		assignCoastline();
-		//display graph
-		updateGraphNode();
 	}
-	
+	void guiGenerateElevation() {
+		assignElevation();
+	}
+	void guiShowDrawElevation(boolean enabled) {
+		if (elevationNode == null) {
+			return ;
+		}
+		elevationNode.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+	}
+	void guiShowBiomes(boolean enabled) {
+		if (biomesNode == null) {
+			return ;
+		}
+		biomesNode.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+	}
 }

@@ -80,6 +80,8 @@ public class PolygonalScreenController implements ScreenController {
 		mapSeedTextField.setText(seed2);
 		mapSizeDropDown.selectItemByIndex(1);
 		generator.guiInitialValues(seed1.hashCode(), 2000, 2, PolygonalMapGenerator.Coastline.PERLIN);
+		
+		biomesCheckBox.check();
 	}
 	
 	private String randomSeed() {
@@ -104,13 +106,30 @@ public class PolygonalScreenController implements ScreenController {
 			String seed = randomSeed();
 			mapSeedTextField.setText(seed);
 			
+		} else if (generateElevationButton == e.getButton()) {
+			generator.guiGenerateElevation();
+			if (!elevationCheckBox.isChecked()) elevationCheckBox.check();
 		}
 	}
 	
 	@NiftyEventSubscriber(pattern = ".*CheckBox")
 	public void onCheckBoxClick(String id, CheckBoxStateChangedEvent e) {
 		System.out.println("checkbox "+id+" changed: "+e);
-		
+		if (elevationCheckBox == e.getCheckBox()) {
+			generator.guiShowDrawElevation(e.isChecked());
+			if (e.isChecked()) {
+				biomesCheckBox.setChecked(false);
+				temperatureCheckBox.setChecked(false);
+				moistureCheckBox.setChecked(false);
+			}
+		} else if (biomesCheckBox == e.getCheckBox()) {
+			generator.guiShowBiomes(e.isChecked());
+			if (e.isChecked()) {
+				elevationCheckBox.setChecked(false);
+				temperatureCheckBox.setChecked(false);
+				moistureCheckBox.setChecked(false);
+			}
+		}
 	}
 	
 	@NiftyEventSubscriber(pattern = ".*DropDown")
