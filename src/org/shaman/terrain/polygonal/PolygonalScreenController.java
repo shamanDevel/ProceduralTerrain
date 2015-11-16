@@ -66,7 +66,7 @@ public class PolygonalScreenController implements ScreenController {
 		mapSeedButton = screen.findNiftyControl("MapSeedButton", Button.class);
 		mapSizeDropDown = screen.findNiftyControl("MapSizeDropDown", DropDown.class);
 		
-		pointCountDropDown.addAllItems(Arrays.asList(500, 1000, 2000, 4000, 6000, 8000));
+		pointCountDropDown.addAllItems(Arrays.asList(500, 1000, 1500, 2000, 2500, 3000));
 		relaxationDropDown.addAllItems(Arrays.asList("no relaxation", "1x", "2x", "3x", "4x"));
 		coastlineDropDown.addAllItems(Arrays.asList("perlin", "circular"));
 		mapSizeDropDown.addAllItems(Arrays.asList(256, 512, 1024, 2048, 4096, 8192));
@@ -74,7 +74,7 @@ public class PolygonalScreenController implements ScreenController {
 		String seed1 = randomSeed();
 		String seed2 = randomSeed();
 		seedTextField.setText(seed1);
-		pointCountDropDown.selectItemByIndex(2);
+		pointCountDropDown.selectItemByIndex(3);
 		relaxationDropDown.selectItemByIndex(2);
 		coastlineDropDown.selectItemByIndex(0);
 		mapSeedTextField.setText(seed2);
@@ -131,6 +131,20 @@ public class PolygonalScreenController implements ScreenController {
 				elevationCheckBox.setChecked(false);
 				temperatureCheckBox.setChecked(false);
 				moistureCheckBox.setChecked(false);
+			}
+		} else if (temperatureCheckBox == e.getCheckBox()) {
+			generator.guiShowDrawTemperature(e.isChecked());
+			if (e.isChecked()) {
+				elevationCheckBox.setChecked(false);
+				biomesCheckBox.setChecked(false);
+				moistureCheckBox.setChecked(false);
+			}
+		} else if (moistureCheckBox == e.getCheckBox()) {
+			generator.guiShowDrawMoisture(e.isChecked());
+			if (e.isChecked()) {
+				elevationCheckBox.setChecked(false);
+				biomesCheckBox.setChecked(false);
+				temperatureCheckBox.setChecked(false);
 			}
 		}
 	}

@@ -59,6 +59,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	private Node edgeNode;
 	private Node biomesNode;
 	private Node elevationNode;
+	private Node temperatureNode;
+	private Node moistureNode;
 
 	public PolygonalMapGenerator() {
 	}
@@ -102,11 +104,17 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		edgeNode = new Node("edges");
 		biomesNode = new Node("biomes");
 		elevationNode = new Node("elevation");
+		temperatureNode = new Node("temperature");
+		moistureNode = new Node("moisture");
 		edgeNode.setCullHint(Spatial.CullHint.Never);
 		biomesNode.setCullHint(Spatial.CullHint.Never);
 		elevationNode.setCullHint(Spatial.CullHint.Always);
+		temperatureNode.setCullHint(Spatial.CullHint.Always);
+		moistureNode.setCullHint(Spatial.CullHint.Always);
 		graphNode.attachChild(elevationNode);
 		graphNode.attachChild(biomesNode);
+		graphNode.attachChild(temperatureNode);
+		graphNode.attachChild(moistureNode);
 		graphNode.attachChild(edgeNode);
 		guiNode.attachChild(graphNode);
 		
@@ -503,6 +511,11 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		}
 		
 		//assign temperatures
+		for (Graph.Corner c : graph.corners) {
+			c.temperature = c.elevation;
+			c.temperature *= c.temperature;
+			c.temperature = 1-c.temperature;
+		}
 		for (Graph.Center c : graph.centers) {
 			c.temperature = c.elevation;
 			c.temperature *= c.temperature;
@@ -514,9 +527,10 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		for (Graph.Corner c : graph.corners) {
 			c.river = 0;
 		}
-		float riverProb = 0.1f;
-		float riverStartHeight = 0.9f;
+		float riverProb = 0.2f;
+		float riverStartHeight = 0.7f;
 		int riverCounter = 0;
+		corner:
 		for (Graph.Corner c : graph.corners) {
 			if (c.water || c.elevation<riverStartHeight) {
 				continue;
@@ -524,13 +538,28 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			if (rand.nextFloat() > riverProb) {
 				continue;
 			}
+			if (c.river>0) continue;
+			for (Graph.Corner c2 : c.adjacent) {
+				if (c2.river>0) {
+					continue corner;
+				}
+				for (Graph.Corner c3 : c2.adjacent) {
+					if (c3.river>0) {
+						continue corner;
+					}
+				}
+			}
 			//start new river from here
 			Graph.Corner current = c;
 			current.river = Math.max(current.river, 1);
-			while (!current.ocean) {
+			while (!current.ocean && !current.coast) {
 				float minH = current.elevation;
 				Graph.Corner minC = null;
 				for (Graph.Corner c2 : current.adjacent) {
+					if (c2.river>0 && c2.elevation<current.elevation) {
+						minC = c2; //force closing of rivers
+						break;
+					}
 					if (c2.elevation < minH) {
 						minC = c2;
 						minH = c2.elevation;
@@ -551,7 +580,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		Queue<Graph.Corner> queue = new ArrayDeque<>();
 		for (Graph.Corner q : graph.corners) {
 			if ((q.water || q.river > 0) && !q.ocean) {
-				q.moisture = q.river > 0 ? Math.min(3.0f, (0.2f * q.river)) : 1;
+				q.moisture = q.river > 0 ? Math.min(3.0f, (0.4f * q.river)) : 1;
 				queue.add(q);
 			} else {
 				q.moisture = 0;
@@ -560,7 +589,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		while (!queue.isEmpty()) {
 			Graph.Corner q = queue.poll();
 			for (Graph.Corner r : q.adjacent) {
-				float newMoisture = q.moisture * 0.9f;
+				float newMoisture = q.moisture * 0.8f;
 				if (newMoisture > r.moisture) {
 					r.moisture = newMoisture;
 					queue.add(r);
@@ -576,7 +605,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		//redistribute moisture
 		ArrayList<Graph.Corner> corners = new ArrayList<>();
 		for (Graph.Corner q : graph.corners) {
-			if (!q.ocean) {
+			if (!q.ocean && !q.coast) {
 				corners.add(q);
 			}
 		}
@@ -587,7 +616,14 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			}
 		});
 		for (int i = 0; i < corners.size(); i++) {
-			corners.get(i).moisture = i/(corners.size()-1);
+			corners.get(i).moisture = i/(float) (corners.size()-1);
+		}
+		for (Graph.Center c : graph.centers) {
+			float m = 0;
+			for (Graph.Corner q : c.corners) {
+				m += q.moisture;
+			}
+			c.moisture = m / c.corners.size();
 		}
 		
 		//create biomes
@@ -595,7 +631,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		for (Graph.Center c : graph.centers) {
 			if (!c.water && !c.ocean) {
 				for (Graph.Corner o : c.corners) {
-					if (o.ocean) {
+					if ((o.ocean || o.coast) && c.moisture<0.7) {
 						c.biome = Biome.BEACH;
 						continue biomes;
 					}
@@ -605,6 +641,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		}
 		
 		//update mesh
+		updateTemperatureGeometry();
+		updateMoistureGeometry();
 		updateBiomesGeometry();
 	}
 	float smootherstep(float edge0, float edge1, float x) {
@@ -648,6 +686,117 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		edgeNode.detachAllChildren();
 		edgeNode.attachChild(edgeGeom);
 		LOG.info("edge geometry updated");
+	}
+	private void updateTemperatureGeometry() {
+		ArrayList<Vector3f> posList = new ArrayList<>();
+		ArrayList<Integer> indexList = new ArrayList<>();
+		ArrayList<ColorRGBA> colorList = new ArrayList<>();
+		Map<Graph.Corner, Integer> cornerIndices = new HashMap<>();
+		for (Graph.Center c : graph.centers) {
+			int i = posList.size();
+			posList.add(new Vector3f(c.location.x, c.location.y, 1));
+			if (c.water) {
+				colorList.add(c.biome.color);
+			} else {
+				colorList.add(new ColorRGBA(Math.max(0, c.temperature), 0, Math.min(1, 1-c.temperature), 1));
+			}
+			cornerIndices.clear();
+			for (Graph.Corner q : c.corners) {
+				cornerIndices.put(q, posList.size());
+				posList.add(new Vector3f(q.point.x, q.point.y, 1));
+				if (c.water) {
+					colorList.add(c.biome.color);
+				} else {
+					colorList.add(new ColorRGBA(Math.max(0, q.temperature), 0, Math.min(1, 1-q.temperature), 1));
+				}
+			}
+			for (Graph.Edge edge : c.borders) {
+				indexList.add(i);
+				indexList.add(cornerIndices.get(edge.v0));
+				indexList.add(cornerIndices.get(edge.v1));
+			}
+		}
+		Mesh mesh = new Mesh();
+		mesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(posList.toArray(new Vector3f[posList.size()])));
+		mesh.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(colorList.toArray(new ColorRGBA[colorList.size()])));
+		mesh.setBuffer(VertexBuffer.Type.Index, 1, BufferUtils.createIntBuffer(ArrayUtils.toPrimitive(indexList.toArray(new Integer[indexList.size()]))));
+		mesh.setMode(Mesh.Mode.Triangles);
+		mesh.updateCounts();
+		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		mat.setBoolean("VertexColor", true);
+		mat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+		Geometry geom = new Geometry("biomesGeom", mesh);
+		geom.setMaterial(mat);
+		temperatureNode.detachAllChildren();
+		temperatureNode.attachChild(geom);
+		LOG.info("biomes geometry updated");
+	}
+	private void updateMoistureGeometry() {
+		//moisture
+		ArrayList<Vector3f> posList = new ArrayList<>();
+		ArrayList<Integer> indexList = new ArrayList<>();
+		ArrayList<ColorRGBA> colorList = new ArrayList<>();
+		Map<Graph.Corner, Integer> cornerIndices = new HashMap<>();
+		for (Graph.Center c : graph.centers) {
+			int i = posList.size();
+			posList.add(new Vector3f(c.location.x, c.location.y, 1));
+			if (c.water) {
+				colorList.add(c.biome.color);
+			} else {
+				colorList.add(new ColorRGBA(Math.max(0, 1-c.moisture), Math.max(0, 0.5f-c.moisture/2), Math.min(1, c.moisture), 1));
+			}
+			cornerIndices.clear();
+			for (Graph.Corner q : c.corners) {
+				cornerIndices.put(q, posList.size());
+				posList.add(new Vector3f(q.point.x, q.point.y, 1));
+				if (c.water) {
+					colorList.add(c.biome.color);
+				} else {
+					colorList.add(new ColorRGBA(Math.max(0, 1-q.moisture), Math.max(0, 0.5f-q.moisture/2), Math.min(1, q.moisture), 1));
+				}
+			}
+			for (Graph.Edge edge : c.borders) {
+				indexList.add(i);
+				indexList.add(cornerIndices.get(edge.v0));
+				indexList.add(cornerIndices.get(edge.v1));
+			}
+		}
+		Mesh mesh = new Mesh();
+		mesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(posList.toArray(new Vector3f[posList.size()])));
+		mesh.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(colorList.toArray(new ColorRGBA[colorList.size()])));
+		mesh.setBuffer(VertexBuffer.Type.Index, 1, BufferUtils.createIntBuffer(ArrayUtils.toPrimitive(indexList.toArray(new Integer[indexList.size()]))));
+		mesh.setMode(Mesh.Mode.Triangles);
+		mesh.updateCounts();
+		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		mat.setBoolean("VertexColor", true);
+		mat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+		Geometry geom1 = new Geometry("biomesGeom", mesh);
+		geom1.setMaterial(mat);
+		//river
+		posList.clear();
+		colorList.clear();
+		for (Graph.Edge e : graph.edges) {
+			if (e.v0.river>0 && e.v1.river>0) {
+				posList.add(new Vector3f(e.v0.point.x, e.v0.point.y, 0.5f));
+				colorList.add(new ColorRGBA(1-e.v0.river/20f, 1-e.v0.river/20f, 1, 1));
+				posList.add(new Vector3f(e.v1.point.x, e.v1.point.y, 0.5f));
+				colorList.add(new ColorRGBA(1-e.v1.river/20f, 1-e.v1.river/20f, 1, 1));
+			}
+		}
+		mesh = new Mesh();
+		mesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(posList.toArray(new Vector3f[posList.size()])));
+		mesh.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(colorList.toArray(new ColorRGBA[colorList.size()])));
+		mesh.setMode(Mesh.Mode.Lines);
+		mesh.setLineWidth(5);
+//		mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+//		mat.setColor("Color", ColorRGBA.Blue);
+		Geometry geom2 = new Geometry("riverGeom", mesh);
+		geom2.setMaterial(mat);
+		
+		moistureNode.detachAllChildren();
+		moistureNode.attachChild(geom1);
+		moistureNode.attachChild(geom2);
+		LOG.info("biomes geometry updated");
 	}
 	private void updateBiomesGeometry() {
 		//biomes
@@ -781,6 +930,16 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			return ;
 		}
 		biomesNode.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+	}
+	void guiShowDrawTemperature(boolean enabled) {
+		if (temperatureNode != null) {
+			temperatureNode.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+		}
+	}
+	void guiShowDrawMoisture(boolean enabled) {
+		if (moistureNode != null) {
+			moistureNode.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+		}
 	}
 	void guiGenerateBiomes() {
 		assignBiomes();

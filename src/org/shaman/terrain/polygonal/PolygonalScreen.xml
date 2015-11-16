@@ -41,7 +41,7 @@
 								 width="150px" margin="2px"/>
 						<panel childLayout="horizontal">
 							<control id="ElevationCheckBox" name="checkbox" margin="2px"/>
-							<control name="label" text="Draw Elevation" margin="2px"/>
+							<control name="label" text="Show Elevation" margin="2px"/>
 						</panel>
 						
 						<panel childLayout="absolute" height="20px"/>
@@ -50,11 +50,11 @@
 								 width="150px" margin="2px"/>
 						<panel childLayout="horizontal">
 							<control id="TemperatureCheckBox" name="checkbox" margin="2px"/>
-							<control name="label" text="Show+Draw Temperature" margin="2px"/>
+							<control name="label" text="Show Temperature" margin="2px"/>
 						</panel>
 						<panel childLayout="horizontal">
 							<control id="MoistureCheckBox" name="checkbox" margin="2px"/>
-							<control name="label" text="Show+Draw Moisture" margin="2px"/>
+							<control name="label" text="Show Moisture" margin="2px"/>
 						</panel>
 						<panel childLayout="horizontal">
 							<control id="BiomesCheckBox" name="checkbox" margin="2px"/>
