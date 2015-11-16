@@ -109,6 +109,9 @@ public class PolygonalScreenController implements ScreenController {
 		} else if (generateElevationButton == e.getButton()) {
 			generator.guiGenerateElevation();
 			if (!elevationCheckBox.isChecked()) elevationCheckBox.check();
+		} else if (generateBiomesButton == e.getButton()) {
+			generator.guiGenerateBiomes();
+			if (!biomesCheckBox.isChecked()) biomesCheckBox.check();
 		}
 	}
 	

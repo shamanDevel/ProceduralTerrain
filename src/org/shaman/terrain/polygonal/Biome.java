@@ -54,11 +54,11 @@ public enum Biome {
 		}
 		//Temperature index, from 1 (warm) to 4 (cold)
 		int temp = (int) ((1-temperature) * 4);
-		temp = Math.max(4, temp+1);
+		temp = Math.min(4, Math.max(1, temp+1));
 		
 		//the moisture index, from 1 (dry) to 6 (wet)
 		int moist = (int) ((1-moisture) * 6);
-		moist = Math.max(6, moist+1);
+		moist = Math.min(6, Math.max(1, moist+1));
 		
 		switch (moist) {
 			case 1:

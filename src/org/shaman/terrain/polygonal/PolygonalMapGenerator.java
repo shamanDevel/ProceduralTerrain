@@ -163,10 +163,10 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			}
 			
 			//check if valid
-			//if (VoronoiUtils.isValid(voronoiEdges, voronoiScale)) {
+			if (VoronoiUtils.isValid(voronoiEdges, voronoiScale)) {
 				break;
-			//}
-			//LOG.warning("voronoi diagram is illegal, try again");
+			}
+			LOG.warning("voronoi diagram is illegal, try again");
 		}
 		LOG.info("point and edges generated");
 		//next step
@@ -426,7 +426,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		while (!q.isEmpty()) {
 			Graph.Corner c = q.poll();
 			for (Graph.Corner a : c.adjacent) {
-				float elevation = c.elevation + 0.01f;
+				float elevation = c.elevation + (a.ocean ? 0 : 0.01f);
 				if (!c.water && !a.water) {
 					elevation += 1;
 				}
@@ -470,6 +470,44 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		
 		//update mesh
 		updateElevationGeometry();
+	}
+	
+	private void assignBiomes() {
+		if (graph==null) {
+			return;
+		}
+		
+		//assign temperatures
+		for (Graph.Center c : graph.centers) {
+			c.temperature = c.elevation;
+			c.temperature *= c.temperature;
+			c.temperature = 1-c.temperature;
+		}
+		
+		//create random rivers
+		
+		//create biomes
+		biomes:
+		for (Graph.Center c : graph.centers) {
+			if (!c.water && !c.ocean) {
+				for (Graph.Corner o : c.corners) {
+					if (o.ocean) {
+						c.biome = Biome.BEACH;
+						continue biomes;
+					}
+				}
+				c.biome = Biome.getBiome(c.temperature, c.moisture);
+			}
+		}
+		
+		//update mesh
+		updateBiomesGeometry();
+	}
+	float smootherstep(float edge0, float edge1, float x) {
+		// Scale, and clamp x to 0..1 range
+		x = Math.max(0, Math.min(1, (x - edge0)/(edge1 - edge0)));
+		// Evaluate polynomial
+		return x*x*x*(x*(x*6 - 15) + 10);
 	}
 	
 	//display graph
@@ -639,5 +677,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			return ;
 		}
 		biomesNode.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+	}
+	void guiGenerateBiomes() {
+		assignBiomes();
 	}
 }
