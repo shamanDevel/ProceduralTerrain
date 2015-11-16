@@ -636,7 +636,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 						continue biomes;
 					}
 				}
-				c.biome = Biome.getBiome(c.temperature, c.moisture);
+				c.biome = Biome.getBiome(c.temperature, 1-c.moisture);
 			}
 		}
 		

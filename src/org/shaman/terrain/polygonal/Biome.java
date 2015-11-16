@@ -16,7 +16,7 @@ public enum Biome {
 	SNOW(new ColorRGBA(1, 1, 1, 1)),
 	TUNDRA(new ColorRGBA(0.8f, 0.8f, 0.8f, 1)),
 	BARE(new ColorRGBA(0.6f, 0.6f, 0.6f, 1)),
-	SCORCHED(new ColorRGBA(0.4f, 0.4f, 0.4f, 0.4f)),
+	SCORCHED(new ColorRGBA(0.4f, 0.4f, 0.4f, 1f)),
 	TAIGA(new ColorRGBA(0.5f, 0.7f, 0.5f, 1)),
 	SHRUBLAND(new ColorRGBA(0.7f, 0.7f, 0.5f, 1)),
 	TEMPERATE_DESERT(new ColorRGBA(0.5f, 0.5f, 0.3f, 1)),

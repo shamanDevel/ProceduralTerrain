@@ -60,10 +60,9 @@
 							<control id="BiomesCheckBox" name="checkbox" margin="2px"/>
 							<control name="label" text="Show Biomes" margin="2px"/>
 						</panel>
-						<!--
+						
 						<image filename="org/shaman/terrain/polygonal/Biomes.png"
 							   filter="true" margin="2px" width="246px" height="133px"/>
-						-->
 						
 						<panel childLayout="absolute" height="20px"/>
 						<control name="label" textHAlign="left" text="Final Map:" width="122px" margin="2px"/>
