@@ -3,15 +3,17 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.shaman.terrain.heightmap;
+package org.shaman.terrain;
 
 import com.jme3.math.FastMath;
+import java.io.Serializable;
 
 /**
  * A class for storing heightmaps
  * @author Sebastian Weiss
  */
-public class Heightmap implements Cloneable {
+public class Heightmap implements Cloneable, Serializable {
+	private static final long serialVersionUID = 4683025587440740836L;
 	private int size;
 	private float data[][];
 

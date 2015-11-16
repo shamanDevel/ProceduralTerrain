@@ -31,7 +31,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.shaman.terrain.AbstractTerrainStep;
 import org.shaman.terrain.TerrainHeighmapCreator;
-import org.shaman.terrain.heightmap.Heightmap;
+import org.shaman.terrain.Heightmap;
 import org.shaman.terrain.heightmap.Noise;
 import org.shaman.terrain.sketch.SketchTerrain;
 import org.shaman.terrain.voronoi.Edge;

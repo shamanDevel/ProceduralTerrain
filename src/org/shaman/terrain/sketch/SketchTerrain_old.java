@@ -3,8 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.shaman.terrain;
+package org.shaman.terrain.sketch;
 
+import org.shaman.terrain.sketch.Graph;
 import com.jme3.app.SimpleApplication;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
@@ -35,7 +36,8 @@ import java.util.logging.Logger;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
-import org.shaman.terrain.heightmap.Heightmap;
+import org.shaman.terrain.TerrainHeighmapCreator;
+import org.shaman.terrain.Heightmap;
 
 /**
  *

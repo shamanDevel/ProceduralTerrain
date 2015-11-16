@@ -5,6 +5,7 @@
  */
 package org.shaman.terrain.heightmap;
 
+import org.shaman.terrain.Heightmap;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.input.InputManager;

@@ -20,7 +20,21 @@ import java.util.concurrent.Callable;
  */
 public abstract class AbstractTerrainStep implements AppState {
 	
+	/**
+	 * Key for the property holding the heigtmap of type {@link Heightmap}.
+	 * Zero height is the ocean level, positive is above, negative is below the sea
+	 */
 	public static final String KEY_HEIGHTMAP = "heightmap";
+	/**
+	 * Key for the property storing the temperature in a {@link Heightmap}.
+	 * A zero value means cold, one means hot.
+	 */
+	public static final String KEY_TEMPERATURE = "temperature";	
+	/**
+	 * Key for the property storing the moisture in a {@link Heightmap}.
+	 * A zero value means dry, one means wet.
+	 */
+	public static final String KEY_MOISTURE = "moisture";
 	
 	protected AppStateManager stateManager;
 	protected TerrainHeighmapCreator app;

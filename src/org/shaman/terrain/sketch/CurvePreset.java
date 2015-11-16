@@ -5,7 +5,7 @@
  */
 package org.shaman.terrain.sketch;
 
-import org.shaman.terrain.heightmap.Heightmap;
+import org.shaman.terrain.Heightmap;
 
 /**
  *

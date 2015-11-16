@@ -45,7 +45,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.shaman.terrain.AbstractTerrainStep;
 import org.shaman.terrain.TerrainHeighmapCreator;
-import org.shaman.terrain.heightmap.Heightmap;
+import org.shaman.terrain.Heightmap;
 
 /**
  *

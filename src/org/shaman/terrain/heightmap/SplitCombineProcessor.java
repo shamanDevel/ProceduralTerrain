@@ -5,6 +5,7 @@
  */
 package org.shaman.terrain.heightmap;
 
+import org.shaman.terrain.Heightmap;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;

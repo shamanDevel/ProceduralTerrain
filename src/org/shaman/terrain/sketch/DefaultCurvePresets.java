@@ -7,7 +7,7 @@ package org.shaman.terrain.sketch;
 
 import com.jme3.math.FastMath;
 import org.shaman.terrain.TerrainHeighmapCreator;
-import org.shaman.terrain.heightmap.Heightmap;
+import org.shaman.terrain.Heightmap;
 
 /**
  *
