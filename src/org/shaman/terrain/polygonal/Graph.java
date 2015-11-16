@@ -57,6 +57,7 @@ public class Graph {
 		public float elevation;
 		public float moisture;
 		public float temperature;
+		public int river;
 		
 		public ArrayList<Center> touches = new ArrayList<>();
 		public ArrayList<Edge> protrudes = new ArrayList<>();

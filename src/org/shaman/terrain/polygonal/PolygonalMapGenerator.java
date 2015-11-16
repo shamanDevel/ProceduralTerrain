@@ -379,6 +379,21 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 				}
 			}
 		}
+		//assign coast tag
+		for (Graph.Corner q : graph.corners) {
+			q.coast = false;
+		}
+		for (Graph.Center c : graph.centers) {
+			if (c.ocean) {
+				for (Graph.Corner q : c.corners) {
+					if (!q.water) {
+						q.coast = true;
+					} else {
+						q.ocean = true;
+					}
+				}
+			}
+		}
 		//assign basic biomes
 		int oceanCount = 0;
 		int lakeCount = 0;
@@ -410,7 +425,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		}
 		Random rand = new Random(seed * 2);
 		//initialize border corners with zero elevation
-		Queue<Graph.Corner> q = new ArrayDeque<>();
+		Deque<Graph.Corner> q = new ArrayDeque<>();
 		for (Graph.Corner c : graph.corners) {
 			if (c.border) {
 				c.elevation = 0;
@@ -426,12 +441,17 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		while (!q.isEmpty()) {
 			Graph.Corner c = q.poll();
 			for (Graph.Corner a : c.adjacent) {
+				if (c.ocean && a.ocean && a.elevation>0) {
+					a.elevation = 0;
+					q.addFirst(a);
+					continue;
+				}
 				float elevation = c.elevation + (a.ocean ? 0 : 0.01f);
 				if (!c.water && !a.water) {
 					elevation += 1;
 				}
 				//add some more randomness
-				elevation += rand.nextDouble()/4;
+				//elevation += rand.nextDouble()/4;
 				if (elevation < a.elevation) {
 					a.elevation = elevation;
 					q.add(a);
@@ -441,7 +461,12 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		
 		//redistribute elevation
 		float SCALE_FACTOR = 1.1f;
-		ArrayList<Graph.Corner> corners = new ArrayList<>(graph.corners); //TODO: may only use land corners
+		ArrayList<Graph.Corner> corners = new ArrayList<>();
+		for (Graph.Corner c : graph.corners) {
+			if (!c.ocean) {
+				corners.add(c);
+			}
+		}
 		Collections.sort(corners, new Comparator<Graph.Corner>() {
 			@Override
 			public int compare(Graph.Corner o1, Graph.Corner o2) {
@@ -485,6 +510,85 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		}
 		
 		//create random rivers
+		Random rand = new Random(seed * 3);
+		for (Graph.Corner c : graph.corners) {
+			c.river = 0;
+		}
+		float riverProb = 0.1f;
+		float riverStartHeight = 0.9f;
+		int riverCounter = 0;
+		for (Graph.Corner c : graph.corners) {
+			if (c.water || c.elevation<riverStartHeight) {
+				continue;
+			}
+			if (rand.nextFloat() > riverProb) {
+				continue;
+			}
+			//start new river from here
+			Graph.Corner current = c;
+			current.river = Math.max(current.river, 1);
+			while (!current.ocean) {
+				float minH = current.elevation;
+				Graph.Corner minC = null;
+				for (Graph.Corner c2 : current.adjacent) {
+					if (c2.elevation < minH) {
+						minC = c2;
+						minH = c2.elevation;
+					}
+				}
+				if (minC == null) {
+					LOG.warning("river stuck in a local minima without reaching the ocean");
+					break;
+				}
+				minC.river = Math.max(minC.river, current.river + 1);
+				current = minC;
+			}
+			riverCounter++;
+		}
+		LOG.info("count of created rivers: "+riverCounter);
+		
+		//assign moisture
+		Queue<Graph.Corner> queue = new ArrayDeque<>();
+		for (Graph.Corner q : graph.corners) {
+			if ((q.water || q.river > 0) && !q.ocean) {
+				q.moisture = q.river > 0 ? Math.min(3.0f, (0.2f * q.river)) : 1;
+				queue.add(q);
+			} else {
+				q.moisture = 0;
+			}
+		}
+		while (!queue.isEmpty()) {
+			Graph.Corner q = queue.poll();
+			for (Graph.Corner r : q.adjacent) {
+				float newMoisture = q.moisture * 0.9f;
+				if (newMoisture > r.moisture) {
+					r.moisture = newMoisture;
+					queue.add(r);
+				}
+			}
+		}
+		for (Graph.Corner q : graph.corners) {
+			if (q.ocean || q.coast) {
+				q.moisture = 1;
+			}
+		}
+		
+		//redistribute moisture
+		ArrayList<Graph.Corner> corners = new ArrayList<>();
+		for (Graph.Corner q : graph.corners) {
+			if (!q.ocean) {
+				corners.add(q);
+			}
+		}
+		Collections.sort(corners, new Comparator<Graph.Corner>() {
+			@Override
+			public int compare(Graph.Corner o1, Graph.Corner o2) {
+				return Float.compare(o1.moisture, o2.moisture);
+			}
+		});
+		for (int i = 0; i < corners.size(); i++) {
+			corners.get(i).moisture = i/(corners.size()-1);
+		}
 		
 		//create biomes
 		biomes:
