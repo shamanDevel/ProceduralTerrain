@@ -37,6 +37,7 @@ public class PolygonalScreenController implements ScreenController {
 	private TextField mapSeedTextField;
 	private Button mapSeedButton;
 	private DropDown<Integer> mapSizeDropDown;
+	private Button generateMapButton;
 
 	public PolygonalScreenController(PolygonalMapGenerator generator) {
 		this.generator = generator;
@@ -65,6 +66,7 @@ public class PolygonalScreenController implements ScreenController {
 		mapSeedTextField = screen.findNiftyControl("MapSeedTextField", TextField.class);
 		mapSeedButton = screen.findNiftyControl("MapSeedButton", Button.class);
 		mapSizeDropDown = screen.findNiftyControl("MapSizeDropDown", DropDown.class);
+		generateMapButton = screen.findNiftyControl("GenerateMapButton", Button.class);
 		
 		pointCountDropDown.addAllItems(Arrays.asList(500, 1000, 1500, 2000, 2500, 3000));
 		relaxationDropDown.addAllItems(Arrays.asList("no relaxation", "1x", "2x", "3x", "4x"));
@@ -79,7 +81,8 @@ public class PolygonalScreenController implements ScreenController {
 		coastlineDropDown.selectItemByIndex(0);
 		mapSeedTextField.setText(seed2);
 		mapSizeDropDown.selectItemByIndex(1);
-		generator.guiInitialValues(seed1.hashCode(), 2000, 2, PolygonalMapGenerator.Coastline.PERLIN);
+		generator.guiInitialValues(seed1.hashCode(), 2000, 2, 
+				PolygonalMapGenerator.Coastline.PERLIN, 512, seed2.hashCode());
 		
 		biomesCheckBox.check();
 	}
@@ -105,13 +108,15 @@ public class PolygonalScreenController implements ScreenController {
 		} else if (mapSeedButton == e.getButton()) {
 			String seed = randomSeed();
 			mapSeedTextField.setText(seed);
-			
+			generator.guiMapSeedChanged(seed.hashCode());
 		} else if (generateElevationButton == e.getButton()) {
 			generator.guiGenerateElevation();
 			if (!elevationCheckBox.isChecked()) elevationCheckBox.check();
 		} else if (generateBiomesButton == e.getButton()) {
 			generator.guiGenerateBiomes();
 			if (!biomesCheckBox.isChecked()) biomesCheckBox.check();
+		} else if (generateMapButton == e.getButton()) {
+			generator.guiGenerateMap();
 		}
 	}
 	
@@ -158,6 +163,8 @@ public class PolygonalScreenController implements ScreenController {
 			generator.guiRelaxationChanged(relaxationDropDown.getSelectedIndex());
 		} else if (coastlineDropDown == e.getDropDown()) {
 			generator.guiCoastlineChanged(PolygonalMapGenerator.Coastline.values()[coastlineDropDown.getSelectedIndex()]);
+		} else if (mapSizeDropDown == e.getDropDown()) {
+			generator.guiMapSizeChanged(mapSizeDropDown.getSelection());
 		}
 	}
 	
@@ -166,6 +173,8 @@ public class PolygonalScreenController implements ScreenController {
 		System.out.println("textfield "+id+" changed: "+e.getText());
 		if (seedTextField==e.getTextFieldControl()) {
 			generator.guiSeedChanged(e.getText().hashCode());
+		} else if (mapSeedTextField == e.getTextFieldControl()) {
+			generator.guiMapSeedChanged(e.getText().hashCode());
 		}
 	}
 }

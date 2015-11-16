@@ -5,12 +5,19 @@
  */
 package org.shaman.terrain.polygonal;
 
+import com.jme3.input.MouseInput;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.AnalogListener;
+import com.jme3.input.controls.MouseAxisTrigger;
+import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.*;
+import com.jme3.scene.shape.Quad;
 import com.jme3.util.BufferUtils;
 import de.lessvoid.nifty.Nifty;
 import java.nio.FloatBuffer;
@@ -20,6 +27,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.vecmath.Vector2d;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.shaman.terrain.AbstractTerrainStep;
 import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.heightmap.Heightmap;
@@ -35,9 +44,13 @@ import org.shaman.terrain.voronoi.Voronoi;
 public class PolygonalMapGenerator extends AbstractTerrainStep {
 	private static final Logger LOG = Logger.getLogger(PolygonalMapGenerator.class.getName());
 	private static final Class<? extends AbstractTerrainStep> NEXT_STEP = SketchTerrain.class;
+	private static final float BRUSH_RADIUS = 0.03f;
+	private static final boolean SHOW_RIVERS = false;
 
 	//GUI and settings
 	private PolygonalScreenController screenController;
+	private InputListenerImpl listener;
+	private int brush = 0; //0: disabled, 1: elevation, 2: temperature, 3: moisture
 	private int seed;
 	private int pointCount = 0;
 	private int relaxationIterations;
@@ -45,6 +58,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		PERLIN, RADIAL
 	}
 	private Coastline coastline;
+	private int mapSize;
+	private int mapSeed;
 	private boolean initialized = false;
 	
 	//computation
@@ -61,6 +76,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	private Node elevationNode;
 	private Node temperatureNode;
 	private Node moistureNode;
+	private Geometry brushGeom;
 
 	public PolygonalMapGenerator() {
 	}
@@ -118,6 +134,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		graphNode.attachChild(edgeNode);
 		guiNode.attachChild(graphNode);
 		
+		registerInput();
+		
 		initialized = true;
 		computeVoronoi();
 		//display graph
@@ -130,6 +148,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		app.setSkyEnabled(true);
 		app.setCameraEnabled(true);
 		
+		unregisterInput();
+		
 		initialized = false;
 	}
 
@@ -138,6 +158,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		app.setCameraEnabled(false);
 	}
 	
+//<editor-fold defaultstate="collapsed" desc=" Graph creation ">
 	/**
 	 * The first step, compute the cells
 	 */
@@ -158,11 +179,11 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 				float y = voronoiRandom.nextFloat() * voronoiScale;
 				voronoiSites.add(new Vector2d(x, y));
 			}
-
+			
 			//compute voronoi diagram
 			voronoiEdges = voronoi.getEdges(voronoiSites, voronoiScale, voronoiScale);
 			voronoiEdges = Voronoi.closeEdges(voronoiEdges, voronoiScale, voronoiScale);
-
+			
 			//relax voronoiSites
 			for (int i=0; i<relaxationIterations; ++i) {
 				voronoiSites = VoronoiUtils.generateRelaxedSites(voronoiSites, voronoiEdges);
@@ -354,9 +375,21 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 				}
 				break;
 		}
-		LOG.log(Level.INFO, "corners with water: {0}, without water: {1}", 
+		LOG.log(Level.INFO, "corners with water: {0}, without water: {1}",
 				new Object[]{waterCorners, graph.corners.size()-waterCorners});
 		
+		findOceans();
+		
+		updateBiomesGeometry();
+	}
+	private void findOceans() {
+		for (Graph.Center c : graph.centers) {
+			c.ocean = false;
+			c.water = false;
+		}
+		for (Graph.Corner c : graph.corners) {
+			c.ocean = false;
+		}
 		//set water parameter of centers
 		float LAKE_THRESHOLD = 0.3f;
 		Queue<Graph.Center> queue = new ArrayDeque<>();
@@ -418,10 +451,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 				lakeCount++;
 			}
 		}
-		LOG.log(Level.INFO, "ocean cells: {0}, lake cells: {1}, land cells: {2}", 
+		LOG.log(Level.INFO, "ocean cells: {0}, lake cells: {1}, land cells: {2}",
 				new Object[]{oceanCount, lakeCount, landCount});
-		
-		updateBiomesGeometry();
 	}
 	
 	/**
@@ -482,15 +513,21 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			}
 		});
 		for (int i=0; i < corners.size(); i++) {
-		  // Let y(x) be the total area that we want at elevation <= x.
-		  // We want the higher elevations to occur less than lower
-		  // ones, and set the area to be y(x) = 1 - (1-x)^2.
-		  float y = (float) i/ (float) (corners.size()-1);
-		  float x = (float) (Math.sqrt(SCALE_FACTOR) - Math.sqrt(SCALE_FACTOR*(1-y)));
-		  if (x > 1.0) x = 1;  // TODO: does this break downslopes?
-		  corners.get(i).elevation = x;
+			// Let y(x) be the total area that we want at elevation <= x.
+			// We want the higher elevations to occur less than lower
+			// ones, and set the area to be y(x) = 1 - (1-x)^2.
+			float y = (float) i/ (float) (corners.size()-1);
+			float x = (float) (Math.sqrt(SCALE_FACTOR) - Math.sqrt(SCALE_FACTOR*(1-y)));
+			if (x > 1.0) x = 1;  // TODO: does this break downslopes?
+			corners.get(i).elevation = x;
 		}
 		
+		assignCenterElevations();
+		
+		//update mesh
+		updateElevationGeometry();
+	}
+	private void assignCenterElevations() {
 		//assign elevation to centers
 		for (Graph.Center c : graph.centers) {
 			float elevation = 0;
@@ -500,12 +537,9 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			elevation /= c.corners.size();
 			c.elevation = elevation;
 		}
-		
-		//update mesh
-		updateElevationGeometry();
 	}
 	
-	private void assignBiomes() {
+	private void createBiomes() {
 		if (graph==null) {
 			return;
 		}
@@ -516,11 +550,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			c.temperature *= c.temperature;
 			c.temperature = 1-c.temperature;
 		}
-		for (Graph.Center c : graph.centers) {
-			c.temperature = c.elevation;
-			c.temperature *= c.temperature;
-			c.temperature = 1-c.temperature;
-		}
+		assignCenterTemperature();
 		
 		//create random rivers
 		Random rand = new Random(seed * 3);
@@ -618,6 +648,26 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		for (int i = 0; i < corners.size(); i++) {
 			corners.get(i).moisture = i/(float) (corners.size()-1);
 		}
+		assignCenterMoisture();
+		
+		assignBiomes();
+		
+		//update mesh
+		updateTemperatureGeometry();
+		updateMoistureGeometry();
+		updateBiomesGeometry();
+	}
+	private void assignCenterTemperature() {
+		for (Graph.Center c : graph.centers) {
+			float t = 0;
+			for (Graph.Corner q : c.corners) {
+				t += q.temperature;
+			}
+			t /= c.corners.size();
+			c.temperature = t;
+		}
+	}
+	private void assignCenterMoisture() {
 		for (Graph.Center c : graph.centers) {
 			float m = 0;
 			for (Graph.Corner q : c.corners) {
@@ -625,13 +675,14 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			}
 			c.moisture = m / c.corners.size();
 		}
-		
+	}
+	private void assignBiomes() {
 		//create biomes
 		biomes:
 		for (Graph.Center c : graph.centers) {
 			if (!c.water && !c.ocean) {
 				for (Graph.Corner o : c.corners) {
-					if ((o.ocean || o.coast) && c.moisture<0.7) {
+					if ((o.ocean || o.coast) && c.moisture<0.7 && c.temperature>0.5) {
 						c.biome = Biome.BEACH;
 						continue biomes;
 					}
@@ -639,19 +690,16 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 				c.biome = Biome.getBiome(c.temperature, 1-c.moisture);
 			}
 		}
-		
-		//update mesh
-		updateTemperatureGeometry();
-		updateMoistureGeometry();
-		updateBiomesGeometry();
 	}
-	float smootherstep(float edge0, float edge1, float x) {
+	private float smootherstep(float edge0, float edge1, float x) {
 		// Scale, and clamp x to 0..1 range
 		x = Math.max(0, Math.min(1, (x - edge0)/(edge1 - edge0)));
 		// Evaluate polynomial
 		return x*x*x*(x*(x*6 - 15) + 10);
 	}
+//</editor-fold>
 	
+//<editor-fold defaultstate="collapsed" desc=" Mesh creation ">
 	//display graph
 	private void updateGraphNode() {
 		if (graphNode==null) {
@@ -732,6 +780,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		LOG.info("biomes geometry updated");
 	}
 	private void updateMoistureGeometry() {
+		moistureNode.detachAllChildren();
 		//moisture
 		ArrayList<Vector3f> posList = new ArrayList<>();
 		ArrayList<Integer> indexList = new ArrayList<>();
@@ -772,30 +821,31 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		mat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
 		Geometry geom1 = new Geometry("biomesGeom", mesh);
 		geom1.setMaterial(mat);
-		//river
-		posList.clear();
-		colorList.clear();
-		for (Graph.Edge e : graph.edges) {
-			if (e.v0.river>0 && e.v1.river>0) {
-				posList.add(new Vector3f(e.v0.point.x, e.v0.point.y, 0.5f));
-				colorList.add(new ColorRGBA(1-e.v0.river/20f, 1-e.v0.river/20f, 1, 1));
-				posList.add(new Vector3f(e.v1.point.x, e.v1.point.y, 0.5f));
-				colorList.add(new ColorRGBA(1-e.v1.river/20f, 1-e.v1.river/20f, 1, 1));
-			}
-		}
-		mesh = new Mesh();
-		mesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(posList.toArray(new Vector3f[posList.size()])));
-		mesh.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(colorList.toArray(new ColorRGBA[colorList.size()])));
-		mesh.setMode(Mesh.Mode.Lines);
-		mesh.setLineWidth(5);
-//		mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-//		mat.setColor("Color", ColorRGBA.Blue);
-		Geometry geom2 = new Geometry("riverGeom", mesh);
-		geom2.setMaterial(mat);
-		
-		moistureNode.detachAllChildren();
 		moistureNode.attachChild(geom1);
-		moistureNode.attachChild(geom2);
+		//river
+		if (SHOW_RIVERS) {
+			posList.clear();
+			colorList.clear();
+			for (Graph.Edge e : graph.edges) {
+				if (e.v0.river>0 && e.v1.river>0) {
+					posList.add(new Vector3f(e.v0.point.x, e.v0.point.y, 0.5f));
+					colorList.add(new ColorRGBA(1-e.v0.river/20f, 1-e.v0.river/20f, 1, 1));
+					posList.add(new Vector3f(e.v1.point.x, e.v1.point.y, 0.5f));
+					colorList.add(new ColorRGBA(1-e.v1.river/20f, 1-e.v1.river/20f, 1, 1));
+				}
+			}
+			mesh = new Mesh();
+			mesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(posList.toArray(new Vector3f[posList.size()])));
+			mesh.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(colorList.toArray(new ColorRGBA[colorList.size()])));
+			mesh.setMode(Mesh.Mode.Lines);
+			mesh.setLineWidth(5);
+	//		mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+	//		mat.setColor("Color", ColorRGBA.Blue);
+			Geometry geom2 = new Geometry("riverGeom", mesh);
+			geom2.setMaterial(mat);
+			moistureNode.attachChild(geom2);
+		}
+		
 		LOG.info("biomes geometry updated");
 	}
 	private void updateBiomesGeometry() {
@@ -880,7 +930,9 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		elevationNode.attachChild(elevationGeom);
 		LOG.info("elevation geometry updated");
 	}
+//</editor-fold>
 	
+//<editor-fold defaultstate="collapsed" desc=" GUI communication ">
 	void guiNextStep() {
 		//generate map
 		//TODO
@@ -893,11 +945,14 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		//activate next step
 		nextStep(NEXT_STEP, prop);
 	}
-	void guiInitialValues(int seed, int pointCount, int relaxationIterations, Coastline coastline) {
+	void guiInitialValues(int seed, int pointCount, int relaxationIterations, Coastline coastline,
+			int mapSize, int mapSeed) {
 		this.seed = seed;
 		this.pointCount = pointCount;
 		this.relaxationIterations = relaxationIterations;
 		this.coastline = coastline;
+		this.mapSeed = mapSeed;
+		this.mapSize = mapSize;
 		computeVoronoi();
 	}
 	void guiSeedChanged(int seed) {
@@ -924,6 +979,11 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			return ;
 		}
 		elevationNode.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+		if (enabled) {
+			brush = 1;
+		} else if (brush==1) {
+			brush = 0;
+		}
 	}
 	void guiShowBiomes(boolean enabled) {
 		if (biomesNode == null) {
@@ -935,13 +995,156 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		if (temperatureNode != null) {
 			temperatureNode.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
 		}
+		if (enabled) {
+			brush = 2;
+		} else if (brush==2) {
+			brush = 0;
+		}
 	}
 	void guiShowDrawMoisture(boolean enabled) {
 		if (moistureNode != null) {
 			moistureNode.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
 		}
+		if (enabled) {
+			brush = 3;
+		} else if (brush==3) {
+			brush = 0;
+		}
 	}
 	void guiGenerateBiomes() {
-		assignBiomes();
+		createBiomes();
+	}
+	void guiMapSizeChanged(int mapSize) {
+		this.mapSize = mapSize;
+	}
+	void guiMapSeedChanged(int seed) {
+		this.mapSeed = seed;
+	}
+	void guiGenerateMap() {
+		LOG.info("generate map with size "+mapSize+" and seed "+Integer.toHexString(mapSeed));
+	}
+//</editor-fold>
+	
+	/**
+	 * Mouse is dragged over the graph.
+	 * @param x x-coordinate on the graph, from 0 to 1
+	 * @param y y-coordinate on the graph, from 0 to 1
+	 * @param left {@code true} on left click, {@code false} on right click
+	 */
+	private void mouseDragged(float x, float y, boolean left, float tpf) {
+		if (graph==null || brush==0) {
+			return;
+		}
+		Vector2f p = new Vector2f(x, y);
+		ArrayList<Pair<Graph.Corner, Float>> influenced = new ArrayList<>();
+		for (Graph.Corner q : graph.corners) {
+			float dist = q.point.distance(p);
+			if (dist < BRUSH_RADIUS) {
+				dist /= BRUSH_RADIUS;
+				float influence = FastMath.cos(dist*dist*FastMath.HALF_PI);
+				influenced.add(new ImmutablePair<>(q, influence));
+			}
+		}
+		float amount = tpf * 0.5f * (left ? 1 : -1);
+		switch (brush) {
+			case 1: //elevation
+				for (Pair<Graph.Corner, Float> c : influenced) {
+					c.getLeft().elevation = Math.max(0, Math.min(1, c.getLeft().elevation + amount*c.getRight()));
+					if (c.getLeft().elevation==0) {
+						c.getLeft().water = true;
+					} else {
+						c.getLeft().water = false;
+					}
+				}
+				findOceans();
+				assignCenterElevations();
+				updateElevationGeometry();
+				break;
+			case 2: //temperature
+				for (Pair<Graph.Corner, Float> c : influenced) {
+					c.getLeft().temperature = Math.max(0, Math.min(1, c.getLeft().temperature + amount*c.getRight()));
+				}
+				assignCenterTemperature();
+				assignBiomes();
+				updateTemperatureGeometry();
+				updateBiomesGeometry();
+				break;
+			case 3: //moisture
+				for (Pair<Graph.Corner, Float> c : influenced) {
+					c.getLeft().moisture = Math.max(0, Math.min(1, c.getLeft().moisture + amount*c.getRight()));
+				}
+				assignCenterMoisture();
+				assignBiomes();
+				updateMoistureGeometry();
+				updateBiomesGeometry();
+				break;
+		}
+	}
+	
+	private void registerInput() {
+		if (brushGeom == null) {
+			brushGeom = new Geometry("brush", new Quad(BRUSH_RADIUS*2, BRUSH_RADIUS*2));
+			Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+			mat.setTexture("ColorMap", app.getAssetManager().loadTexture("org/shaman/terrain/polygonal/Brush.png"));
+			mat.getAdditionalRenderState().setDepthTest(false);
+			mat.getAdditionalRenderState().setDepthWrite(false);
+			mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+			brushGeom.setMaterial(mat);
+			graphNode.attachChild(brushGeom);
+			brushGeom.setCullHint(Spatial.CullHint.Always);
+			
+			listener = new InputListenerImpl();
+			app.getInputManager().addMapping("PolygonalMouseX+", new MouseAxisTrigger(MouseInput.AXIS_X, false));
+			app.getInputManager().addMapping("PolygonalMouseX-", new MouseAxisTrigger(MouseInput.AXIS_X, true));
+			app.getInputManager().addMapping("PolygonalMouseY+", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
+			app.getInputManager().addMapping("PolygonalMouseY-", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
+			app.getInputManager().addMapping("PolygonalMouseLeft", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+			app.getInputManager().addMapping("PolygonalMouseRight", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
+		}
+		app.getInputManager().addListener(listener, "PolygonalMouseX+", "PolygonalMouseX-", "PolygonalMouseY+", 
+				"PolygonalMouseY-", "PolygonalMouseLeft", "PolygonalMouseRight");
+	}
+	private void unregisterInput() {
+		app.getInputManager().removeListener(listener);
+	}
+	
+	private class InputListenerImpl implements ActionListener, AnalogListener {
+		private float mouseX, mouseY;
+		private boolean left, right;
+
+		private void update(float tpf) {
+			float x = (mouseX - graphNode.getLocalTranslation().x) / graphNode.getLocalScale().x;
+			float y = (mouseY - graphNode.getLocalTranslation().y) / graphNode.getLocalScale().y;
+			if (x<0 || y<0 || x>1 || y>1) {
+				brushGeom.setCullHint(Spatial.CullHint.Always);
+			} else {
+				brushGeom.setLocalTranslation(x - BRUSH_RADIUS, y - BRUSH_RADIUS, 0);
+				brushGeom.setCullHint(Spatial.CullHint.Never);
+				if ((!left && !right) || (left && right)) {
+					return;
+				}
+				boolean up = left;
+				mouseDragged(x, y, up, tpf);
+			}
+		}
+		
+		@Override
+		public void onAction(String name, boolean isPressed, float tpf) {
+			if ("PolygonalMouseLeft".equals(name)) {
+				left = isPressed;
+				update(tpf);
+			} else if ("PolygonalMouseRight".equals(name)) {
+				right = isPressed;
+				update(tpf);
+			}
+		}
+
+		@Override
+		public void onAnalog(String name, float value, float tpf) {
+			mouseX = app.getInputManager().getCursorPosition().x;
+			mouseY = app.getInputManager().getCursorPosition().y;
+			update(tpf);
+		}
+		
 	}
 }
