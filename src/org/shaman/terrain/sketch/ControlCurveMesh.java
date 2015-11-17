@@ -27,7 +27,7 @@ public class ControlCurveMesh {
 	private static final int TUBE_SAMPLES = 64;
 	private static final int TUBE_RESOLUTION = 4;
 	private static final int SLOPE_SAMPLES = 32;
-	private static final float CURVE_SIZE = 0.5f;
+	private static final float CURVE_SIZE = 0.5f * TerrainHeighmapCreator.TERRAIN_SCALE;
 	
 	private final TerrainHeighmapCreator app;
 	private final ControlCurve curve;

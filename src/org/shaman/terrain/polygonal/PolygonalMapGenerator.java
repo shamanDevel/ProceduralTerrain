@@ -974,6 +974,11 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	void guiSkipStep() {
 		//generate map
 		Heightmap map = new Heightmap(256);
+		for (int x=0; x<map.getSize(); ++x) {
+			for (int y=0; y<map.getSize(); ++y) {
+				map.setHeightAt(x, y, 0.2f);
+			}
+		}
 		
 		//generate properties
 		Map<Object, Object> prop = new HashMap<>(properties);
@@ -1062,6 +1067,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	}
 	void guiNextStep() {
 		if (nextProps != null) {
+			app.setTerrain(null);
+			app.disableWater();
 			nextStep(NEXT_STEP, nextProps);
 		}
 	}

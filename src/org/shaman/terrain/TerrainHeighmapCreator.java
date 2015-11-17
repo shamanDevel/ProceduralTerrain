@@ -54,6 +54,8 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.debug.Arrow;
 import com.jme3.system.AppSettings;
+import com.jme3.system.JmeContext;
+import com.jme3.system.JmeSystem;
 import com.jme3.terrain.geomipmap.TerrainLodControl;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.texture.Image;
@@ -159,6 +161,22 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		
 		//nextStep();
     }
+
+	@Override
+	public void handleError(String errMsg, Throwable t) {
+		// Print error to log.
+        LOG.log(Level.SEVERE, errMsg, t);
+        // Display error message on screen if not in headless mode
+        if (context.getType() != JmeContext.Type.Headless) {
+            if (t != null) {
+                JmeSystem.showErrorDialog(errMsg + "\n" + t.getClass().getSimpleName() +
+                        (t.getMessage() != null ? ": " +  t.getMessage() : ""));
+            } else {
+                JmeSystem.showErrorDialog(errMsg);
+            }
+        }
+		//do not stop application
+	}
 	
 	private void initNifty() {
 		niftyDisplay = new NiftyJmeDisplay(assetManager, inputManager, audioRenderer, guiViewPort);
@@ -315,7 +333,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	 */
 	public Vector3f getHeightmapPoint(int x, int y) {
 		float h = heightmap.getHeightAt(x, y);
-		return new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
+		Vector3f v = new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
+		v.multLocal(TERRAIN_SCALE);
+		return v;
 	}
 	
 	/**
@@ -326,17 +346,21 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	 */
 	public Vector3f getHeightmapPoint(float x, float y) {
 		float h = heightmap.getHeightInterpolating(x, y);
-		return new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
+		Vector3f v = new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
+		v.multLocal(TERRAIN_SCALE);
+		return v;
 	}
 	
 	public Vector3f mapHeightmapToWorld(float x, float y, float h) {
-		return new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
+		Vector3f v = new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
+		v.multLocal(TERRAIN_SCALE);
+		return v;
 	}
 	
 	public Vector3f mapWorldToHeightmap(Vector3f world) {
-		float x = world.x + heightmap.getSize()/2;
-		float y = world.z + heightmap.getSize()/2;
-		float h = (world.y + HEIGHMAP_HEIGHT_SCALE/2) / HEIGHMAP_HEIGHT_SCALE;
+		float x = world.x/TERRAIN_SCALE + heightmap.getSize()/2;
+		float y = world.z/TERRAIN_SCALE + heightmap.getSize()/2;
+		float h = (world.y/TERRAIN_SCALE + HEIGHMAP_HEIGHT_SCALE/2) / HEIGHMAP_HEIGHT_SCALE;
 		return new Vector3f(x, y, h);
 	}
 	

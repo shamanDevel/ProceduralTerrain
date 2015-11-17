@@ -53,10 +53,10 @@ import org.shaman.terrain.Heightmap;
  */
 public class SketchTerrain extends AbstractTerrainStep implements ActionListener, AnalogListener {
 	private static final Logger LOG = Logger.getLogger(SketchTerrain.class.getName());
-	private static final float PLANE_QUAD_SIZE = 200;
-	private static final float INITIAL_PLANE_DISTANCE = 150f;
-	private static final float PLANE_MOVE_SPEED = 0.02f;
-	private static final float CURVE_SIZE = 0.5f;
+	private static final float PLANE_QUAD_SIZE = 200 * TerrainHeighmapCreator.TERRAIN_SCALE;
+	private static final float INITIAL_PLANE_DISTANCE = 150f * TerrainHeighmapCreator.TERRAIN_SCALE;
+	private static final float PLANE_MOVE_SPEED = 0.01f * TerrainHeighmapCreator.TERRAIN_SCALE;
+	private static final float CURVE_SIZE = 0.5f * TerrainHeighmapCreator.TERRAIN_SCALE;
 	private static final int CURVE_RESOLUTION = 8;
 	private static final int CURVE_SAMPLES = 128;
 	private static final boolean DEBUG_DIFFUSION_SOLVER = false;
@@ -137,6 +137,8 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		shadowRenderer.setLight(light);
 		app.getHeightmapSpatial().setShadowMode(RenderQueue.ShadowMode.Receive);
 		app.getViewPort().addProcessor(shadowRenderer);
+		
+		//TODO: add pseudo water at height 0
 		
 		initNifty();
 	}
