@@ -55,15 +55,16 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	private static final Logger LOG = Logger.getLogger(SketchTerrain.class.getName());
 	private static final float PLANE_QUAD_SIZE = 200 * TerrainHeighmapCreator.TERRAIN_SCALE;
 	private static final float INITIAL_PLANE_DISTANCE = 150f * TerrainHeighmapCreator.TERRAIN_SCALE;
-	private static final float PLANE_MOVE_SPEED = 0.01f * TerrainHeighmapCreator.TERRAIN_SCALE;
+	private static final float PLANE_MOVE_SPEED = 0.005f * TerrainHeighmapCreator.TERRAIN_SCALE;
 	private static final float CURVE_SIZE = 0.5f * TerrainHeighmapCreator.TERRAIN_SCALE;
 	private static final int CURVE_RESOLUTION = 8;
 	private static final int CURVE_SAMPLES = 128;
 	private static final boolean DEBUG_DIFFUSION_SOLVER = false;
-	private static final int DIFFUSION_SOLVER_ITERATIONS = 1000;
+	private static final int DIFFUSION_SOLVER_ITERATIONS = 100;
 	
 	private Heightmap map;
 	private Heightmap originalMap;
+	private Spatial waterPlane;
 	
 	private float planeDistance = INITIAL_PLANE_DISTANCE;
 	private Spatial sketchPlane;
@@ -121,6 +122,9 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		//initial terrain 
 		app.setTerrain(originalMap);
 		
+		//init water plane
+		initWaterPlane();
+		
 		//init sketch plane
 		initSketchPlane();
 		
@@ -151,10 +155,28 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		sendAvailablePresets();
 //		nifty.setDebugOptionPanelColors(true);
 	}
+	private void initWaterPlane() {
+		float size = map.getSize() * TerrainHeighmapCreator.TERRAIN_SCALE;
+		Quad quad = new Quad(size, size);
+		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		mat.setColor("Color", new ColorRGBA(0, 0, 0.5f, 0.5f));
+		mat.setTransparent(true);
+		mat.getAdditionalRenderState().setAlphaTest(true);
+		mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+		mat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+		mat.getAdditionalRenderState().setDepthWrite(false);
+		Geometry geom = new Geometry("water", quad);
+		geom.setMaterial(mat);
+		geom.setQueueBucket(RenderQueue.Bucket.Transparent);
+		geom.rotate(FastMath.HALF_PI, 0, 0);
+		geom.move(-size/2, 0, -size/2);
+		waterPlane = geom;
+		sceneNode.attachChild(geom);
+	}
 	private void initSketchPlane() {
 		Quad quad = new Quad(PLANE_QUAD_SIZE*2, PLANE_QUAD_SIZE*2);
 		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-		mat.setColor("Color", new ColorRGBA(0, 0, 1, 0.5f));
+		mat.setColor("Color", new ColorRGBA(0.5f, 0, 0, 0.5f));
 		mat.setTransparent(true);
 		mat.getAdditionalRenderState().setAlphaTest(true);
 		mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
