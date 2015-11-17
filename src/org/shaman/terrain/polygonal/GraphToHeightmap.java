@@ -37,6 +37,7 @@ import javax.imageio.ImageIO;
 import org.apache.commons.lang3.ArrayUtils;
 import org.shaman.terrain.AbstractTerrainStep;
 import org.shaman.terrain.Heightmap;
+import org.shaman.terrain.Vectorfield;
 import org.shaman.terrain.heightmap.Noise;
 import org.shaman.terrain.sketch.SketchTerrain;
 
@@ -91,7 +92,9 @@ public class GraphToHeightmap {
 	private static final int VORONOI_POINTS_PER_CELL = 3;
 	private static final float VORONOI_DISTORTION_FREQUENCY = 32;
 	private static final float VORONOI_DISTORTION_AMPLITUDE = 0.01f;
-	private static final float VORONOI_SCALE = 1f;
+	private static final float VORONOI_SCALE = 0.3f;
+	private static final float BIOMES_DISTORTION_FREQUENCY = 32;
+	private static final float BIOMES_DISTORTION_AMPLITUDE = 0.005f;
 	
 	//Input
 	private final Graph graph;
@@ -102,6 +105,7 @@ public class GraphToHeightmap {
 	private final Heightmap heightmap;
 	private final Heightmap temperature;
 	private final Heightmap moisture;
+	private final Vectorfield biomes;
 	private final Map<Object, Object> properties;
 	//temporal values
 	private float[][][] noise;
@@ -115,10 +119,12 @@ public class GraphToHeightmap {
 		heightmap = new Heightmap(size);
 		temperature = new Heightmap(size);
 		moisture = new Heightmap(size);
+		biomes = new Vectorfield(size, Biome.values().length);
 		properties = new HashMap<>();
 		properties.put(AbstractTerrainStep.KEY_HEIGHTMAP, heightmap);
 		properties.put(AbstractTerrainStep.KEY_TEMPERATURE, temperature);
 		properties.put(AbstractTerrainStep.KEY_MOISTURE, moisture);
+		properties.put(AbstractTerrainStep.KEY_BIOMES, biomes);
 		properties.put("PolygonalGraph", graph); //for backup
 
 		calculate();
@@ -131,6 +137,7 @@ public class GraphToHeightmap {
 	private void calculate() {
 		calculateTemperatureAndMoisture();
 		calculateElevation();
+		calculateBiomeVectorfield();
 		
 		saveMaps();
 	}
@@ -140,7 +147,7 @@ public class GraphToHeightmap {
 		
 		//get noise parameters
 		Geometry geom = createNoiseGeometry();
-		noise = new float[size][size][3];
+		noise = new float[size][size][4];
 		renderColor(noise, geom, ColorRGBA.Black, 0, 1);
 		LOG.info("noise properties calculated");
 		
@@ -414,6 +421,35 @@ public class GraphToHeightmap {
 		LOG.info("moisture map created");
 	}
 	
+	private void calculateBiomeVectorfield() {
+		float[][] tmp = new float[size][size];
+		Vectorfield tmpBiomes = new Vectorfield(size, Biome.values().length);
+		for (int i=0; i<Biome.values().length; ++i) {
+			Biome b = Biome.values()[i];
+			Geometry geom = createBiomesGeometry(b);
+			//render(tmp, geom, b==Biome.OCEAN ? ColorRGBA.White : ColorRGBA.Black, 0, 1);
+			render(tmp, geom, ColorRGBA.Black, 0, 1);
+			tmpBiomes.setLayer(i, tmp);
+		}
+		LOG.info("biome vectorfield rendered");
+		//disturb
+		Noise distortionNoise = new Noise(rand.nextLong());
+		float[] v = new float[Biome.values().length];
+		for (int x=0; x<size; ++x) {
+			for (int y=0; y<size; ++y) {
+				float s = x/(float)size;
+				float t = y/(float)size;
+				float ss = (float) (s + BIOMES_DISTORTION_AMPLITUDE * 2*distortionNoise.noise(s*BIOMES_DISTORTION_FREQUENCY, t*BIOMES_DISTORTION_FREQUENCY, 0));
+				float tt = (float) (t + BIOMES_DISTORTION_AMPLITUDE * 2*distortionNoise.noise(s*BIOMES_DISTORTION_FREQUENCY, t*BIOMES_DISTORTION_FREQUENCY, 3.4));
+				v = tmpBiomes.getVectorInterpolating(ss*size, tt*size, v);
+				for (int i=0; i<Biome.values().length; ++i) {
+					biomes.setVectorAt(x, y, v);
+				}
+			}
+		}
+		//TODO: maybe add smoothing
+	}
+	
 	private Geometry createElevationGeometry() {
 		ArrayList<Vector3f> posList = new ArrayList<>();
 		ArrayList<Integer> indexList = new ArrayList<>();
@@ -580,6 +616,43 @@ public class GraphToHeightmap {
 		geom.setCullHint(Spatial.CullHint.Never);
 		return geom;
 	}
+	private Geometry createBiomesGeometry(Biome slot) {
+		//biomes
+		ArrayList<Vector3f> posList = new ArrayList<>();
+		ArrayList<Integer> indexList = new ArrayList<>();
+		Map<Graph.Corner, Integer> cornerIndices = new HashMap<>();
+		for (Graph.Center c : graph.centers) {
+			if (c.biome != slot) {
+				continue;
+			}
+			int i = posList.size();
+			posList.add(new Vector3f(c.location.x, c.location.y, 1));
+			cornerIndices.clear();
+			for (Graph.Corner corner : c.corners) {
+				cornerIndices.put(corner, posList.size());
+				posList.add(new Vector3f(corner.point.x, corner.point.y, 1));
+			}
+			for (Graph.Edge edge : c.borders) {
+				indexList.add(i);
+				indexList.add(cornerIndices.get(edge.v0));
+				indexList.add(cornerIndices.get(edge.v1));
+			}
+		}
+		Mesh biomesMesh = new Mesh();
+		biomesMesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(posList.toArray(new Vector3f[posList.size()])));
+		biomesMesh.setBuffer(VertexBuffer.Type.Index, 1, BufferUtils.createIntBuffer(ArrayUtils.toPrimitive(indexList.toArray(new Integer[indexList.size()]))));
+		biomesMesh.setMode(Mesh.Mode.Triangles);
+		biomesMesh.updateCounts();
+		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		mat.setColor("Color", ColorRGBA.White);
+		mat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+		Geometry geom = new Geometry("biomesGeom", biomesMesh);
+		geom.setMaterial(mat);
+		geom.setLocalScale(size);
+		geom.setQueueBucket(RenderQueue.Bucket.Gui);
+		geom.setCullHint(Spatial.CullHint.Never);
+		return geom;
+	}
 
 	/**
 	 * Renders the given scene in a top-down manner in the given matrix
@@ -685,7 +758,10 @@ public class GraphToHeightmap {
 				v += min;
 				matrix[x][y][2] = v;
 				
-				data.getFloat();
+				v = data.getFloat();
+				v *= (max-min);
+				v += min;
+				matrix[x][y][3] = v;
 			}
 		}
 	}
@@ -695,6 +771,12 @@ public class GraphToHeightmap {
 		saveMatrix(moisture.getRawData(), "moisture.png", 0, 1);
 		saveMatrix(heightmap.getRawData(), "elevation.png", -1.5f, 1.5f);
 		saveColorMatrix(noise, "noise.png", 0, 1);
+		
+		float[][] tmp = new float[size][size];
+		for (int i=0; i<Biome.values().length; ++i) {
+			tmp = biomes.getLayer(i, tmp);
+			saveMatrix(tmp, "Biome"+Biome.values()[i]+".png", 0, 1);
+		}
 	}
 	
 	private void saveMatrix(float[][] matrix, String filename, float min, float max) {

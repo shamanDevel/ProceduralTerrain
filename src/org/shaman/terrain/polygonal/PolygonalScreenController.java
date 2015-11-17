@@ -83,8 +83,8 @@ public class PolygonalScreenController implements ScreenController {
 		nextStepButton.setEnabled(false);
 		continueEditingButton.setEnabled(false);
 		
-		String seed1 = "Test";//randomSeed();
-		String seed2 = "Test";//randomSeed();
+		String seed1 = randomSeed();
+		String seed2 = randomSeed();
 		seedTextField.setText(seed1);
 		pointCountDropDown.selectItemByIndex(3);
 		relaxationDropDown.selectItemByIndex(2);

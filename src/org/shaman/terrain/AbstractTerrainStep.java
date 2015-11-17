@@ -13,6 +13,7 @@ import com.jme3.scene.Node;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import org.shaman.terrain.polygonal.Biome;
 
 /**
  *
@@ -35,6 +36,13 @@ public abstract class AbstractTerrainStep implements AppState {
 	 * A zero value means dry, one means wet.
 	 */
 	public static final String KEY_MOISTURE = "moisture";
+	/**
+	 * Key for a {@link Vectorfield} describing the influence of each biome at
+	 * each position on the terrain. The dimension of the vectorfield is the
+	 * number of constants in {@link Biome}, the entries are indexed by the
+	 * Biome's oridinal values.
+	 */
+	public static final String KEY_BIOMES = "biomes";
 	
 	protected AppStateManager stateManager;
 	protected TerrainHeighmapCreator app;
