@@ -29,6 +29,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -585,26 +587,36 @@ public class GraphToHeightmap {
 	 * @param matrix
 	 * @param scene
 	 */
-	private void render(float[][] matrix, Spatial scene, ColorRGBA background, float min, float max) {
-		//init
-		Camera cam = new Camera(size, size);
-		cam.setParallelProjection(true);
-		ViewPort view = new ViewPort("Off", cam);
-		view.setBackgroundColor(background);
-		view.setClearFlags(true, true, true);
-		FrameBuffer buffer = new FrameBuffer(size, size, 1);
-		buffer.setDepthBuffer(Image.Format.Depth);
-		buffer.setColorBuffer(Image.Format.RGBA32F);
-		view.setOutputFrameBuffer(buffer);
-		view.attachScene(scene);
-		//render
-		scene.setCullHint(Spatial.CullHint.Never);
-		scene.updateGeometricState();
-		view.setEnabled(true);
-		app.getRenderManager().renderViewPort(view, 0);
-		//retrive data
-		ByteBuffer data = BufferUtils.createByteBuffer(size * size * 4 * 4);
-		app.getRenderer().readFrameBufferWithFormat(buffer, data, Image.Format.RGBA32F);
+	private void render(float[][] matrix, final Spatial scene, final ColorRGBA background, float min, float max) {
+		final ByteBuffer data = BufferUtils.createByteBuffer(size * size * 4 * 4);
+		try {
+			app.enqueue(new Callable<Object>() {
+				@Override
+				public Object call() throws Exception {
+					//init
+					Camera cam = new Camera(size, size);
+					cam.setParallelProjection(true);
+					final ViewPort view = new ViewPort("Off", cam);
+					view.setBackgroundColor(background);
+					view.setClearFlags(true, true, true);
+					final FrameBuffer buffer = new FrameBuffer(size, size, 1);
+					buffer.setDepthBuffer(Image.Format.Depth);
+					buffer.setColorBuffer(Image.Format.RGBA32F);
+					view.setOutputFrameBuffer(buffer);
+					view.attachScene(scene);
+					//render
+					scene.setCullHint(Spatial.CullHint.Never);
+					scene.updateGeometricState();
+					view.setEnabled(true);
+					app.getRenderManager().renderViewPort(view, 0);
+					app.getRenderer().readFrameBufferWithFormat(buffer, data, Image.Format.RGBA32F);
+					return new Object();
+				}
+			}).get();
+		} catch (InterruptedException | ExecutionException ex) {
+			Logger.getLogger(GraphToHeightmap.class.getName()).log(Level.SEVERE, "unable to render", ex);
+			return;
+		}
 		data.rewind();
 		for (int y = 0; y < size; ++y) {
 			for (int x = 0; x < size; ++x) {
@@ -624,26 +636,36 @@ public class GraphToHeightmap {
 	 * @param matrix
 	 * @param scene
 	 */
-	private void renderColor(float[][][] matrix, Spatial scene, ColorRGBA background, float min, float max) {
-		//init
-		Camera cam = new Camera(size, size);
-		cam.setParallelProjection(true);
-		ViewPort view = new ViewPort("Off", cam);
-		view.setBackgroundColor(background);
-		view.setClearFlags(true, true, true);
-		FrameBuffer buffer = new FrameBuffer(size, size, 1);
-		buffer.setDepthBuffer(Image.Format.Depth);
-		buffer.setColorBuffer(Image.Format.RGBA32F);
-		view.setOutputFrameBuffer(buffer);
-		view.attachScene(scene);
-		//render
-		scene.setCullHint(Spatial.CullHint.Never);
-		scene.updateGeometricState();
-		view.setEnabled(true);
-		app.getRenderManager().renderViewPort(view, 0);
-		//retrive data
-		ByteBuffer data = BufferUtils.createByteBuffer(size * size * 4 * 4);
-		app.getRenderer().readFrameBufferWithFormat(buffer, data, Image.Format.RGBA32F);
+	private void renderColor(float[][][] matrix, final Spatial scene, final ColorRGBA background, float min, float max) {
+		final ByteBuffer data = BufferUtils.createByteBuffer(size * size * 4 * 4);
+		try {
+			app.enqueue(new Callable<Object>() {
+				@Override
+				public Object call() throws Exception {
+					//init
+					Camera cam = new Camera(size, size);
+					cam.setParallelProjection(true);
+					final ViewPort view = new ViewPort("Off", cam);
+					view.setBackgroundColor(background);
+					view.setClearFlags(true, true, true);
+					final FrameBuffer buffer = new FrameBuffer(size, size, 1);
+					buffer.setDepthBuffer(Image.Format.Depth);
+					buffer.setColorBuffer(Image.Format.RGBA32F);
+					view.setOutputFrameBuffer(buffer);
+					view.attachScene(scene);
+					//render
+					scene.setCullHint(Spatial.CullHint.Never);
+					scene.updateGeometricState();
+					view.setEnabled(true);
+					app.getRenderManager().renderViewPort(view, 0);
+					app.getRenderer().readFrameBufferWithFormat(buffer, data, Image.Format.RGBA32F);
+					return new Object();
+				}
+			}).get();
+		} catch (InterruptedException | ExecutionException ex) {
+			Logger.getLogger(GraphToHeightmap.class.getName()).log(Level.SEVERE, "unable to render", ex);
+			return;
+		}
 		data.rewind();
 		for (int y = 0; y < size; ++y) {
 			for (int x = 0; x < size; ++x) {

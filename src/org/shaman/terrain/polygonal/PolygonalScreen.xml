@@ -12,7 +12,7 @@
 			<panel height="100%" width="100%" childLayout="vertical">
 				<panel id="NavigationPanel" width="100%" height="30px" childLayout="horizontal" backgroundColor="#000a">
 					<control name="label" text="Polygonal" width="100px" />
-					<control id="NextStepButton" name="button" label="Sketch" width="100px" />
+					<control id="SkipStepButton" name="button" label="Sketch" width="100px" />
 				</panel>
 				<panel childLayout="vertical" backgroundColor="#5558">
 					<panel id="PropertiesPanel" width="250px" height="100%" childLayout="vertical">
@@ -76,6 +76,10 @@
 							<control id="MapSizeDropDown" name="dropDown" displayItems="5" width="142px" margin="2px"/>
 						</panel>
 						<control id="GenerateMapButton" name="button" label="Generate" width="150px" margin="2px" />
+						<panel childLayout="horizontal">
+							<control id="NextStepButton" name="button" label="Next Step" width="121px" margin="2px"/>
+							<control id="ContinueButton" name="button" label="Continue Editing" width="121px" margin="2px"/>
+						</panel>
 					</panel>
 				</panel>
 			</panel>
@@ -91,5 +95,13 @@
 			</panel>
 		</layer>
 	</screen>
+	
+	<!-- popup -->
+	<popup id="popupWait" childLayout="center" backgroundColor="#000a">
+		<panel childLayout="center" height="150px" width="250px" backgroundColor="#a00f">
+			<control id="PopupLabel" name="label" textHAlign="center" 
+						 text="WAIT" width="100%" color="#ffff" />
+		</panel>
+	</popup>
 	
 </nifty>

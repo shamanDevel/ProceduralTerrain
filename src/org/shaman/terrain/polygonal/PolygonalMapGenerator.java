@@ -38,6 +38,8 @@ import org.shaman.terrain.sketch.SketchTerrain;
 import org.shaman.terrain.voronoi.Edge;
 import org.shaman.terrain.voronoi.Voronoi;
 
+import static org.shaman.terrain.AbstractTerrainStep.KEY_HEIGHTMAP;
+
 /**
  *
  * @author Sebastian Weiss
@@ -78,6 +80,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	private Node temperatureNode;
 	private Node moistureNode;
 	private Geometry brushGeom;
+	
+	private Map<Object, Object> nextProps;
 
 	public PolygonalMapGenerator() {
 	}
@@ -157,6 +161,34 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	@Override
 	public void update(float tpf) {
 //		app.setCameraEnabled(false);
+	}
+	
+	private void generateMap() {
+		LOG.info("generate map with size "+mapSize+" and seed "+Integer.toHexString(mapSeed));
+		brush = 0;
+		graphNode.setCullHint(Spatial.CullHint.Always);
+		screenController.setEditingEnabled(false);
+		screenController.showWaitPopup(true);
+		
+		new Thread(){
+			@Override
+			public void run() {
+				GraphToHeightmap converter = new GraphToHeightmap(graph, mapSize, app, mapSeed);
+				nextProps = converter.getResult();
+				app.enqueue(new Callable<Void>() {
+					@Override
+					public Void call() throws Exception {
+						Heightmap map = (Heightmap) nextProps.get(KEY_HEIGHTMAP);
+						app.setTerrain(map);
+						app.setSkyEnabled(true);
+						app.setCameraEnabled(true);
+						app.enableWater(0);
+						screenController.showWaitPopup(false);
+						return null;
+					}
+				});
+			}
+		}.start();
 	}
 	
 //<editor-fold defaultstate="collapsed" desc=" Graph creation ">
@@ -939,9 +971,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 //</editor-fold>
 	
 //<editor-fold defaultstate="collapsed" desc=" GUI communication ">
-	void guiNextStep() {
+	void guiSkipStep() {
 		//generate map
-		//TODO
 		Heightmap map = new Heightmap(256);
 		
 		//generate properties
@@ -1027,23 +1058,21 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		this.mapSeed = seed;
 	}
 	void guiGenerateMap() {
-		LOG.info("generate map with size "+mapSize+" and seed "+Integer.toHexString(mapSeed));
-		GraphToHeightmap converter = new GraphToHeightmap(graph, mapSize, app, mapSeed);
-		Map<Object, Object> props = converter.getResult();
-		final Heightmap map = (Heightmap) props.get(KEY_HEIGHTMAP);
-		app.enqueue(new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				app.setTerrain(map);
-				app.setSkyEnabled(true);
-				app.setCameraEnabled(true);
-				app.enableWater(0);
-		//		unregisterInput();
-				graphNode.setCullHint(Spatial.CullHint.Always);
-				return null;
-			}
-		});
-		//TODO
+		generateMap();
+	}
+	void guiNextStep() {
+		if (nextProps != null) {
+			nextStep(NEXT_STEP, nextProps);
+		}
+	}
+	void guiContinueEditing() {
+		graphNode.setCullHint(Spatial.CullHint.Never);
+		screenController.setEditingEnabled(true);
+		app.setSkyEnabled(false);
+		app.setCameraEnabled(false);
+		app.disableWater();
+		app.setTerrain(null);
+		nextProps = null;
 	}
 //</editor-fold>
 	

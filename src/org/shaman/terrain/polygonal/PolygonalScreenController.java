@@ -8,6 +8,7 @@ package org.shaman.terrain.polygonal;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.controls.*;
+import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import java.util.Arrays;
@@ -21,8 +22,9 @@ public class PolygonalScreenController implements ScreenController {
 	private final PolygonalMapGenerator generator;
 	private final Random rand = new Random();
 	
+	private Nifty nifty;
 	private Screen screen;
-	private Button nextStepButton;
+	private Button skipStepButton;
 	private TextField seedTextField;
 	private Button seedButton;
 	private DropDown<Integer> pointCountDropDown;
@@ -38,20 +40,24 @@ public class PolygonalScreenController implements ScreenController {
 	private Button mapSeedButton;
 	private DropDown<Integer> mapSizeDropDown;
 	private Button generateMapButton;
-
+	private Button nextStepButton;
+	private Button continueEditingButton;
+	private Element waitPopup;
+	
 	public PolygonalScreenController(PolygonalMapGenerator generator) {
 		this.generator = generator;
 	}
 
 	@Override
 	public void bind(Nifty nifty, Screen screen) {
+		this.nifty = nifty;
 		this.screen = screen;
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public void onStartScreen() {
-		nextStepButton = screen.findNiftyControl("NextStepButton", Button.class);
+		skipStepButton = screen.findNiftyControl("SkipStepButton", Button.class);
 		seedTextField = screen.findNiftyControl("SeedTextField", TextField.class);
 		seedButton = screen.findNiftyControl("SeedButton", Button.class);
 		pointCountDropDown = screen.findNiftyControl("PointCountDropDown", DropDown.class);
@@ -67,11 +73,15 @@ public class PolygonalScreenController implements ScreenController {
 		mapSeedButton = screen.findNiftyControl("MapSeedButton", Button.class);
 		mapSizeDropDown = screen.findNiftyControl("MapSizeDropDown", DropDown.class);
 		generateMapButton = screen.findNiftyControl("GenerateMapButton", Button.class);
+		nextStepButton = screen.findNiftyControl("NextStepButton", Button.class);
+		continueEditingButton = screen.findNiftyControl("ContinueButton", Button.class);
 		
 		pointCountDropDown.addAllItems(Arrays.asList(500, 1000, 1500, 2000, 2500, 3000));
 		relaxationDropDown.addAllItems(Arrays.asList("no relaxation", "1x", "2x", "3x", "4x"));
 		coastlineDropDown.addAllItems(Arrays.asList("perlin", "circular"));
 		mapSizeDropDown.addAllItems(Arrays.asList(512, 1024, 2048, 4096, 8192, 16384));
+		nextStepButton.setEnabled(false);
+		continueEditingButton.setEnabled(false);
 		
 		String seed1 = "Test";//randomSeed();
 		String seed2 = "Test";//randomSeed();
@@ -96,11 +106,40 @@ public class PolygonalScreenController implements ScreenController {
 		
 	}
 	
+	void setEditingEnabled(boolean enabled) {
+		seedTextField.setEnabled(enabled);
+		seedButton.setEnabled(enabled);
+		pointCountDropDown.setEnabled(enabled);
+		relaxationDropDown.setEnabled(enabled);
+		coastlineDropDown.setEnabled(enabled);
+		generateElevationButton.setEnabled(enabled);
+		elevationCheckBox.setEnabled(enabled);
+		generateBiomesButton.setEnabled(enabled);
+		temperatureCheckBox.setEnabled(enabled);
+		moistureCheckBox.setEnabled(enabled);
+		biomesCheckBox.setEnabled(enabled);
+		mapSeedTextField.setEnabled(enabled);
+		mapSeedButton.setEnabled(enabled);
+		mapSizeDropDown.setEnabled(enabled);
+		generateMapButton.setEnabled(enabled);
+		nextStepButton.setEnabled(!enabled);
+		continueEditingButton.setEnabled(!enabled);
+	}
+	
+	void showWaitPopup(boolean show) {
+		if (show) {
+			waitPopup = nifty.createPopup("popupWait");
+			nifty.showPopup(screen, waitPopup.getId(), null);
+		} else {
+			nifty.closePopup(waitPopup.getId());
+		}
+	}
+	
 	@NiftyEventSubscriber(pattern = ".*Button")
 	public void onButtonClick(String id, ButtonClickedEvent e) {
 		System.out.println("button "+id+" clicked: "+e);
-		if (nextStepButton == e.getButton()) {
-			generator.guiNextStep();
+		if (skipStepButton == e.getButton()) {
+			generator.guiSkipStep();
 		} else if (seedButton == e.getButton()) {
 			String seed = randomSeed();
 			seedTextField.setText(seed);
@@ -117,6 +156,10 @@ public class PolygonalScreenController implements ScreenController {
 			if (!biomesCheckBox.isChecked()) biomesCheckBox.check();
 		} else if (generateMapButton == e.getButton()) {
 			generator.guiGenerateMap();
+		} else if (nextStepButton == e.getButton()) {
+			generator.guiNextStep();
+		} else if (continueEditingButton == e.getButton()) {
+			generator.guiContinueEditing();
 		}
 	}
 	

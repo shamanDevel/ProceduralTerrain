@@ -67,6 +67,7 @@ import de.lessvoid.nifty.Nifty;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.shaman.terrain.heightmap.*;
@@ -94,6 +95,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final int FIRST_STEP_INDEX = 0;
 	private AbstractTerrainStep[] steps;
 	
+	private Thread renderThread;
     private TerrainQuad terrain;
     private Material matTerrain;
     private Material matWire;
@@ -131,6 +133,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	
     @Override
     public void simpleInitApp() {
+		renderThread = Thread.currentThread();
 		steps = new AbstractTerrainStep[STEPS.length];
 		for (int i=0; i<STEPS.length; ++i) {
 			try {
@@ -298,7 +301,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         terrain.updateModelBound();
         terrain.setLocalTranslation(0, -HEIGHMAP_HEIGHT_SCALE/2, 0);
         terrain.setLocalScale(TERRAIN_SCALE);
-        rootNode.attachChild(terrain);
+		rootNode.attachChild(terrain);
 	}
 	
 	/**
