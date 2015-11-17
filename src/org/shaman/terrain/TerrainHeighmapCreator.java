@@ -48,6 +48,7 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
+import com.jme3.post.FilterPostProcessor;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -61,6 +62,7 @@ import com.jme3.texture.Texture.WrapMode;
 import com.jme3.texture.Texture2D;
 import com.jme3.util.BufferUtils;
 import com.jme3.util.SkyFactory;
+import com.jme3.water.WaterFilter;
 import de.lessvoid.nifty.Nifty;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -80,7 +82,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final Logger LOG = Logger.getLogger(TerrainHeighmapCreator.class.getName());
 	private static final float SLOPE_SCALE = 200f;
 	private static final float SLOPE_POWER = 2f;
-	public static final float HEIGHMAP_HEIGHT_SCALE = 128;
+	public static final float HEIGHMAP_HEIGHT_SCALE = 64;
 	
 	@SuppressWarnings("unchecked")
 	private static final Class<? extends AbstractTerrainStep>[] STEPS = new Class[] {
@@ -105,15 +107,14 @@ public class TerrainHeighmapCreator extends SimpleApplication {
     private float grassScale = 32;
 	private CustomFlyByCamera camera;
 	private Spatial sky;
+	private WaterFilter water;
+	private FilterPostProcessor waterFilter;
 	
 	private NiftyJmeDisplay niftyDisplay;
 	private Nifty nifty;
 	
 	private Heightmap heightmap;
 	private Texture2D alphaMap;
-	
-	private SketchTerrain sketchTerrain;
-	private PolygonalMapGenerator polygonalMapGenerator;
 
     public static void main(String[] args) {
         TerrainHeighmapCreator app = new TerrainHeighmapCreator();
@@ -202,6 +203,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         matWire.setColor("Color", ColorRGBA.Green);
         
         createSky();
+		createWater();
 
 //		updateTerrain();
         
@@ -214,7 +216,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		AmbientLight ambientLight = new AmbientLight(new ColorRGBA(0.2f, 0.2f, 0.2f, 1));
 		rootNode.addLight(ambientLight);
 
-        cam.setLocation(new Vector3f(0, 10, -10));
+        cam.setLocation(new Vector3f(0, 50, -50));
         cam.lookAtDirection(new Vector3f(0, -1.5f, -1).normalizeLocal(), Vector3f.UNIT_Y);
         
         rootNode.attachChild(createAxisMarker(20));
@@ -381,6 +383,27 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         sky = SkyFactory.createSky(assetManager, west, east, north, south, up, down);
         rootNode.attachChild(sky);
     }
+	private void createWater() {
+		water = new WaterFilter(rootNode, new Vector3f(-0.1f, -0.1f, -0.1f));
+        water.setWaterColor(new ColorRGBA().setAsSrgb(0.0078f, 0.3176f, 0.5f, 1.0f));
+        water.setDeepWaterColor(new ColorRGBA().setAsSrgb(0.0039f, 0.00196f, 0.145f, 1.0f));
+        water.setUnderWaterFogDistance(80);
+        water.setWaterTransparency(0.12f);
+        water.setFoamIntensity(0.4f);        
+        water.setFoamHardness(0.3f);
+        water.setFoamExistence(new Vector3f(0.8f, 8f, 1f));
+        water.setReflectionDisplace(50);
+        water.setRefractionConstant(0.25f);
+        water.setColorExtinction(new Vector3f(30, 50, 70));
+        water.setCausticsIntensity(0.4f);        
+        water.setWaveScale(0.003f);
+        water.setMaxAmplitude(2f);
+        water.setFoamTexture((Texture2D) assetManager.loadTexture("Common/MatDefs/Water/Textures/foam2.jpg"));
+        water.setRefractionStrength(0.2f);
+        water.setWaterHeight(0);
+		waterFilter = new FilterPostProcessor(assetManager);
+		waterFilter.addFilter(water);
+	}
 	
 	/**
 	 * Enables or disables the sky.
@@ -388,6 +411,14 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	 */
 	public void setSkyEnabled(boolean enabled) {
 		sky.setCullHint(enabled ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+	}
+	
+	public void enableWater(float waterHeight) {
+		water.setWaterHeight(waterHeight);
+		viewPort.addProcessor(waterFilter);
+	}
+	public void disableWater() {
+		viewPort.removeProcessor(waterFilter);
 	}
 	
 	/**

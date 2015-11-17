@@ -23,6 +23,7 @@ import de.lessvoid.nifty.Nifty;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.vecmath.Vector2d;
@@ -155,7 +156,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 
 	@Override
 	public void update(float tpf) {
-		app.setCameraEnabled(false);
+//		app.setCameraEnabled(false);
 	}
 	
 //<editor-fold defaultstate="collapsed" desc=" Graph creation ">
@@ -333,7 +334,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 						amplitude /= 2.5;
 					}
 					float dist = c.point.distanceSquared(0.5f, 0.5f);
-					float distInfluence = 1.5f; //to be tuned
+					float distInfluence = 2.2f; //to be tuned
 					float perlinOffset = -0.2f; //to be tuned
 					if (val > perlinOffset + distInfluence*dist && !c.border) {
 						c.water = false;
@@ -352,8 +353,8 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 				double dipAngle = rand.nextDouble() * 2 * Math.PI;
 				double dipWidth = rand.nextDouble() * 0.5 + 0.2;
 				for (Graph.Corner c : graph.corners) {
-					double x = (c.point.x - 0.5) * 2;
-					double y = (c.point.y - 0.5) * 2;
+					double x = (c.point.x - 0.5) * 2.2;
+					double y = (c.point.y - 0.5) * 2.2;
 					double angle = Math.atan2(y, x);
 					double length = 0.5 * (Math.max(Math.abs(x), Math.abs(y))
 							+ new Vector2d(x, y).length());
@@ -1022,6 +1023,22 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	}
 	void guiGenerateMap() {
 		LOG.info("generate map with size "+mapSize+" and seed "+Integer.toHexString(mapSeed));
+		GraphToHeightmap converter = new GraphToHeightmap(graph, mapSize, app);
+		Map<Object, Object> props = converter.getResult();
+		final Heightmap map = (Heightmap) props.get(KEY_HEIGHTMAP);
+		app.enqueue(new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				app.setTerrain(map);
+				app.setSkyEnabled(true);
+				app.setCameraEnabled(true);
+				app.enableWater(0);
+		//		unregisterInput();
+				graphNode.setCullHint(Spatial.CullHint.Always);
+				return null;
+			}
+		});
+		//TODO
 	}
 //</editor-fold>
 	

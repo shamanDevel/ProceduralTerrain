@@ -71,7 +71,7 @@ public class PolygonalScreenController implements ScreenController {
 		pointCountDropDown.addAllItems(Arrays.asList(500, 1000, 1500, 2000, 2500, 3000));
 		relaxationDropDown.addAllItems(Arrays.asList("no relaxation", "1x", "2x", "3x", "4x"));
 		coastlineDropDown.addAllItems(Arrays.asList("perlin", "circular"));
-		mapSizeDropDown.addAllItems(Arrays.asList(256, 512, 1024, 2048, 4096, 8192));
+		mapSizeDropDown.addAllItems(Arrays.asList(512, 1024, 2048, 4096, 8192, 16384));
 		
 		String seed1 = randomSeed();
 		String seed2 = randomSeed();
@@ -82,7 +82,7 @@ public class PolygonalScreenController implements ScreenController {
 		mapSeedTextField.setText(seed2);
 		mapSizeDropDown.selectItemByIndex(1);
 		generator.guiInitialValues(seed1.hashCode(), 2000, 2, 
-				PolygonalMapGenerator.Coastline.PERLIN, 512, seed2.hashCode());
+				PolygonalMapGenerator.Coastline.PERLIN, 1024, seed2.hashCode());
 		
 		biomesCheckBox.check();
 	}

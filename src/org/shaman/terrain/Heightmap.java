@@ -21,6 +21,10 @@ public class Heightmap implements Cloneable, Serializable {
 		setSize(size);
 	}
 	
+	public float[][] getRawData() {
+		return data;
+	}
+	
 	public void setSize(int size) {
 		this.size = size;
 		this.data = new float[size][size];
