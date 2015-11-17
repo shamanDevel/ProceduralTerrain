@@ -83,6 +83,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final float SLOPE_SCALE = 200f;
 	private static final float SLOPE_POWER = 2f;
 	public static final float HEIGHMAP_HEIGHT_SCALE = 64;
+	public static final float TERRAIN_SCALE = 16;
 	
 	@SuppressWarnings("unchecked")
 	private static final Class<? extends AbstractTerrainStep>[] STEPS = new Class[] {
@@ -163,7 +164,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	}
 	
 	private void initScene() {
-		cam.setFrustumFar(10000);
+		cam.setFrustumFar(10000 * TERRAIN_SCALE);
 		camera = new CustomFlyByCamera(cam);
 		camera.registerWithInput(inputManager);
 		camera.setDragToRotate(true);
@@ -216,7 +217,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		AmbientLight ambientLight = new AmbientLight(new ColorRGBA(0.2f, 0.2f, 0.2f, 1));
 		rootNode.addLight(ambientLight);
 
-        cam.setLocation(new Vector3f(0, 50, -50));
+        cam.setLocation(new Vector3f(0, 100 * TERRAIN_SCALE, -100 * TERRAIN_SCALE));
         cam.lookAtDirection(new Vector3f(0, -1.5f, -1).normalizeLocal(), Vector3f.UNIT_Y);
         
         rootNode.attachChild(createAxisMarker(20));
@@ -296,7 +297,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         terrain.setModelBound(new BoundingBox());
         terrain.updateModelBound();
         terrain.setLocalTranslation(0, -HEIGHMAP_HEIGHT_SCALE/2, 0);
-        terrain.setLocalScale(1f, 1f, 1f);
+        terrain.setLocalScale(TERRAIN_SCALE);
         rootNode.attachChild(terrain);
 	}
 	
@@ -468,7 +469,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		if (firstUpdate) {
 			firstUpdate = false;
 			camera.setEnabled(true);
-			camera.setMoveSpeed(200);
+			camera.setMoveSpeed(200 * TERRAIN_SCALE);
 		}
 	}
 	

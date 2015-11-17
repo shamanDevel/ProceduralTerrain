@@ -31,6 +31,12 @@ public class Graph {
 		public ArrayList<Center> neighbors = new ArrayList<>();
 		public ArrayList<Edge> borders = new ArrayList<>();
 		public ArrayList<Corner> corners = new ArrayList<>();
+
+		@Override
+		public String toString() {
+			return "Center{" + "index=" + index + ", location=" + location + ", water=" + water + ", ocean=" + ocean + ", border=" + border + ", biome=" + biome + ", elevation=" + elevation + ", moisture=" + moisture + ", temperature=" + temperature + '}';
+		}
+		
 	}
 	
 	public static class Edge {
@@ -45,6 +51,12 @@ public class Graph {
 		public Corner v0, v1;
 		public Vector2f midpoint;
 		public int riverVolume;
+
+		@Override
+		public String toString() {
+			return "Edge{" + "index=" + index + ", d0=" + d0 + ", d1=" + d1 + ", v0=" + v0 + ", v1=" + v1 + ", midpoint=" + midpoint + ", riverVolume=" + riverVolume + '}';
+		}
+		
 	}
 	
 	public static class Corner {
@@ -62,5 +74,10 @@ public class Graph {
 		public ArrayList<Center> touches = new ArrayList<>();
 		public ArrayList<Edge> protrudes = new ArrayList<>();
 		public ArrayList<Corner> adjacent = new ArrayList<>();
+
+		@Override
+		public String toString() {
+			return "Corner{" + "index=" + index + ", point=" + point + ", ocean=" + ocean + ", water=" + water + ", coast=" + coast + ", border=" + border + ", elevation=" + elevation + ", moisture=" + moisture + ", temperature=" + temperature + ", river=" + river + '}';
+		}
 	}
 }

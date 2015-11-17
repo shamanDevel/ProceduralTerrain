@@ -73,8 +73,8 @@ public class PolygonalScreenController implements ScreenController {
 		coastlineDropDown.addAllItems(Arrays.asList("perlin", "circular"));
 		mapSizeDropDown.addAllItems(Arrays.asList(512, 1024, 2048, 4096, 8192, 16384));
 		
-		String seed1 = randomSeed();
-		String seed2 = randomSeed();
+		String seed1 = "Test";//randomSeed();
+		String seed2 = "Test";//randomSeed();
 		seedTextField.setText(seed1);
 		pointCountDropDown.selectItemByIndex(3);
 		relaxationDropDown.selectItemByIndex(2);

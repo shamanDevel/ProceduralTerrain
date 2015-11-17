@@ -79,9 +79,9 @@ public class Heightmap implements Cloneable, Serializable {
 		x = Math.max(0, Math.min(size-1, x));
 		y = Math.max(0, Math.min(size-1, y));
 		int ax = (int) Math.floor(x);
-		int bx = (int) Math.ceil(x);
+		int bx = ax+1;//(int) Math.ceil(x);
 		int ay = (int) Math.floor(y);
-		int by = (int) Math.ceil(y);
+		int by = ay+1;//(int) Math.ceil(y);
 		float fx = x%1;
 		float fy = y%1;
 		float q11 = getHeightAtClamping(ax, ay);

@@ -285,6 +285,11 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			c.corners.clear();
 			c.corners.addAll(cx);
 		}
+		for (Graph.Corner c : graph.corners) {
+			HashSet<Graph.Center> cx = new HashSet<>(c.touches);
+			c.touches.clear();
+			c.touches.addAll(cx);
+		}
 		int borderCorners = 0;
 		for (Graph.Corner c : graph.corners) {
 			if (c.border) borderCorners++;
@@ -1023,7 +1028,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	}
 	void guiGenerateMap() {
 		LOG.info("generate map with size "+mapSize+" and seed "+Integer.toHexString(mapSeed));
-		GraphToHeightmap converter = new GraphToHeightmap(graph, mapSize, app);
+		GraphToHeightmap converter = new GraphToHeightmap(graph, mapSize, app, mapSeed);
 		Map<Object, Object> props = converter.getResult();
 		final Heightmap map = (Heightmap) props.get(KEY_HEIGHTMAP);
 		app.enqueue(new Callable<Void>() {
