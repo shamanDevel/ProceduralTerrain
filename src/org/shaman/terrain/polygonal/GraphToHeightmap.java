@@ -57,7 +57,7 @@ public class GraphToHeightmap {
 	 * Maps the biomes to noise amplitude (0), noise roughness (1),
 	 * voronoi amplitude (2) and the factor of the height on the voronoi amplitude(3)
 	 */
-	private static final Map<Biome, double[]> BIOME_PROPERTIES = new HashMap<>();
+	private static final EnumMap<Biome, double[]> BIOME_PROPERTIES = new EnumMap<>(Biome.class);
 	static {
 		BIOME_PROPERTIES.put(Biome.SNOW, new double[]{0.5, 0.7, 0.7, 0.5});
 		BIOME_PROPERTIES.put(Biome.TUNDRA, new double[]{0.5, 0.5, 0.5, 0.5});
@@ -139,7 +139,7 @@ public class GraphToHeightmap {
 		calculateElevation();
 		calculateBiomeVectorfield();
 		
-		saveMaps();
+//		saveMaps();
 	}
 	
 	private void calculateElevation() {

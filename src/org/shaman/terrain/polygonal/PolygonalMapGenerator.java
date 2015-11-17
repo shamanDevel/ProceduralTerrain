@@ -30,9 +30,7 @@ import javax.vecmath.Vector2d;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.shaman.terrain.AbstractTerrainStep;
-import org.shaman.terrain.TerrainHeighmapCreator;
-import org.shaman.terrain.Heightmap;
+import org.shaman.terrain.*;
 import org.shaman.terrain.heightmap.Noise;
 import org.shaman.terrain.sketch.SketchTerrain;
 import org.shaman.terrain.voronoi.Edge;
@@ -179,7 +177,9 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 					@Override
 					public Void call() throws Exception {
 						Heightmap map = (Heightmap) nextProps.get(KEY_HEIGHTMAP);
+						Vectorfield biomes = (Vectorfield) nextProps.get(KEY_BIOMES);
 						app.setTerrain(map);
+						app.forceTerrainMaterial(BiomesMaterialCreator.createTerrainMaterial(biomes, app.getAssetManager()));
 						app.setSkyEnabled(true);
 						app.setCameraEnabled(true);
 						app.enableWater(0);

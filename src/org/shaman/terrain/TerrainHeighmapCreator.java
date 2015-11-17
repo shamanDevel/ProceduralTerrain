@@ -253,6 +253,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		updateAlphaMap();
 		updateTerrain();
 	}
+	public void forceTerrainMaterial(Material mat) {
+		terrain.setMaterial(mat);
+	}
 	
 	public void updateAlphaMap() {		
 		Image image = alphaMap.getImage();
