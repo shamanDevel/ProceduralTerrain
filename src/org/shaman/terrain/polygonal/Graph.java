@@ -6,18 +6,21 @@
 package org.shaman.terrain.polygonal;
 
 import com.jme3.math.Vector2f;
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  *
  * @author Sebastian Weiss
  */
-public class Graph {
+public class Graph implements Serializable {
+	private static final long serialVersionUID = -2273373526310362024L;
 	public ArrayList<Center> centers = new ArrayList<>();
 	public ArrayList<Corner> corners = new ArrayList<>();
 	public ArrayList<Edge> edges = new ArrayList<>();
 	
-	public static class Center {
+	public static class Center implements Serializable  {
+		private static final long serialVersionUID = -1043836616648694966L;
 		public int index;
 		public Vector2f location;
 		public boolean water;
@@ -39,7 +42,8 @@ public class Graph {
 		
 	}
 	
-	public static class Edge {
+	public static class Edge implements Serializable {
+		private static final long serialVersionUID = 3766246877378368182L;
 		public int index;
 		/**
 		 * Delaunay edge.
@@ -59,7 +63,8 @@ public class Graph {
 		
 	}
 	
-	public static class Corner {
+	public static class Corner implements Serializable  {
+		private static final long serialVersionUID = 4227568153609879014L;
 		public int index;
 		public Vector2f point;
 		public boolean ocean;

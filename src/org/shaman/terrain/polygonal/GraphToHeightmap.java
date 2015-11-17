@@ -88,13 +88,14 @@ public class GraphToHeightmap {
 		{-1, -1}, {-1, 0}, {-1, 1},
 		{0, 1}, {0, -1}
 	};
-	private static final int VORONOI_CELL_COUNT = 32;
+	private static final int VORONOI_CELL_COUNT = 48;
 	private static final int VORONOI_POINTS_PER_CELL = 3;
 	private static final float VORONOI_DISTORTION_FREQUENCY = 32;
 	private static final float VORONOI_DISTORTION_AMPLITUDE = 0.01f;
-	private static final float VORONOI_SCALE = 0.3f;
+	private static final float VORONOI_SCALE = 0.5f;
 	private static final float BIOMES_DISTORTION_FREQUENCY = 32;
 	private static final float BIOMES_DISTORTION_AMPLITUDE = 0.005f;
+	private static final double HEIGHT_SCALING = 1.5;
 	
 	//Input
 	private final Graph graph;
@@ -125,7 +126,7 @@ public class GraphToHeightmap {
 		properties.put(AbstractTerrainStep.KEY_TEMPERATURE, temperature);
 		properties.put(AbstractTerrainStep.KEY_MOISTURE, moisture);
 		properties.put(AbstractTerrainStep.KEY_BIOMES, biomes);
-		properties.put("PolygonalGraph", graph); //for backup
+//		properties.put("PolygonalGraph", graph); //for backup
 
 		calculate();
 	}
@@ -320,7 +321,7 @@ public class GraphToHeightmap {
 		for (int x=0; x<size; ++x) {
 			for (int y=0; y<size; ++y) {
 				float h = tmp.getHeightAt(x, y);
-				h = Math.signum(h) * h * h;
+				h = (float) (Math.signum(h) * Math.pow(Math.abs(h), HEIGHT_SCALING));
 				tmp.setHeightAt(x, y, h);
 			}
 		}

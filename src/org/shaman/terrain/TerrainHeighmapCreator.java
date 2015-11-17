@@ -66,12 +66,18 @@ import com.jme3.util.BufferUtils;
 import com.jme3.util.SkyFactory;
 import com.jme3.water.WaterFilter;
 import de.lessvoid.nifty.Nifty;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import org.apache.commons.lang3.ArrayUtils;
 import org.shaman.terrain.heightmap.*;
 import org.shaman.terrain.polygonal.PolygonalMapGenerator;
 
@@ -85,7 +91,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final Logger LOG = Logger.getLogger(TerrainHeighmapCreator.class.getName());
 	private static final float SLOPE_SCALE = 200f;
 	private static final float SLOPE_POWER = 2f;
-	public static final float HEIGHMAP_HEIGHT_SCALE = 64;
+	public static final float HEIGHMAP_HEIGHT_SCALE = 32;
 	public static final float TERRAIN_SCALE = 16;
 	
 	@SuppressWarnings("unchecked")
@@ -96,6 +102,8 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	};
 	private static final int FIRST_STEP_INDEX = 0;
 	private AbstractTerrainStep[] steps;
+	private static Class<? extends AbstractTerrainStep> loadedStep;
+	private static Map<Object, Object> loadedProperties;
 	
 	private Thread renderThread;
     private TerrainQuad terrain;
@@ -121,7 +129,24 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private Heightmap heightmap;
 	private Texture2D alphaMap;
 
+	@SuppressWarnings("unchecked")
     public static void main(String[] args) {
+		//load save
+		File root = new File("./saves/");
+		JFileChooser chooser = new JFileChooser(root);
+		chooser.addChoosableFileFilter(new FileNameExtensionFilter(null, "save"));
+		chooser.setFileFilter(new FileNameExtensionFilter(null, "save"));
+		int result = chooser.showOpenDialog(null);
+		if (result == JFileChooser.APPROVE_OPTION) {
+			try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(chooser.getSelectedFile())))) {
+				loadedStep = (Class<? extends AbstractTerrainStep>) in.readObject();
+				loadedProperties = (Map<Object, Object>) in.readObject();
+			} catch (Exception ex) {
+				LOG.log(Level.SEVERE, "unable to load save file", ex);
+			}
+		}
+		
+		//create app
         TerrainHeighmapCreator app = new TerrainHeighmapCreator();
 		app.getStateManager().detach(app.getStateManager().getState(FlyCamAppState.class));
 		AppSettings settings = new AppSettings(true);
@@ -147,8 +172,20 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 			}
 			stateManager.attach(steps[i]);
 		}
-		steps[FIRST_STEP_INDEX].properties = new HashMap<>();
-		steps[FIRST_STEP_INDEX].setEnabled(true);
+		if (loadedStep!=null && loadedProperties!=null) {
+			int index = ArrayUtils.indexOf(STEPS, loadedStep);
+			if (index==-1) {
+				LOG.log(Level.INFO, "unknown loaded step: {0}", loadedStep);
+				steps[FIRST_STEP_INDEX].properties = new HashMap<>();
+				steps[FIRST_STEP_INDEX].setEnabled(true);
+			} else {
+				steps[index].properties = loadedProperties;
+				steps[index].setEnabled(true);
+			}
+		} else {
+			steps[FIRST_STEP_INDEX].properties = new HashMap<>();
+			steps[FIRST_STEP_INDEX].setEnabled(true);
+		}
 		
         setupKeys();
 //		loadHintText();
@@ -370,6 +407,34 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	
 	public Nifty getNifty() {
 		return nifty;
+	}
+	
+	public void save(Map<Object, Object> properties, Class<? extends AbstractTerrainStep> step,
+			@Nullable String fileName) {
+		File file;
+		File root = new File("./saves/");
+		//select file
+		if (fileName==null) {
+			JFileChooser chooser = new JFileChooser(root);
+			chooser.addChoosableFileFilter(new FileNameExtensionFilter(null, "save"));
+			chooser.setFileFilter(new FileNameExtensionFilter(null, "save"));
+			int result = chooser.showSaveDialog(null);
+			if (result != JFileChooser.APPROVE_OPTION) {
+				return;
+			}
+			file = chooser.getSelectedFile();
+		} else {
+			file = new File(root, fileName);
+		}
+		//save file
+		try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
+			out.writeObject(step);
+			out.writeObject(properties);
+		} catch (IOException ex) {
+			LOG.log(Level.SEVERE, "unable to save file", ex);
+			return;
+		}
+		LOG.info("file saved to "+file);
 	}
 
     private void setupKeys() {

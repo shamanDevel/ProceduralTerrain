@@ -10,6 +10,7 @@ import com.jme3.app.state.AppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
+import java.util.Calendar;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
@@ -99,6 +100,14 @@ public abstract class AbstractTerrainStep implements AppState {
 		if (next==null) {
 			return false;
 		} else {
+			//auto-save stage
+			Calendar cal = Calendar.getInstance();
+			String name = "Auto "+this.getClass().getSimpleName()+" "
+					+cal.get(Calendar.DAY_OF_YEAR)+"_"+cal.get(Calendar.HOUR_OF_DAY)
+					+"_"+cal.get(Calendar.MINUTE)+"_"+cal.get(Calendar.SECOND)+".save";
+			app.save(properties, nextStepClass, name);
+			
+			//switch to next step
 			next.properties = properties;
 			setEnabled(false);
 			app.enqueue(new Callable<Void>() {
