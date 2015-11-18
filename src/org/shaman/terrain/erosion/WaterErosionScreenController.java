@@ -36,6 +36,7 @@ public class WaterErosionScreenController implements ScreenController {
 	private Button stopButton;
 	private Button resetButton;
 	private Label iterationsLabel;
+	private Label messageLabel;
 
 	public WaterErosionScreenController(WaterErosionSimulation simulation, int mapSize) {
 		this.simulation = simulation;
@@ -65,6 +66,7 @@ public class WaterErosionScreenController implements ScreenController {
 		stopButton = screen.findNiftyControl("StopButton", Button.class);
 		resetButton = screen.findNiftyControl("ResetButton", Button.class);
 		iterationsLabel = screen.findNiftyControl("IterationsLabel", Label.class);
+		messageLabel = screen.findNiftyControl("MessageLabel", Label.class);
 		
 		upscaleDropDown.addAllItems(Arrays.asList(originalSize, originalSize*2, originalSize*4, originalSize*8));
 		upscaleDropDown.selectItemByIndex(0);
@@ -93,6 +95,10 @@ public class WaterErosionScreenController implements ScreenController {
 	}
 	void setIteration(int iteration) {
 		iterationsLabel.setText("Iteration: "+iteration);
+	}
+	
+	void setMessageLabelText(String text) {
+		messageLabel.setText(text);
 	}
 	
 	@NiftyEventSubscriber(pattern = ".*Button")

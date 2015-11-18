@@ -6,11 +6,9 @@
 package org.shaman.terrain.erosion;
 
 import com.jme3.collision.CollisionResults;
+import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
-import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.AnalogListener;
-import com.jme3.input.controls.MouseAxisTrigger;
-import com.jme3.input.controls.MouseButtonTrigger;
+import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
@@ -48,6 +46,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	private WaterErosionScreenController screenController;
 	private int displayMode = 0;
 	private float brushSize = 0;
+	private boolean cameraLocked = false;
 
 	//maps
 	private Heightmap map;
@@ -419,8 +418,10 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			app.getInputManager().addMapping("ErosionMouseY-", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
 			app.getInputManager().addMapping("ErosionMouseLeft", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
 			app.getInputManager().addMapping("ErosionMouseRight", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
+			app.getInputManager().addMapping("ErosionCameraLock", new KeyTrigger(KeyInput.KEY_L));
 		}
-		app.getInputManager().addListener(listener, "ErosionMouseX+", "ErosionMouseX-", "ErosionMouseY+", "ErosionMouseY-", "ErosionMouseLeft", "ErosionMouseRight");
+		app.getInputManager().addListener(listener, "ErosionMouseX+", "ErosionMouseX-", "ErosionMouseY+", "ErosionMouseY-", 
+				"ErosionMouseLeft", "ErosionMouseRight", "ErosionCameraLock");
 	}
 	private void unregisterListener() {
 		app.getInputManager().removeListener(listener);
@@ -451,6 +452,10 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			} else if ("ErosionMouseRight".equals(name)) {
 				right = isPressed;
 				update(tpf);
+			} else if ("ErosionCameraLock".equals(name) && isPressed) {
+				cameraLocked = !cameraLocked;
+				app.setCameraEnabled(!cameraLocked);
+				screenController.setMessageLabelText(cameraLocked ? "Camera locked" : "");
 			}
 		}
 
