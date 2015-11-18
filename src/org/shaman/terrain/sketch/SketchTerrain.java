@@ -530,7 +530,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			//copy existing heightmap data
 			for (int x=0; x<map.getSize(); ++x) {
 				for (int y=0; y<map.getSize(); ++y) {
-					elevation.set(x, y, elevation.get(x, y) - originalMap.getHeightAt(x, y));
+					elevation.set(x, y, elevation.get(x, y) - originalMap.getHeightAt(x, y) - 0.5f);
 				}
 			}
 			
