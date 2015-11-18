@@ -31,7 +31,7 @@
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Brush size:" width="100px" margin="2px"/>
 							<control id="BrushSizeSlider" name="horizontalSlider" width="142px" margin="2px"
-									 min="1" max="100" initial="5" stepSize="1" buttonStepSize="5"/>
+									 min="1" max="50" initial="5" stepSize="1" buttonStepSize="5"/>
 						</panel>
 						
 						<panel childLayout="absolute" height="20px"/>

@@ -343,6 +343,9 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
                 return;
             }
         }
+		if (!ignoreDragging && !canRotate) {
+			return;
+		}
 
         Matrix3f mat = new Matrix3f();
         mat.fromAngleNormalAxis(rotationSpeed * value, axis);

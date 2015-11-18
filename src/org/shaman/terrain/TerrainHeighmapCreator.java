@@ -238,7 +238,8 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		cam.setFrustumFar(10000 * TERRAIN_SCALE);
 		camera = new CustomFlyByCamera(cam);
 		camera.registerWithInput(inputManager);
-		camera.setDragToRotate(true);
+//		camera.setDragToRotate(true);
+		inputManager.setCursorVisible(true);
 		
 		// TERRAIN TEXTURE material
         matTerrain = new Material(assetManager, "Common/MatDefs/Terrain/TerrainLighting.j3md");
@@ -322,7 +323,11 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		updateTerrain();
 	}
 	public void forceTerrainMaterial(Material mat) {
-		terrain.setMaterial(mat);
+		if (mat == null) {
+			terrain.setMaterial(matTerrain);
+		} else {
+			terrain.setMaterial(mat);
+		}
 	}
 	
 	public void updateAlphaMap() {		

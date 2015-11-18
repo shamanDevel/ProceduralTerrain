@@ -68,6 +68,7 @@ public class WaterErosionScreenController implements ScreenController {
 		
 		upscaleDropDown.addAllItems(Arrays.asList(originalSize, originalSize*2, originalSize*4, originalSize*8));
 		upscaleDropDown.selectItemByIndex(0);
+		brushSizeSlider.setValue(10);
 	}
 
 	@Override
@@ -102,6 +103,9 @@ public class WaterErosionScreenController implements ScreenController {
 	@NiftyEventSubscriber(pattern = ".*Slider")
 	public void onSliderChange(String id, SliderChangedEvent e) {
 		System.out.println("slider "+id+" changed: "+e);
+		if (brushSizeSlider==e.getSlider()) {
+			simulation.guiBrushSizeChanged(e.getValue());
+		}
 	}
 	
 	@NiftyEventSubscriber(pattern = ".*DropDown")
