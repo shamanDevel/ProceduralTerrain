@@ -55,7 +55,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	private static final Logger LOG = Logger.getLogger(SketchTerrain.class.getName());
 	private static final float PLANE_QUAD_SIZE = 200 * TerrainHeighmapCreator.TERRAIN_SCALE;
 	private static final float INITIAL_PLANE_DISTANCE = 150f * TerrainHeighmapCreator.TERRAIN_SCALE;
-	private static final float PLANE_MOVE_SPEED = 0.005f * TerrainHeighmapCreator.TERRAIN_SCALE;
+	private static final float PLANE_MOVE_SPEED = 0.002f * TerrainHeighmapCreator.TERRAIN_SCALE;
 	private static final float CURVE_SIZE = 0.5f * TerrainHeighmapCreator.TERRAIN_SCALE;
 	private static final int CURVE_RESOLUTION = 8;
 	private static final int CURVE_SAMPLES = 128;

@@ -34,6 +34,7 @@ package org.shaman.terrain;
 import org.shaman.terrain.sketch.SketchTerrain;
 import com.jme3.app.FlyCamAppState;
 import com.jme3.app.SimpleApplication;
+import com.jme3.app.state.ScreenshotAppState;
 import com.jme3.bounding.BoundingBox;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
@@ -91,8 +92,10 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final Logger LOG = Logger.getLogger(TerrainHeighmapCreator.class.getName());
 	private static final float SLOPE_SCALE = 200f;
 	private static final float SLOPE_POWER = 2f;
-	public static final float HEIGHMAP_HEIGHT_SCALE = 32;
+	public static final float HEIGHMAP_HEIGHT_SCALE = 48;
 	public static final float TERRAIN_SCALE = 16;
+	private static final boolean RECORDING = false;
+	private static final int RECORDING_FRAMES = 1000 / 10; //20 FPS
 	
 	@SuppressWarnings("unchecked")
 	private static final Class<? extends AbstractTerrainStep>[] STEPS = new Class[] {
@@ -104,6 +107,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private AbstractTerrainStep[] steps;
 	private static Class<? extends AbstractTerrainStep> loadedStep;
 	private static Map<Object, Object> loadedProperties;
+	
+	private long recordingTime;
+	private ScreenshotAppState screenshotAppState;
 	
 	private Thread renderThread;
     private TerrainQuad terrain;
@@ -197,6 +203,11 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 //		polygonalMapGenerator = new PolygonalMapGenerator(this);
 		
 		//nextStep();
+		if (RECORDING) {
+			recordingTime = System.currentTimeMillis();
+			screenshotAppState = new ScreenshotAppState();
+			stateManager.attach(screenshotAppState);
+		}
     }
 
 	@Override
@@ -565,6 +576,14 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 			firstUpdate = false;
 			camera.setEnabled(true);
 			camera.setMoveSpeed(200 * TERRAIN_SCALE);
+		}
+		if (RECORDING) {
+			long time = System.currentTimeMillis();
+			if (time > recordingTime + RECORDING_FRAMES) {
+				recordingTime = time;
+				screenshotAppState.takeScreenshot();
+				System.out.println("shot");
+			}
 		}
 	}
 	
