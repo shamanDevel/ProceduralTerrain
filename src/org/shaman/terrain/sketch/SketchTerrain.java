@@ -259,6 +259,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		step = 1;
 		screenController.startSolving();
 		lastUpdateTime = System.currentTimeMillis();
+		app.setCameraEnabled(false);
 	}
 	private void runSolving() {
 		long maxTime = 50;
@@ -294,6 +295,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		LOG.info("terrain updated");
 		solver = null;
 		screenController.stopSolving();
+		app.setCameraEnabled(true);
 	}
 	@Override
 	public void update(float tpf) {

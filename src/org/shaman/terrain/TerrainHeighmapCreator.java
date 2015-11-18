@@ -419,7 +419,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		return new Vector3f(x, y, h);
 	}
 	
-	public Spatial getHeightmapSpatial() {
+	public TerrainQuad getHeightmapSpatial() {
 		return terrain;
 	}
 	
