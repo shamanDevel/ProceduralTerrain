@@ -88,9 +88,9 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
     
 	protected boolean useJoystick = true;
 	protected float joystickMoveThreshold = 0.08f;
-	protected float joystickMoveFactor = 0.01f;
+	protected float joystickMoveFactor = 0.005f;
 	protected float joystickRotateThreshold = 0.05f;
-	protected float joystickRotateFactor = 0.005f;
+	protected float joystickRotateFactor = 0.0025f;
 	protected boolean canRotateSideways = false;
 	protected String joystickName = "SpaceNavigator for Notebooks";
 	

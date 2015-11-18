@@ -257,8 +257,8 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		lastUpdateTime = System.currentTimeMillis();
 	}
 	private void runSolving() {
-		long maxTime = 100;
-		int minIterations = 10;
+		long maxTime = 50;
+		int minIterations = 5;
 		//run iterations
 		long time = System.currentTimeMillis() + maxTime;
 		for (int i=0; (System.currentTimeMillis()<time) || (i<minIterations); ++i) {
@@ -488,6 +488,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		private final double ALPHA_SCALE = 0.5;
 		private final double GRADIENT_SCALE = 0.01;
 		private final float SLOPE_ALPHA_FACTOR = 0f;
+		private final boolean EVALUATE_SLOPE_RELATIVE_TO_ORIGINAL = true;
 		
 		//input
 		private final int size;
@@ -616,8 +617,20 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 					if (gx==0 && gy==0) {
 						v = 0; //no gradient
 					} else {
-						v += gx*gx*last.get(clamp(x-(int) Math.signum(gx)), y);
-						v += gy*gy*last.get(x, clamp(y-(int) Math.signum(gy)));
+						double h1, h2;
+						if (EVALUATE_SLOPE_RELATIVE_TO_ORIGINAL) {
+							h1 = last.get(clamp(x-(int) Math.signum(gx)), y)
+									+ originalMap.getHeightAt(clamp(x-(int) Math.signum(gx)), y)
+									- originalMap.getHeightAt(x, y);
+							h2 = last.get(x, clamp(y-(int) Math.signum(gy)))
+									+ originalMap.getHeightAt(x, clamp(y-(int) Math.signum(gy)))
+									- originalMap.getHeightAt(x, y);
+						} else {
+							h1 = last.get(clamp(x-(int) Math.signum(gx)), y);
+							h2 = last.get(x, clamp(y-(int) Math.signum(gy)));
+						}
+						v += gx*gx*h1;
+						v += gy*gy*h2;
 					}
 					gradient.set(x, y, v);
 				}
