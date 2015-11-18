@@ -82,6 +82,21 @@ public class WaterErosionScreenController implements ScreenController {
 	@NiftyEventSubscriber(pattern = ".*CheckBox")
 	public void onCheckBoxClick(String id, CheckBoxStateChangedEvent e) {
 		System.out.println("checkbox "+id+" changed: "+e);
+		if (temperatureCheckBox==e.getCheckBox()) {
+			if (e.isChecked()) {
+				moistureCheckBox.setChecked(false);
+				simulation.guiDisplayMode(1);
+			} else if (!moistureCheckBox.isChecked()) {
+				simulation.guiDisplayMode(0);
+			}
+		} else if (moistureCheckBox==e.getCheckBox()) {
+			if (e.isChecked()) {
+				temperatureCheckBox.setChecked(false);
+				simulation.guiDisplayMode(2);
+			} else if (!temperatureCheckBox.isChecked()) {
+				simulation.guiDisplayMode(0);
+			}
+		}
 	}
 	
 	@NiftyEventSubscriber(pattern = ".*Slider")

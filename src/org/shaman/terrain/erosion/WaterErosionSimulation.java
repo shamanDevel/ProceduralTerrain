@@ -5,6 +5,7 @@
  */
 package org.shaman.terrain.erosion;
 
+import com.jme3.math.Vector3f;
 import de.lessvoid.nifty.Nifty;
 import java.util.logging.Logger;
 import org.shaman.terrain.AbstractTerrainStep;
@@ -24,6 +25,11 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	private Heightmap map;
 	private Heightmap scaledMap;
 	private Heightmap originalMap;
+	private Vector3f originalMapScale;
+	private Heightmap moisture;
+	private Heightmap originalMoisture;
+	private Heightmap temperature;
+	private Heightmap originalTemperature;
 
 	@Override
 	protected void enable() {
@@ -35,6 +41,11 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		originalMap = map.clone();
 		scaledMap = originalMap;
 		app.setTerrain(map);
+		originalMapScale = app.getHeightmapSpatial().getLocalScale().clone();
+		originalTemperature = (Heightmap) properties.get(KEY_TEMPERATURE);
+		temperature = originalTemperature.clone();
+		originalMoisture = (Heightmap) properties.get(KEY_MOISTURE);
+		moisture = originalMoisture.clone();
 		
 		Nifty nifty = app.getNifty();
 		screenController = new WaterErosionScreenController(this, originalMap.getSize());
@@ -46,6 +57,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 
 	@Override
 	protected void disable() {
+		app.getHeightmapSpatial().setLocalScale(originalMapScale);
 	}
 
 	@Override
@@ -59,21 +71,26 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		}
 		LOG.info("scale map from "+originalMap.getSize()+" to "+(originalMap.getSize()*factor));
 		scaledMap = new Heightmap(originalMap.getSize() * factor);
+		temperature = new Heightmap(originalMap.getSize() * factor);
+		moisture = new Heightmap(originalMap.getSize() * factor);
 		float invFactor = 1f / factor;
 		for (int x=0; x<scaledMap.getSize(); ++x) {
 			for (int y=0; y<scaledMap.getSize(); ++y) {
 				scaledMap.setHeightAt(x, y, originalMap.getHeightInterpolating(x*invFactor, y*invFactor));
+				temperature.setHeightAt(x, y, originalTemperature.getHeightInterpolating(x*invFactor, y*invFactor));
+				moisture.setHeightAt(x, y, originalMoisture.getHeightInterpolating(x*invFactor, y*invFactor));
 			}
 		}
 		map = scaledMap.clone();
 		app.setTerrain(map);
+		app.getHeightmapSpatial().setLocalScale(originalMapScale.x * invFactor, originalMapScale.y, originalMapScale.z * invFactor);
 	}
 	/**
 	 * Sets the display mode: 0=none, 1=show+edit temperature, 2=show+edit moisture
 	 * @param mode 
 	 */
 	void guiDisplayMode(int mode) {
-		
+		LOG.info("switch to display mode "+mode);
 	}
 	void guiBrushSizeChanged(int brushSize) {
 		

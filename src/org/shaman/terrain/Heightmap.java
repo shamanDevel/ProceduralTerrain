@@ -88,8 +88,8 @@ public class Heightmap implements Cloneable, Serializable {
 		float q12 = getHeightAtClamping(ax, by);
 		float q21 = getHeightAtClamping(bx, ay);
 		float q22 = getHeightAtClamping(bx, by);
-		float v1 = (1-fx)*q11 + fx*q12;
-		float v2 = (1-fx)*q21 + fx*q22;
+		float v1 = (1-fx)*q11 + fx*q21;
+		float v2 = (1-fx)*q12 + fx*q22;
 		return (1-fy)*v1 + fy*v2;
 	}
 	
