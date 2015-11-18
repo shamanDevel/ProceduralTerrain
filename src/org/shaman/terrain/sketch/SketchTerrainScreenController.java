@@ -29,6 +29,7 @@ public class SketchTerrainScreenController implements ScreenController {
 	private Screen screen;
 	private CheckBox addCurveCheckBox;
 	private CheckBox editCurveCheckBox;
+	private CheckBox showCurvesCheckBox;
 	private Button deleteCurveButton;
 	private Button deleteControlPointButton;
 	private CheckBox elevationConstraintCheckBox;
@@ -61,6 +62,7 @@ public class SketchTerrainScreenController implements ScreenController {
 	public void onStartScreen() {
 		addCurveCheckBox = screen.findNiftyControl("AddCurveCheckBox", CheckBox.class);
 		editCurveCheckBox = screen.findNiftyControl("EditCurveCheckBox", CheckBox.class);
+		showCurvesCheckBox = screen.findNiftyControl("ShowCurvesCheckBox", CheckBox.class);
 		deleteCurveButton = screen.findNiftyControl("DeleteCurveButton", Button.class);
 		deleteControlPointButton = screen.findNiftyControl("DeleteControlPointButton", Button.class);
 		elevationConstraintCheckBox = screen.findNiftyControl("ElevationCheckBox", CheckBox.class);
@@ -79,6 +81,7 @@ public class SketchTerrainScreenController implements ScreenController {
 		}
 		
 		addCurveCheckBox.setChecked(true);
+		showCurvesCheckBox.setChecked(true);
 		updatePhase();
 	}
 
@@ -165,6 +168,8 @@ public class SketchTerrainScreenController implements ScreenController {
 			addCurveCheckBox.setChecked(false);
 			updatePhase();
 			sketchTerrain.guiEditCurves();
+		} else if (e.getCheckBox()==showCurvesCheckBox) {
+			sketchTerrain.guiShowCurves(e.isChecked());
 		}
 	}
 	@NiftyEventSubscriber(pattern = ".*Slider")

@@ -70,6 +70,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	private Spatial sketchPlane;
 	private SketchTerrainScreenController screenController;
 
+	private Node curveNode;
 	private final ArrayList<ControlCurve> featureCurves;
 	private final ArrayList<Node> featureCurveNodes;
 	private final ArrayList<ControlCurveMesh> featureCurveMesh;
@@ -118,6 +119,8 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		//init nodes
 		guiNode.detachAllChildren();
 		sceneNode.detachAllChildren();
+		curveNode = new Node("curves");
+		sceneNode.attachChild(curveNode);
 		
 		//initial terrain 
 		app.setTerrain(originalMap);
@@ -224,7 +227,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		mesh.getSlopeGeometry().setShadowMode(RenderQueue.ShadowMode.Off);
 		featureCurveNodes.add(node);
 		featureCurveMesh.add(mesh);
-		sceneNode.attachChild(node);
+		curveNode.attachChild(node);
 	}
 	private void addControlPointsToNode(ControlPoint[] points, Node node, int index) {
 		Material sphereMat = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
@@ -307,7 +310,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 				return;
 			}
 			newCurveMesh = null;
-			sceneNode.detachChild(newCurveNode);
+			curveNode.detachChild(newCurveNode);
 			newCurveNode = null;
 			if (newCurve.getPoints().length>=2) {
 				addFeatureCurve(newCurve);
@@ -336,7 +339,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			newCurveMesh = new ControlCurveMesh(newCurve, "dummy", app);
 			newCurveNode.attachChild(newCurveMesh.getSlopeGeometry());
 			newCurveNode.attachChild(newCurveMesh.getTubeGeometry());
-			sceneNode.attachChild(newCurveNode);
+			curveNode.attachChild(newCurveNode);
 			screenController.setMessage("ADDING A NEW FEATURE");
 		} else {
 			newCurve.setPoints(ArrayUtils.add(newCurve.getPoints(), p));
@@ -357,7 +360,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	
 	private void pickCurve(Ray ray) {
 		CollisionResults results = new CollisionResults();
-		sceneNode.collideWith(ray, results);
+		curveNode.collideWith(ray, results);
 		if (results.size()==0) {
 			selectedCurveIndex = -1;
 			selectedPointIndex = -1;
@@ -392,11 +395,14 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		addNewCurves = false;
 		if (newCurve != null) {
 			newCurveMesh = null;
-			sceneNode.detachChild(newCurveNode);
+			curveNode.detachChild(newCurveNode);
 			newCurveNode = null;
 			newCurve = null;
 			screenController.setMessage("");
 		}
+	}
+	public void guiShowCurves(boolean show) {
+		curveNode.setCullHint(show ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
 	}
 	private void selectCurve(int curveIndex, ControlPoint point) {
 		screenController.selectCurve(curveIndex, point);
@@ -407,7 +413,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		}
 		Node n = featureCurveNodes.remove(selectedCurveIndex);
 		featureCurves.remove(selectedCurveIndex);
-		sceneNode.detachChild(n);
+		curveNode.detachChild(n);
 		selectCurve(-1, null);
 	}
 	public void guiDeleteControlPoint() {
@@ -421,7 +427,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		}
 		featureCurves.remove(selectedCurveIndex);
 		Node n = featureCurveNodes.remove(selectedCurveIndex);
-		sceneNode.detachChild(n);
+		curveNode.detachChild(n);
 		c = new ControlCurve(ArrayUtils.remove(c.getPoints(), selectedPointIndex));
 		addFeatureCurve(c);
 	}

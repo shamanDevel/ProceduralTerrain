@@ -23,6 +23,10 @@
 							<control name="label" text="Edit curve:" margin="2px"/>
 							<control id="EditCurveCheckBox" name="checkbox" margin="2px"/>
 						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" text="Show curves:" margin="2px"/>
+							<control id="ShowCurvesCheckBox" name="checkbox" margin="2px"/>
+						</panel>
 						
 						<panel childLayout="absolute" height="20px"/>
 						<control name="label" textHAlign="left" text="Edit curve:" width="122px" margin="2px"/>
