@@ -78,7 +78,7 @@ public class GraphToHeightmap {
 	}
 	private static final int NOISE_OCTAVES = 6;
 	private static final float NOISE_OCTAVE_FACTOR = 2;
-	private static final float BASE_FREQUENCY = 1/16f;
+	private static final float BASE_FREQUENCY = 1/32f;
 	private static final float PERLIN_NOISE_SCALE = 0.2f;
 	private static final float DISTORTION_FREQUENCY = 32;
 	private static final float DISTORTION_AMPLITUDE = 0.01f;
@@ -88,11 +88,11 @@ public class GraphToHeightmap {
 		{-1, -1}, {-1, 0}, {-1, 1},
 		{0, 1}, {0, -1}
 	};
-	private static final int VORONOI_CELL_COUNT = 48;
+	private static final int VORONOI_CELL_COUNT = 32;
 	private static final int VORONOI_POINTS_PER_CELL = 3;
 	private static final float VORONOI_DISTORTION_FREQUENCY = 32;
-	private static final float VORONOI_DISTORTION_AMPLITUDE = 0.01f;
-	private static final float VORONOI_SCALE = 0.5f;
+	private static final float VORONOI_DISTORTION_AMPLITUDE = 0;//0.01f;
+	private static final float VORONOI_SCALE = 1.5f;
 	private static final float BIOMES_DISTORTION_FREQUENCY = 32;
 	private static final float BIOMES_DISTORTION_AMPLITUDE = 0.005f;
 	private static final double HEIGHT_SCALING = 1.5;
@@ -154,7 +154,7 @@ public class GraphToHeightmap {
 		
 		addPerlinNoise();
 		
-		addVoronoiNoise();
+//		addVoronoiNoise();
 	}
 
 	private void addPerlinNoise() {
@@ -285,8 +285,8 @@ public class GraphToHeightmap {
 		}
 	}
 	private static float dist(Vector3f hillCenter, float px, float py) {
-		//return FastMath.sqrt((hillCenter.x-px)*(hillCenter.x-px) + (hillCenter.y-py)*(hillCenter.y-py))*hillCenter.z;
-		return ((hillCenter.x-px)*(hillCenter.x-px) + (hillCenter.y-py)*(hillCenter.y-py))*hillCenter.z;
+		return FastMath.sqrt((hillCenter.x-px)*(hillCenter.x-px) + (hillCenter.y-py)*(hillCenter.y-py))*hillCenter.z;
+		//return ((hillCenter.x-px)*(hillCenter.x-px) + (hillCenter.y-py)*(hillCenter.y-py))*hillCenter.z;
 	}
 
 	private void calculateBaseElevation() {
