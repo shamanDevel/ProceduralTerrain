@@ -51,6 +51,10 @@ public class Vectorfield implements Cloneable, Serializable {
 		return data[x][y][i];
 	}
 	
+	public float getScalarAtClamping(int x, int y, int i) {
+		return data[Math.min(size-1, Math.max(0, x))][Math.min(size-1, Math.max(0, y))][i];
+	}
+	
 	public float[] getVectorAt(int x, int y) {
 		return data[x][y];
 	}

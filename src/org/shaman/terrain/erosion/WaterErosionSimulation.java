@@ -32,6 +32,7 @@ import java.util.logging.Logger;
 import org.shaman.terrain.AbstractTerrainStep;
 import org.shaman.terrain.Heightmap;
 import org.shaman.terrain.TerrainHeighmapCreator;
+import org.shaman.terrain.Vectorfield;
 import org.shaman.terrain.polygonal.PolygonalMapGenerator;
 
 /**
@@ -420,25 +421,43 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		private static final int RAINDROPS_PER_ITERATION = 500;
 		private static final float RAINDROP_WATER = 1f;
 		private static final float DELTA_T = 0.01f;
+		private static final float A = 1; //tube area
+		private static final float L = 1; //cell distances
+		private static final float G = 10; //graviation
 		//Input
 		private final int size;
+		private final Heightmap originalHeight;
 		private final Heightmap temperature;
 		private final Heightmap moisture;
 		private final Random rand = new Random();
 		//maps
 		private Heightmap terrainHeight;
 		private Heightmap waterHeight;
+		private Heightmap sediment;
+		/**
+		 * Dimensions: 0=left/-x, 1=right,+x, 2=down/-y, 3=up/+y
+		 */
+		private Vectorfield outflowFlux;
+		private Vectorfield velocity;
+		private static final float[] NULL_FLUX = {0,0,0,0};
+		private static final float[] NULL_VELOCITY = {0,0};
 
 		public ErosionSolver(Heightmap temperature, Heightmap moisture, Heightmap height) {
 			this.size = height.getSize();
 			this.temperature = temperature;
 			this.moisture = moisture;
-			this.terrainHeight = height;
+			this.originalHeight = height;
+			this.terrainHeight = height.clone();
+			
 			this.waterHeight = new Heightmap(size);
+			this.sediment = new Heightmap(size);
+			this.outflowFlux = new Vectorfield(size, 4);
+			this.velocity = new Vectorfield(size, 2);
 		}
 		
 		public void oneIteration() {
 			addWater();
+			computeFlow();
 		}
 		
 		private void addWater() {
@@ -455,6 +474,74 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 					//add drop
 					n++;
 					waterHeight.adjustHeightAt(x, y, DELTA_T * RAINDROP_WATER);
+				}
+			}
+		}
+		private void computeFlow() {
+			//compute flow
+			for (int x=0; x<size; ++x) {
+				for (int y=0; y<size; ++y) {
+					float deltaH;
+					//left
+					deltaH = terrainHeight.getHeightAt(x, y) + waterHeight.getHeightAt(x, y)
+							- terrainHeight.getHeightAtClamping(x-1, y) - waterHeight.getHeightAtClamping(x-1, y);
+					outflowFlux.setScalarAt(x, y, 0, Math.max(0, outflowFlux.getScalarAt(x, y, 0)
+							+ DELTA_T * A * G * deltaH / L));
+					//right
+					deltaH = terrainHeight.getHeightAt(x, y) + waterHeight.getHeightAt(x, y)
+							- terrainHeight.getHeightAtClamping(x+1, y) - waterHeight.getHeightAtClamping(x+1, y);
+					outflowFlux.setScalarAt(x, y, 1, Math.max(0, outflowFlux.getScalarAt(x, y, 1)
+							+ DELTA_T * A * G * deltaH / L));
+					//down
+					deltaH = terrainHeight.getHeightAt(x, y) + waterHeight.getHeightAt(x, y)
+							- terrainHeight.getHeightAtClamping(x, y-1) - waterHeight.getHeightAtClamping(x, y-1);
+					outflowFlux.setScalarAt(x, y, 2, Math.max(0, outflowFlux.getScalarAt(x, y, 2)
+							+ DELTA_T * A * G * deltaH / L));
+					//up
+					deltaH = terrainHeight.getHeightAt(x, y) + waterHeight.getHeightAt(x, y)
+							- terrainHeight.getHeightAtClamping(x, y+1) - waterHeight.getHeightAtClamping(x, y+1);
+					outflowFlux.setScalarAt(x, y, 3, Math.max(0, outflowFlux.getScalarAt(x, y, 3)
+							+ DELTA_T * A * G * deltaH / L));
+					//scale
+					float K = Math.min(1, waterHeight.getHeightAt(x, y) * L * L /
+							((outflowFlux.getScalarAt(x, y, 0)+outflowFlux.getScalarAt(x, y, 1)
+							  +outflowFlux.getScalarAt(x, y, 2)+outflowFlux.getScalarAt(x, y, 3)) * DELTA_T) );
+					outflowFlux.setScalarAt(x, y, 0, K*outflowFlux.getScalarAt(x, y, 0));
+					outflowFlux.setScalarAt(x, y, 1, K*outflowFlux.getScalarAt(x, y, 1));
+					outflowFlux.setScalarAt(x, y, 2, K*outflowFlux.getScalarAt(x, y, 2));
+					outflowFlux.setScalarAt(x, y, 3, K*outflowFlux.getScalarAt(x, y, 3));
+				}
+			}
+			//compute water volume change and velocity field
+			for (int x=0; x<size; ++x) {
+				for (int y=0; y<size; ++y) {
+					//water volume
+					float deltaV = DELTA_T * (
+							outflowFlux.getScalarAtClamping(x-1, y, 1) + outflowFlux.getScalarAtClamping(x+1, y, 0)
+							+ outflowFlux.getScalarAtClamping(x, y-1, 3) + outflowFlux.getScalarAtClamping(x, y+1, 2)
+							- outflowFlux.getScalarAt(x, y, 0) - outflowFlux.getScalarAt(x, y, 1)
+							- outflowFlux.getScalarAt(x, y, 2) - outflowFlux.getScalarAt(x, y, 3)
+						);
+					float d1 = waterHeight.getHeightAt(x, y);
+					waterHeight.setHeightAt(x, y, d1 + deltaV / (L*L));
+					float averageD = d1 + deltaV / (L*L) / 2;
+					//velocity field
+					float deltaWx = (outflowFlux.getScalarAtClamping(x-1, y, 1) - outflowFlux.getScalarAt(x, y, 0)
+							+ outflowFlux.getScalarAt(x, y, 1) - outflowFlux.getScalarAtClamping(x+1, y, 0));
+					velocity.setScalarAt(x, y, 0, deltaWx / L / averageD);
+					float deltaWy = (outflowFlux.getScalarAtClamping(x, y-1, 3) - outflowFlux.getScalarAt(x, y, 2)
+							+ outflowFlux.getScalarAt(x, y, 3) - outflowFlux.getScalarAtClamping(x, y+1, 2));
+					velocity.setScalarAt(x, y, 1, deltaWy / L / averageD);
+				}
+			}
+			//oceans act like endless sinks
+			for (int x=0; x<size; ++x) {
+				for (int y=0; y<size; ++y) {
+					if (originalHeight.getHeightAt(x, y)<=0) {
+						waterHeight.setHeightAt(x, y, 0);
+						outflowFlux.setVectorAt(x, y, NULL_FLUX);
+						velocity.setVectorAt(x, y, NULL_VELOCITY);
+					}
 				}
 			}
 		}
