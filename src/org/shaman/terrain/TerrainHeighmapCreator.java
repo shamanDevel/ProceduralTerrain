@@ -91,8 +91,8 @@ import org.shaman.terrain.polygonal.PolygonalMapGenerator;
  */
 public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final Logger LOG = Logger.getLogger(TerrainHeighmapCreator.class.getName());
-	private static final float SLOPE_SCALE = 200f;
-	private static final float SLOPE_POWER = 2f;
+	public static final float SLOPE_SCALE = 200f;
+	public static final float SLOPE_POWER = 2f;
 	public static final float HEIGHMAP_HEIGHT_SCALE = 48;
 	public static final float TERRAIN_SCALE = 16;
 	private static final boolean RECORDING = false;

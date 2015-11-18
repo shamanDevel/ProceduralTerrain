@@ -58,7 +58,7 @@ public class WaterErosionScreenController implements ScreenController {
 		brushSizeSlider = screen.findNiftyControl("BrushSizeSlider", Slider.class);
 		addSourceCheckBox = screen.findNiftyControl("AddSourceCheckBox", CheckBox.class);
 		editSourceCheckBox = screen.findNiftyControl("EditSourceCheckBox", CheckBox.class);
-		deleteSourceButton = screen.findNiftyControl("DeleteSourceCheckBox", Button.class);
+		deleteSourceButton = screen.findNiftyControl("DeleteSourceButton", Button.class);
 		sourceRadiusSlider = screen.findNiftyControl("SourceRadiusSlider", Slider.class);
 		sourceIntensitySlider = screen.findNiftyControl("SourceIntensitySlider", Slider.class);
 		runButton = screen.findNiftyControl("RunButton", Button.class);
@@ -68,6 +68,8 @@ public class WaterErosionScreenController implements ScreenController {
 		
 		upscaleDropDown.addAllItems(Arrays.asList(originalSize, originalSize*2, originalSize*4, originalSize*8));
 		upscaleDropDown.selectItemByIndex(0);
+		stopButton.setEnabled(false);
+		resetButton.setEnabled(false);
 		brushSizeSlider.setValue(10);
 	}
 
@@ -75,9 +77,34 @@ public class WaterErosionScreenController implements ScreenController {
 	public void onEndScreen() {
 	}
 	
+	void setSolving(boolean solving) {
+		upscaleDropDown.setEnabled(!solving);
+		temperatureCheckBox.setEnabled(!solving);
+		moistureCheckBox.setEnabled(!solving);
+		brushSizeSlider.setEnabled(!solving);
+		addSourceCheckBox.setEnabled(!solving);
+		editSourceCheckBox.setEnabled(!solving);
+		deleteSourceButton.setEnabled(!solving);
+		sourceRadiusSlider.setEnabled(!solving);
+		sourceIntensitySlider.setEnabled(!solving);
+		runButton.setEnabled(!solving);
+		stopButton.setEnabled(solving);
+		resetButton.setEnabled(!solving);
+	}
+	void setIteration(int iteration) {
+		iterationsLabel.setText("Iteration: "+iteration);
+	}
+	
 	@NiftyEventSubscriber(pattern = ".*Button")
 	public void onButtonClick(String id, ButtonClickedEvent e) {
 		System.out.println("button "+id+" clicked: "+e);
+		if (runButton == e.getButton()) {
+			simulation.guiRun();
+		} else if (stopButton == e.getButton()) {
+			simulation.guiStop();
+		} else if (resetButton == e.getButton()) {
+			simulation.guiReset();
+		}
 	}
 	
 	@NiftyEventSubscriber(pattern = ".*CheckBox")

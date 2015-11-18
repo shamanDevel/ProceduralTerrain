@@ -27,6 +27,7 @@ import com.jme3.texture.Texture2D;
 import com.jme3.util.BufferUtils;
 import de.lessvoid.nifty.Nifty;
 import java.nio.ByteBuffer;
+import java.util.Random;
 import java.util.logging.Logger;
 import org.shaman.terrain.AbstractTerrainStep;
 import org.shaman.terrain.Heightmap;
@@ -66,6 +67,12 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	//brush
 	private Geometry brushSphere;
 	private ListenerImpl listener;
+	
+	//solver
+	private ErosionSolver solver;
+	private Texture solverTexture;
+	private Material solverMaterial;
+	private int iteration = 0;
 
 	@Override
 	protected void enable() {
@@ -103,6 +110,22 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		brushSphere.setCullHint(Spatial.CullHint.Always);
 		brushSphere.setLocalScale(brushSize*TerrainHeighmapCreator.TERRAIN_SCALE);
 		
+		solverMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Terrain/TerrainLighting.j3md");
+        solverMaterial.setBoolean("useTriPlanarMapping", true);
+        solverMaterial.setFloat("Shininess", 0.0f);
+		Texture darkRock = app.getAssetManager().loadTexture("org/shaman/terrain/rock2.jpg");
+        darkRock.setWrap(Texture.WrapMode.Repeat);
+        solverMaterial.setTexture("DiffuseMap", darkRock);
+        solverMaterial.setFloat("DiffuseMap_0_scale", 1/16f);
+		Texture grass = app.getAssetManager().loadTexture("org/shaman/terrain/grass.jpg");
+        grass.setWrap(Texture.WrapMode.Repeat);
+        solverMaterial.setTexture("DiffuseMap_1", grass);
+        solverMaterial.setFloat("DiffuseMap_1_scale", 1/8f);
+		Texture water = app.getAssetManager().loadTexture("org/shaman/terrain/textures/Water.jpg");
+        water.setWrap(Texture.WrapMode.Repeat);
+        solverMaterial.setTexture("DiffuseMap_2", water);
+        solverMaterial.setFloat("DiffuseMap_2_scale", 1/8f);
+		
 		registerListener();
 	}
 
@@ -115,6 +138,9 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 
 	@Override
 	public void update(float tpf) {
+		if (solver != null) {
+			solverUpdate();
+		}
 	}
 	
 	private void mouseMoved(float mouseX, float mouseY, int clicked, float tpf) {
@@ -220,7 +246,35 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		image.setHeight(size);
 		image.setData(0, data);
 		moistureTexture.setMagFilter(Texture.MagFilter.Bilinear);
-		moistureMaterial.setTexture("DiffuseMap", moistureTexture);
+		moistureMaterial.setTexture("AlphaMap", moistureTexture);
+	}
+	private void updateSolverTexture() {		
+		Image image = solverTexture.getImage();
+		ByteBuffer data = image.getData(0);
+		int size = map.getSize();
+		if (data == null) {
+			data = BufferUtils.createByteBuffer(size*size*4);
+		}
+		data.rewind();
+		for (int x=0; x<size; ++x) {
+			for (int y=0; y<size; ++y) {
+				float slope = solver.getTerrainHeight().getSlopeAt(y, size-x-1);
+				slope = (float) Math.pow(slope * TerrainHeighmapCreator.SLOPE_SCALE, TerrainHeighmapCreator.SLOPE_POWER);
+				float g = Math.max(0, 1-slope);
+				float r = 1-g;
+				float b = Math.min(1, solver.getWaterHeight().getHeightAt(x, y)*32);
+				g = Math.max(0, g-b/2);
+				r = Math.max(0, r-b/2);
+				data.put((byte) (255*r)).put((byte) (255*g)).put((byte) (255*b)).put((byte) 0);
+			}
+		}
+		data.rewind();
+		image.setFormat(Image.Format.RGBA8);
+		image.setWidth(size);
+		image.setHeight(size);
+		image.setData(0, data);
+		solverTexture.setMagFilter(Texture.MagFilter.Bilinear);
+		solverMaterial.setTexture("AlphaMap", solverTexture);
 	}
 	
 	void guiUpscaleMap(int power) {
@@ -284,10 +338,25 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	}
 	
 	void guiRun() {
-		
+		screenController.setSolving(true);
+		int size = map.getSize();
+		solver = new ErosionSolver(temperature, moisture, map);
+		solverTexture = new Texture2D(size, size, Image.Format.ABGR8);
+		updateSolverTexture();
+		app.forceTerrainMaterial(solverMaterial);
+		iteration = 0;
+		LOG.info("start solving");
+	}
+	private void solverUpdate() {
+		solver.oneIteration();
+		updateSolverTexture();
+		iteration++;
+		screenController.setIteration(iteration);
 	}
 	void guiStop() {
-		
+		screenController.setSolving(false);
+		solver = null;
+		LOG.info("solving stopped");
 	}
 	void guiReset() {
 		
@@ -344,5 +413,57 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			update(tpf);
 		}
 		
+	}
+	
+	public static class ErosionSolver {
+		//Settings
+		private static final int RAINDROPS_PER_ITERATION = 500;
+		private static final float RAINDROP_WATER = 1f;
+		private static final float DELTA_T = 0.01f;
+		//Input
+		private final int size;
+		private final Heightmap temperature;
+		private final Heightmap moisture;
+		private final Random rand = new Random();
+		//maps
+		private Heightmap terrainHeight;
+		private Heightmap waterHeight;
+
+		public ErosionSolver(Heightmap temperature, Heightmap moisture, Heightmap height) {
+			this.size = height.getSize();
+			this.temperature = temperature;
+			this.moisture = moisture;
+			this.terrainHeight = height;
+			this.waterHeight = new Heightmap(size);
+		}
+		
+		public void oneIteration() {
+			addWater();
+		}
+		
+		private void addWater() {
+			//create raindrops
+			int n = 0;
+			while (n<RAINDROPS_PER_ITERATION) {
+				int x = rand.nextInt(size);
+				int y = rand.nextInt(size);
+				if (terrainHeight.getHeightAt(x, y)<=0) {
+					continue; //no rain in the ocean
+				}
+				float v = rand.nextFloat();
+				if (v<moisture.getHeightAt(x, y)) {
+					//add drop
+					n++;
+					waterHeight.adjustHeightAt(x, y, DELTA_T * RAINDROP_WATER);
+				}
+			}
+		}
+		
+		public Heightmap getTerrainHeight() {
+			return terrainHeight;
+		}
+		public Heightmap getWaterHeight() {
+			return waterHeight;
+		}
 	}
 }
