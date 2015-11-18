@@ -87,6 +87,11 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	private final CurvePreset[] presets;
 	private int selectedPreset;
 	
+	private DiffusionSolver solver;
+	private Matrix solverMatrix;
+	private int step;
+	private long lastUpdateTime;
+	
 	public SketchTerrain() {
 		this.featureCurves = new ArrayList<>();
 		this.featureCurveNodes = new ArrayList<>();
@@ -108,11 +113,6 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	@Override
 	protected void disable() {
 		app.getInputManager().removeListener(this);
-	}
-
-	@Override
-	public void update(float tpf) {
-		
 	}
 	
 	private void init() {
@@ -243,39 +243,65 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		}
 	}
 	
-	private void solveDiffusion() {
+	private void startSolving() {
 		LOG.info("Solve diffusion");
 		//create solver
-		DiffusionSolver solver = new DiffusionSolver(map.getSize(), featureCurves.toArray(new ControlCurve[featureCurves.size()]));
-		Matrix mat = new Matrix(map.getSize(), map.getSize());
+		solver = new DiffusionSolver(map.getSize(), featureCurves.toArray(new ControlCurve[featureCurves.size()]));
+		solverMatrix = new Matrix(map.getSize(), map.getSize());
 		//Save
 		if (DEBUG_DIFFUSION_SOLVER) {
-			solver.saveFloatMatrix(mat, "diffusion/Iter0.png",1);
+			solver.saveFloatMatrix(solverMatrix, "diffusion/Iter0.png",1);
 		}
-		//run solver
-		for (int i=1; i<=DIFFUSION_SOLVER_ITERATIONS; ++i) {
-			if (i%10 == 0) System.out.println("iteration "+i);
-			mat = solver.oneIteration(mat, i);
-			if (DEBUG_DIFFUSION_SOLVER) {
-			//if (i%10 == 0) {
-				solver.saveFloatMatrix(mat, "diffusion/Iter"+i+".png",1);
+		step = 1;
+		screenController.startSolving();
+		lastUpdateTime = System.currentTimeMillis();
+	}
+	private void runSolving() {
+		long maxTime = 100;
+		int minIterations = 10;
+		//run iterations
+		long time = System.currentTimeMillis() + maxTime;
+		for (int i=0; (System.currentTimeMillis()<time) || (i<minIterations); ++i) {
+			solverMatrix = solver.oneIteration(solverMatrix, step);
+			step++;
+		}
+		screenController.setSolvingIteration(step);
+		//update terrain occasionally
+		time = System.currentTimeMillis();
+		if (time > lastUpdateTime + 500) {
+			lastUpdateTime = time;
+			for (int x=0; x<map.getSize(); ++x) {
+				for (int y=0; y<map.getSize(); ++y) {
+					map.setHeightAt(x, y, (float) solverMatrix.get(x, y) + originalMap.getHeightAt(x, y));
+				}
 			}
+			app.setTerrain(map);
 		}
+	}
+	private void solvingFinished() {
 		LOG.info("solved");
 		//fill heighmap
 		for (int x=0; x<map.getSize(); ++x) {
 			for (int y=0; y<map.getSize(); ++y) {
-				map.setHeightAt(x, y, (float) mat.get(x, y) + originalMap.getHeightAt(x, y));
+				map.setHeightAt(x, y, (float) solverMatrix.get(x, y) + originalMap.getHeightAt(x, y));
 			}
 		}
 		app.setTerrain(map);
 		LOG.info("terrain updated");
+		solver = null;
+		screenController.stopSolving();
+	}
+	@Override
+	public void update(float tpf) {
+		if (solver != null) {
+			runSolving();
+		}
 	}
 	
 	@Override
 	public void onAction(String name, boolean isPressed, float tpf) {
 		if ("SolveDiffusion".equals(name) && isPressed) {
-			solveDiffusion();
+			startSolving();
 		} else if ("MouseClicked".equals(name) && isPressed) {
 			Vector3f dir = app.getCamera().getWorldCoordinates(app.getInputManager().getCursorPosition(), 1);
 			dir.subtractLocal(app.getCamera().getLocation());
@@ -450,7 +476,10 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		selectedPreset = index;
 	}
 	public void guiSolve() {
-		solveDiffusion();
+		startSolving();
+	}
+	public void guiStopSolve() {
+		solvingFinished();
 	}
 	
 	private class DiffusionSolver {

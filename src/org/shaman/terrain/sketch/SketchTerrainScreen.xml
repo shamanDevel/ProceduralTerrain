@@ -69,6 +69,10 @@
 						
 						<panel childLayout="absolute" height="20px"/>
 						<control id="SolveButton" name="button" label="Solve" width="246px" margin="2px"/>
+						<panel childLayout="horizontal">
+							<control id="IterationsLabel" name="label" textHAlign="left" text="Iterations: 0" width="142px" margin="2px"/>
+							<control id="StopButton" name="button" label="Stop" width="100px" margin="2px"/>
+						</panel>
 					</panel>
 				</panel>
 			</panel>

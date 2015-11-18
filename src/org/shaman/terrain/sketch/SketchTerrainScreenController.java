@@ -40,6 +40,8 @@ public class SketchTerrainScreenController implements ScreenController {
 	private Slider slopeAngleRightSlider;
 	private ListBox<String> presetListBox;
 	private Button solveButton;
+	private Label iterationsLabel;
+	private Button stopButton;
 	private Label messageLabel;
 	private String[] presetNames;
 	
@@ -73,6 +75,8 @@ public class SketchTerrainScreenController implements ScreenController {
 		slopeAngleRightSlider = screen.findNiftyControl("SlopeAngleRightSlider", Slider.class);
 		presetListBox = screen.findNiftyControl("PresetListBox", ListBox.class);
 		solveButton = screen.findNiftyControl("SolveButton", Button.class);
+		iterationsLabel = screen.findNiftyControl("IterationsLabel", Label.class);
+		stopButton = screen.findNiftyControl("StopButton", Button.class);
 		messageLabel = screen.findNiftyControl("MessageLabel", Label.class);
 		
 		if (presetNames != null) {
@@ -82,6 +86,8 @@ public class SketchTerrainScreenController implements ScreenController {
 		
 		addCurveCheckBox.setChecked(true);
 		showCurvesCheckBox.setChecked(true);
+		stopButton.setEnabled(false);
+		
 		updatePhase();
 	}
 
@@ -139,6 +145,34 @@ public class SketchTerrainScreenController implements ScreenController {
 		presetListBox.setEnabled(newCurve);
 	}
 	
+	public void startSolving() {
+		stopButton.setEnabled(true);
+		solveButton.setEnabled(false);
+		addCurveCheckBox.setEnabled(false);
+		editCurveCheckBox.setEnabled(false);
+		showCurvesCheckBox.setEnabled(false);
+		deleteCurveButton.setEnabled(false);
+		deleteControlPointButton.setEnabled(false);
+		elevationConstraintCheckBox.setEnabled(false);
+		plateauSizeSlider.setEnabled(false);
+		slopeSizeLeftSlider.setEnabled(false);
+		slopeAngleLeftSlider.setEnabled(false);
+		slopeSizeRightSlider.setEnabled(false);
+		slopeAngleRightSlider.setEnabled(false);
+		presetListBox.setEnabled(false);
+	}
+	public void stopSolving() {
+		stopButton.setEnabled(false);
+		solveButton.setEnabled(true);
+		addCurveCheckBox.setEnabled(true);
+		editCurveCheckBox.setEnabled(true);
+		showCurvesCheckBox.setEnabled(true);
+		updatePhase();
+	}
+	public void setSolvingIteration(int iteration) {
+		iterationsLabel.setText("Iteration: "+iteration);
+	}
+	
 	//Events
 	
 	@NiftyEventSubscriber(pattern = ".*Button")
@@ -146,6 +180,8 @@ public class SketchTerrainScreenController implements ScreenController {
 		System.out.println("button "+id+" clicked: "+e);
 		if (e.getButton()==solveButton) {
 			sketchTerrain.guiSolve();
+		} else if (e.getButton()==stopButton) {
+			sketchTerrain.guiStopSolve();
 		} else if (e.getButton()==deleteCurveButton) {
 			sketchTerrain.guiDeleteCurve();
 		} else if (e.getButton()==deleteControlPointButton) {
