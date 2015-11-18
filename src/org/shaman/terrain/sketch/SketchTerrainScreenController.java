@@ -42,6 +42,7 @@ public class SketchTerrainScreenController implements ScreenController {
 	private Button solveButton;
 	private Label iterationsLabel;
 	private Button stopButton;
+	private Button nextStepButton;
 	private Label messageLabel;
 	private String[] presetNames;
 	
@@ -77,6 +78,7 @@ public class SketchTerrainScreenController implements ScreenController {
 		solveButton = screen.findNiftyControl("SolveButton", Button.class);
 		iterationsLabel = screen.findNiftyControl("IterationsLabel", Label.class);
 		stopButton = screen.findNiftyControl("StopButton", Button.class);
+		nextStepButton = screen.findNiftyControl("NextStepButton", Button.class);
 		messageLabel = screen.findNiftyControl("MessageLabel", Label.class);
 		
 		if (presetNames != null) {
@@ -186,6 +188,8 @@ public class SketchTerrainScreenController implements ScreenController {
 			sketchTerrain.guiDeleteCurve();
 		} else if (e.getButton()==deleteControlPointButton) {
 			sketchTerrain.guiDeleteControlPoint();
+		} else if (e.getButton()==nextStepButton) {
+			sketchTerrain.guiNextStep();
 		}
 	}
 	@NiftyEventSubscriber(pattern = ".*CheckBox")

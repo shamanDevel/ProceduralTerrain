@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty xmlns="https://raw.githubusercontent.com/void256/nifty-gui/1.4/nifty-core/src/main/resources/nifty.xsd" 
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	   xsi:schemaLocation="https://raw.githubusercontent.com/void256/nifty-gui/1.4/nifty-core/src/main/resources/nifty.xsd">
+
+	<useStyles filename="nifty-default-styles.xml" />
+	<useControls filename="nifty-default-controls.xml" />
+	
+	<screen id="WaterErosion" controller="org.shaman.terrain.erosion.WaterErosionScreenController">
+		<!-- main layer -->
+		<layer childLayout="absolute">
+			<panel height="100%" width="100%" childLayout="vertical">
+				<panel id="NavigationPanel" width="100%" height="30px" childLayout="horizontal" backgroundColor="#000a">
+					<control name="label" text="Step1" width="70px" />
+					<control name="label" text="Step2" width="70px" />
+				</panel>
+				<panel childLayout="vertical" backgroundColor="#0008">
+					<panel id="PropertiesPanel" width="250px" height="100%" childLayout="vertical">
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Upscale map to:" width="100px" margin="2px"/>
+							<control id="UpscaleDropDown" name="dropDown" displayItems="4" width="142px" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control id="TemperatureCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Show+Edit Temperature" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control id="MoistureCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Show+Edit Moisture" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Brush size:" width="100px" margin="2px"/>
+							<control id="BrushSizeSlider" name="horizontalSlider" width="142px" margin="2px"
+									 min="1" max="100" initial="5" stepSize="1" buttonStepSize="5"/>
+						</panel>
+						
+						<panel childLayout="absolute" height="20px"/>
+						
+						<control name="label" text="River sources:" margin="2px"/>
+						<panel childLayout="horizontal">
+							<control id="AddSourceCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="add" margin="2px"/>
+							<control name="label" text=" " width="5px" />
+							<control id="EditSourceCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="edit" margin="2px"/>
+						</panel>
+						<control id="DeleteSourceButton" name="button" label="Delete" width="100px" margin="2px"/>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Radius:" width="100px" margin="2px"/>
+							<control id="SourceRadiusSlider" name="horizontalSlider" width="142px" margin="2px"
+									 min="1" max="50" initial="5" stepSize="1" buttonStepSize="5"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Intensity:" width="100px" margin="2px"/>
+							<control id="SourceIntensitySlider" name="horizontalSlider" width="142px" margin="2px"
+									 min="0" max="1" initial="0.5" stepSize="0.01" buttonStepSize="0.1"/>
+						</panel>
+						
+						<panel childLayout="absolute" height="20px"/>
+						
+						<panel childLayout="horizontal">
+							<control id="RunButton" name="button" label="Run" width="79px" margin="2px"/>
+							<control id="StopButton" name="button" label="Stop" width="79px" margin="2px"/>
+							<control id="ResetButton" name="button" label="Reset" width="79px" margin="2px"/>
+						</panel>
+						<control id="IterationsLabel" name="label" textHAlign="left" text="Iterations: 0" width="200px" margin="2px"/>
+						
+						<panel childLayout="absolute" height="20px"/>
+						<control id="NextStepButton" name="button" label="Next Step" width="246px" margin="2px"/>
+						
+					</panel>
+				</panel>
+			</panel>
+		</layer>
+		<!-- message layer -->
+		<layer childLayout="absolute">
+			<panel childLayout="vertical" height="100%" width="100%">
+				<panel childLayout="absolute" height="50px"/>
+				<panel childLayout="horizontal" width="100%" height="100px">
+					<control id="MessageLabel" name="label" textHAlign="center" 
+							 text="" width="100%" color="#f00f" />
+				</panel>
+			</panel>
+		</layer>
+	</screen>
+	
+</nifty>

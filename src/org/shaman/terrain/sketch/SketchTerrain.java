@@ -38,6 +38,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -46,6 +48,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.shaman.terrain.AbstractTerrainStep;
 import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.Heightmap;
+import org.shaman.terrain.erosion.WaterErosionSimulation;
 
 /**
  *
@@ -53,6 +56,7 @@ import org.shaman.terrain.Heightmap;
  */
 public class SketchTerrain extends AbstractTerrainStep implements ActionListener, AnalogListener {
 	private static final Logger LOG = Logger.getLogger(SketchTerrain.class.getName());
+	private static final Class<? extends AbstractTerrainStep> NEXT_STEP = WaterErosionSimulation.class;
 	private static final float PLANE_QUAD_SIZE = 200 * TerrainHeighmapCreator.TERRAIN_SCALE;
 	private static final float INITIAL_PLANE_DISTANCE = 150f * TerrainHeighmapCreator.TERRAIN_SCALE;
 	private static final float PLANE_MOVE_SPEED = 0.002f * TerrainHeighmapCreator.TERRAIN_SCALE;
@@ -480,6 +484,11 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	}
 	public void guiStopSolve() {
 		solvingFinished();
+	}
+	public void guiNextStep() {
+		Map<Object, Object> props = new HashMap<>(properties);
+		props.put(KEY_HEIGHTMAP, map.clone()); //replace heightmap with new one
+		nextStep(NEXT_STEP, props);
 	}
 	
 	private class DiffusionSolver {

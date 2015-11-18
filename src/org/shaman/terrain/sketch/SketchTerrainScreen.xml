@@ -73,6 +73,8 @@
 							<control id="IterationsLabel" name="label" textHAlign="left" text="Iterations: 0" width="142px" margin="2px"/>
 							<control id="StopButton" name="button" label="Stop" width="100px" margin="2px"/>
 						</panel>
+						<panel childLayout="absolute" height="5px"/>
+						<control id="NextStepButton" name="button" label="Next Step" width="246px" margin="2px"/>
 					</panel>
 				</panel>
 			</panel>

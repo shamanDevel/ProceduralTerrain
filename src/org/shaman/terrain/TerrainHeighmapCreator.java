@@ -79,6 +79,7 @@ import javax.annotation.Nullable;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.apache.commons.lang3.ArrayUtils;
+import org.shaman.terrain.erosion.WaterErosionSimulation;
 import org.shaman.terrain.heightmap.*;
 import org.shaman.terrain.polygonal.PolygonalMapGenerator;
 
@@ -101,7 +102,8 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private static final Class<? extends AbstractTerrainStep>[] STEPS = new Class[] {
 		//RandomHeightmapGenerator.class,
 		PolygonalMapGenerator.class,
-		SketchTerrain.class
+		SketchTerrain.class,
+		WaterErosionSimulation.class
 	};
 	private static final int FIRST_STEP_INDEX = 0;
 	private AbstractTerrainStep[] steps;
@@ -203,10 +205,10 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 //		polygonalMapGenerator = new PolygonalMapGenerator(this);
 		
 		//nextStep();
+		screenshotAppState = new ScreenshotAppState();
+		stateManager.attach(screenshotAppState);
 		if (RECORDING) {
 			recordingTime = System.currentTimeMillis();
-			screenshotAppState = new ScreenshotAppState();
-			stateManager.attach(screenshotAppState);
 		}
     }
 
@@ -522,7 +524,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	
 	public void enableWater(float waterHeight) {
 		water.setWaterHeight(waterHeight);
-		viewPort.addProcessor(waterFilter);
+		if (!viewPort.getProcessors().contains(waterFilter)) {
+			viewPort.addProcessor(waterFilter);
+		}
 	}
 	public void disableWater() {
 		viewPort.removeProcessor(waterFilter);
