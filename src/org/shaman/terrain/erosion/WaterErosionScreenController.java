@@ -36,6 +36,7 @@ public class WaterErosionScreenController implements ScreenController {
 	private Button stopButton;
 	private Button resetButton;
 	private Label iterationsLabel;
+	private CheckBox heightDifferenceCheckBox;
 	private Label messageLabel;
 
 	public WaterErosionScreenController(WaterErosionSimulation simulation, int mapSize) {
@@ -66,12 +67,14 @@ public class WaterErosionScreenController implements ScreenController {
 		stopButton = screen.findNiftyControl("StopButton", Button.class);
 		resetButton = screen.findNiftyControl("ResetButton", Button.class);
 		iterationsLabel = screen.findNiftyControl("IterationsLabel", Label.class);
+		heightDifferenceCheckBox = screen.findNiftyControl("HeightDifferenceCheckBox", CheckBox.class);
 		messageLabel = screen.findNiftyControl("MessageLabel", Label.class);
 		
 		upscaleDropDown.addAllItems(Arrays.asList(originalSize, originalSize*2, originalSize*4, originalSize*8));
 		upscaleDropDown.selectItemByIndex(0);
 		stopButton.setEnabled(false);
 		resetButton.setEnabled(false);
+		heightDifferenceCheckBox.setEnabled(false);
 		brushSizeSlider.setValue(10);
 	}
 
@@ -92,6 +95,8 @@ public class WaterErosionScreenController implements ScreenController {
 		runButton.setEnabled(!solving);
 		stopButton.setEnabled(solving);
 		resetButton.setEnabled(!solving);
+		heightDifferenceCheckBox.setEnabled(!solving);
+		heightDifferenceCheckBox.setChecked(false);
 	}
 	void setIteration(int iteration) {
 		iterationsLabel.setText("Iteration: "+iteration);
@@ -130,6 +135,8 @@ public class WaterErosionScreenController implements ScreenController {
 			} else if (!temperatureCheckBox.isChecked()) {
 				simulation.guiDisplayMode(0);
 			}
+		} else if (heightDifferenceCheckBox==e.getCheckBox()) {
+			simulation.guiShowHeightDifference(e.isChecked());
 		}
 	}
 	

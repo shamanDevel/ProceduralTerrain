@@ -11,10 +11,7 @@ import com.jme3.input.MouseInput;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.Ray;
-import com.jme3.math.Vector2f;
-import com.jme3.math.Vector3f;
+import com.jme3.math.*;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial;
@@ -27,6 +24,7 @@ import com.jme3.util.BufferUtils;
 import de.lessvoid.nifty.Nifty;
 import java.nio.ByteBuffer;
 import java.util.Random;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.shaman.terrain.AbstractTerrainStep;
 import org.shaman.terrain.Heightmap;
@@ -52,6 +50,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	private Heightmap map;
 	private Heightmap scaledMap;
 	private Heightmap originalMap;
+	private Heightmap newMap;
 	private Vector3f originalMapScale;
 	private Heightmap moisture;
 	private Heightmap originalMoisture;
@@ -74,7 +73,10 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	private Texture solverAlphaTexture;
 	private Texture solverHeightTexture;
 	private Material solverMaterial;
+	private Texture heightDiffTexture;
+	private Material heightDiffMaterial;
 	private int iteration = 0;
+	private boolean solving = false;
 
 	@Override
 	protected void enable() {
@@ -100,6 +102,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		
 		temperatureMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
 		moistureMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
+		heightDiffMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
 		updateTextures();
 		
 		brushSphere = new Geometry("brush", new Sphere(32, 32, 1));
@@ -140,7 +143,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 
 	@Override
 	public void update(float tpf) {
-		if (solver != null) {
+		if (solving) {
 			solverUpdate();
 		}
 	}
@@ -199,6 +202,9 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		
 		moistureTexture = new Texture2D(size, size, Image.Format.ABGR8);
 		updateMoistureTexture();
+		
+		heightDiffTexture = new Texture2D(size, size, Image.Format.ABGR8);
+		updateHeightDiffTexture();
 	}
 	private void updateTemperatureTexture() {		
 		Image image = temperatureTexture.getImage();
@@ -248,7 +254,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		image.setHeight(size);
 		image.setData(0, data);
 		moistureTexture.setMagFilter(Texture.MagFilter.Bilinear);
-		moistureMaterial.setTexture("AlphaMap", moistureTexture);
+		moistureMaterial.setTexture("DiffuseMap", moistureTexture);
 	}
 	private void updateSolverTexture() {		
 		Image image = solverAlphaTexture.getImage();
@@ -320,6 +326,39 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		solverMaterial.setFloat("HeightMapOffset", -0.5f);
 		solverMaterial.setFloat("HeightMapScale", 4 * TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE);
 	}
+	private void updateHeightDiffTexture() {
+		if (newMap==null) {
+			return;
+		}
+		Image image = heightDiffTexture.getImage();
+		ByteBuffer data = image.getData(0);
+		int size = map.getSize();
+		if (data == null) {
+			data = BufferUtils.createByteBuffer(size*size*4);
+		}
+		data.rewind();
+		float minDiff = Float.POSITIVE_INFINITY;
+		float maxDiff = Float.NEGATIVE_INFINITY;
+		for (int x=0; x<size; ++x) {
+			for (int y=0; y<size; ++y) {
+				float v = newMap.getHeightAt(y, size-x-1) - scaledMap.getHeightAt(y, size-x-1);
+				minDiff = Math.min(minDiff, v);
+				maxDiff = Math.max(maxDiff, v);
+				v *= 8;
+				v = Math.min(0.5f, Math.max(-0.5f, v));
+				byte val = (byte) (255*(v+0.5f));
+				data.put(val).put(val).put(val).put((byte) 255);
+			}
+		}
+		LOG.log(Level.INFO, "minimal height difference: {0} maximal height difference: {1}", new Object[]{minDiff, maxDiff});
+		data.rewind();
+		image.setFormat(Image.Format.RGBA8);
+		image.setWidth(size);
+		image.setHeight(size);
+		image.setData(0, data);
+		heightDiffTexture.setMagFilter(Texture.MagFilter.Bilinear);
+		heightDiffMaterial.setTexture("ColorMap", heightDiffTexture);
+	}
 	
 	void guiUpscaleMap(int power) {
 		int factor = 1 << power;
@@ -383,30 +422,50 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	
 	void guiRun() {
 		screenController.setSolving(true);
-		int size = map.getSize();
-		solver = new ErosionSolver(temperature, moisture, map);
-		solverAlphaTexture = new Texture2D(size, size, Image.Format.ABGR8);
-		solverHeightTexture = new Texture2D(size, size, Image.Format.Depth16);
+		if (solver == null) {
+			int size = map.getSize();
+			solver = new ErosionSolver(temperature, moisture, map);
+			solverAlphaTexture = new Texture2D(size, size, Image.Format.ABGR8);
+			solverHeightTexture = new Texture2D(size, size, Image.Format.Depth16);
+			iteration = 0;
+		} //else: resume after guiStop()
 		updateSolverTexture();
 		updateSolverHeightmap();
 		app.forceTerrainMaterial(solverMaterial);
-		iteration = 0;
+		solving = true;
 		LOG.info("start solving");
 	}
 	private void solverUpdate() {
 		solver.oneIteration();
 		updateSolverTexture();
 		updateSolverHeightmap();
+		newMap = solver.getTerrainHeight();
 		iteration++;
 		screenController.setIteration(iteration);
 	}
 	void guiStop() {
 		screenController.setSolving(false);
-		solver = null;
+		solving = false;
 		LOG.info("solving stopped");
 	}
 	void guiReset() {
-		
+		solver = null;
+		app.forceTerrainMaterial(null);
+		screenController.setIteration(0);
+		solving = false;
+		LOG.info("solver resetted");
+	}
+	void guiShowHeightDifference(boolean enabled) {
+		if (enabled) {
+			updateHeightDiffTexture();
+			app.forceTerrainMaterial(heightDiffMaterial);
+		} else {
+			if (solver!=null) {
+				app.forceTerrainMaterial(solverMaterial);
+			} else {
+				app.forceTerrainMaterial(null);
+			}
+		}
 	}
 	
 	private void registerListener() {
@@ -470,12 +529,19 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	
 	public static class ErosionSolver {
 		//Settings
-		private static final int RAINDROPS_PER_ITERATION = 500;
+		private static final int RAINDROPS_PER_ITERATION = 200;
 		private static final float RAINDROP_WATER = 1f;
 		private static final float DELTA_T = 0.02f;
 		private static final float A = 1; //tube area
 		private static final float L = 1; //cell distances
 		private static final float G = 20; //graviation
+		private static final float MIN_SLOPE = 0; //lower threshold for sediment erosion
+		private static final float MAX_SLOPE = 0.1f; //upper bound for the slope
+		private static final float Kc = 0.005f; //sediment capacity constant
+		private static final float KcOcean = 0.001f; //sediment capacity constant
+		private static final float Ks = 0.1f; //sediment dissolving constant
+		private static final float Kd = 0.1f; //sediment deposition constant
+		private static final float Ke = 0.1f; //evaporation constant
 		//Input
 		private final int size;
 		private final Heightmap originalHeight;
@@ -487,6 +553,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		private Heightmap terrainHeight;
 		private Heightmap waterHeight;
 		private Heightmap sediment;
+		private Heightmap tmpSediment;
 		/**
 		 * Dimensions: 0=left/-x, 1=right,+x, 2=down/-y, 3=up/+y
 		 */
@@ -504,15 +571,16 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			
 			this.waterHeight = new Heightmap(size);
 			this.sediment = new Heightmap(size);
+			this.tmpSediment = new Heightmap(size);
 			this.outflowFlux = new Vectorfield(size, 4);
 			this.velocity = new Vectorfield(size, 2);
 		}
 		
 		public void oneIteration() {
 			iteration++;
-			if (iteration<50) {
-				addWater();
-			}
+			//if ((iteration%200)<50) {
+				addWater(); //periodic rain fall
+			//}
 			computeFlow();
 		}
 		
@@ -589,14 +657,57 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 					waterHeight.setHeightAt(x, y, d2);
 					float averageD = (d1 + d2)/2;
 					//velocity field
-					float deltaWx = (outflowFlux.getScalarAtClamping(x-1, y, 1) - outflowFlux.getScalarAt(x, y, 0)
-							+ outflowFlux.getScalarAt(x, y, 1) - outflowFlux.getScalarAtClamping(x+1, y, 0));
-					velocity.setScalarAt(x, y, 0, deltaWx / L / averageD);
-					float deltaWy = (outflowFlux.getScalarAtClamping(x, y-1, 3) - outflowFlux.getScalarAt(x, y, 2)
-							+ outflowFlux.getScalarAt(x, y, 3) - outflowFlux.getScalarAtClamping(x, y+1, 2));
-					velocity.setScalarAt(x, y, 1, deltaWy / L / averageD);
+					if (averageD==0) {
+						velocity.setVectorAt(x, y, NULL_VELOCITY);
+					} else {
+						float deltaWx = (outflowFlux.getScalarAtClamping(x-1, y, 1) - outflowFlux.getScalarAt(x, y, 0)
+								+ outflowFlux.getScalarAt(x, y, 1) - outflowFlux.getScalarAtClamping(x+1, y, 0));
+						velocity.setScalarAt(x, y, 0, deltaWx / L / averageD);
+						float deltaWy = (outflowFlux.getScalarAtClamping(x, y-1, 3) - outflowFlux.getScalarAt(x, y, 2)
+								+ outflowFlux.getScalarAt(x, y, 3) - outflowFlux.getScalarAtClamping(x, y+1, 2));
+						velocity.setScalarAt(x, y, 1, deltaWy / (L * averageD));
+					}
 				}
 			}
+			//sediment erosion and deposition
+			float erodedSum = 0;
+			float deposSum = 0;
+			for (int x=0; x<size; ++x) {
+				for (int y=0; y<size; ++y) {
+					float slope = Math.max(MIN_SLOPE, Math.min(MAX_SLOPE, terrainHeight.getSlopeAt(x, y)));
+					float[] v = velocity.getVectorAt(x, y);
+					float c = (terrainHeight.getHeightAt(x, y)<=0 ? KcOcean : Kc) * slope * FastMath.sqrt(v[0]*v[0] + v[1]*v[1]);
+					float st = sediment.getHeightAt(x, y);
+					if (c>st) {
+						//erosion
+						float eroded = Ks * (c-st);
+						terrainHeight.adjustHeightAt(x, y, -eroded);
+						if (terrainHeight.getHeightAt(x, y)<-5) {
+							System.err.println("error");
+						}
+						sediment.adjustHeightAt(x, y, eroded);
+						erodedSum+=eroded;
+					} else if (c<st) {
+						//deposition
+						float depos = Kd * (st-c);
+						terrainHeight.adjustHeightAt(x, y, depos);
+						sediment.adjustHeightAt(x, y, -depos);
+						deposSum +=depos;
+					}
+				}
+			}
+			System.out.println("Total sediment eroded="+erodedSum+", deposited="+deposSum);
+			//sediment transportation
+			for (int x=0; x<size; ++x) {
+				for (int y=0; y<size; ++y) {
+					float[] v = velocity.getVectorAt(x, y);
+					tmpSediment.setHeightAt(x, y, sediment.getHeightInterpolating(x-v[0]*DELTA_T, y-v[1]*DELTA_T));
+				}
+			}
+			Heightmap tmp = sediment;
+			sediment = tmpSediment;
+			tmpSediment = tmp;
+			
 			//oceans act like endless sinks
 			for (int x=0; x<size; ++x) {
 				for (int y=0; y<size; ++y) {

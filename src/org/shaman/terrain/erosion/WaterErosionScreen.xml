@@ -64,6 +64,10 @@
 							<control id="ResetButton" name="button" label="Reset" width="79px" margin="2px"/>
 						</panel>
 						<control id="IterationsLabel" name="label" textHAlign="left" text="Iterations: 0" width="200px" margin="2px"/>
+						<panel childLayout="horizontal">
+							<control id="HeightDifferenceCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Show Erosion and Deposition" margin="2px"/>
+						</panel>
 						
 						<panel childLayout="absolute" height="20px"/>
 						<control id="NextStepButton" name="button" label="Next Step" width="246px" margin="2px"/>

@@ -231,7 +231,7 @@ import net.sourceforge.arbaro.tree.TreeGeneratorFactory;
 //			exporter.setBarkTexture("org/shaman/terrain/treetex/bark3.jpg");
 			exporter.setBarkColor(new ColorRGBA(130f / 255f, 80f / 255f, 50f / 255f, 1f));
 			exporter.setBarkColor(new ColorRGBA(200f / 255f, 180f / 255f, 160f / 255f, 1f));
-			exporter.setLeafTexture("org/shaman/terrain/treetex/leaf1.png");
+//			exporter.setLeafTexture("org/shaman/terrain/treetex/leaf1.png");
 			exporter.doWrite();
 			spatialViewer.setSpatial(exporter.getSpatial());
 			
