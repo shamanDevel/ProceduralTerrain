@@ -35,6 +35,7 @@ import org.shaman.terrain.sketch.SketchTerrain;
 import com.jme3.app.FlyCamAppState;
 import com.jme3.app.SimpleApplication;
 import com.jme3.app.state.ScreenshotAppState;
+import com.jme3.app.state.VideoRecorderAppState;
 import com.jme3.bounding.BoundingBox;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
@@ -97,6 +98,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	public static final float TERRAIN_SCALE = 16;
 	private static final boolean RECORDING = false;
 	private static final int RECORDING_FRAMES = 1000 / 10; //20 FPS
+	private static final boolean RECORDING_TIMER = true;
 	
 	@SuppressWarnings("unchecked")
 	private static final Class<? extends AbstractTerrainStep>[] STEPS = new Class[] {
@@ -163,6 +165,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		settings.setVSync(true);
 		app.setSettings(settings);
 		app.setShowSettings(true);
+		if (RECORDING_TIMER) {
+			app.setTimer(new VideoRecorderAppState.IsoTimer(30));
+		}
         app.start();
     }
 	

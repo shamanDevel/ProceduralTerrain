@@ -5,6 +5,7 @@
  */
 package org.shaman.terrain.erosion;
 
+import com.jme3.app.state.ScreenshotAppState;
 import com.jme3.collision.CollisionResults;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -43,7 +44,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	private static final Logger LOG = Logger.getLogger(WaterErosionSimulation.class.getName());
 	private static final double BRUSH_STRENGTH = 0.03;
 	private static final float WATER_COLOR_FACTOR = 64;
-	private static final float HEIGHT_DIFF_FACTOR = 4;
+	private static final float HEIGHT_DIFF_FACTOR = 2;
 	private static final ColorRGBA BRUSH_COLOR_TERRAIN = new ColorRGBA(1, 1, 1, 0.5f);
 	private static final ColorRGBA BRUSH_COLOR_WATER = new ColorRGBA(0.3f, 0.3f, 1, 0.5f);
 	private static final ColorRGBA COLOR_RIVER_SOURCE = new ColorRGBA(0, 0, 0.7f, 0.5f);
@@ -54,6 +55,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	private int displayMode = 0;
 	private float brushSize = 0;
 	private boolean cameraLocked = false;
+	private boolean recording = false;
 
 	//maps
 	private Heightmap map;
@@ -171,6 +173,9 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	public void update(float tpf) {
 		if (solving) {
 			solverUpdate();
+		}
+		if (recording) {
+			app.getStateManager().getState(ScreenshotAppState.class).takeScreenshot();
 		}
 	}
 	
@@ -581,9 +586,10 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			app.getInputManager().addMapping("ErosionMouseLeft", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
 			app.getInputManager().addMapping("ErosionMouseRight", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
 			app.getInputManager().addMapping("ErosionCameraLock", new KeyTrigger(KeyInput.KEY_L));
+			app.getInputManager().addMapping("ErosionRecording", new KeyTrigger(KeyInput.KEY_R));
 		}
 		app.getInputManager().addListener(listener, "ErosionMouseX+", "ErosionMouseX-", "ErosionMouseY+", "ErosionMouseY-", 
-				"ErosionMouseLeft", "ErosionMouseRight", "ErosionCameraLock");
+				"ErosionMouseLeft", "ErosionMouseRight", "ErosionCameraLock", "ErosionRecording");
 	}
 	private void unregisterListener() {
 		app.getInputManager().removeListener(listener);
@@ -618,6 +624,14 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 				cameraLocked = !cameraLocked;
 				app.setCameraEnabled(!cameraLocked);
 				screenController.setMessageLabelText(cameraLocked ? "Camera locked" : "");
+			} else if ("ErosionRecording".equals(name) && isPressed) {
+				recording = !recording;
+				if (recording) {
+					cameraLocked = true;
+					screenController.setMessageLabelText("Camera locked - Recording");
+				} else {
+					screenController.setMessageLabelText(cameraLocked ? "Camera locked" : "");
+				}
 			}
 		}
 
@@ -654,7 +668,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		private static final float KcOcean = 0.1f; //sediment capacity constant
 		private static final float Ks = 0.1f; //sediment dissolving constant
 		private static final float Kd = 0.1f; //sediment deposition constant
-		private static final float EROSION_FACTOR = 50;
+		private static final float EROSION_FACTOR = 100;
 		private static final float Ke = 0.005f; //evaporation constant
 		private static final float RIVER_FACTOR = 0.2f;
 		//Input
