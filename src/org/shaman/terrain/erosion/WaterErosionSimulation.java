@@ -14,6 +14,7 @@ import com.jme3.material.RenderState;
 import com.jme3.math.*;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.terrain.geomipmap.TerrainQuad;
@@ -23,6 +24,8 @@ import com.jme3.texture.Texture2D;
 import com.jme3.util.BufferUtils;
 import de.lessvoid.nifty.Nifty;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,6 +42,12 @@ import org.shaman.terrain.polygonal.PolygonalMapGenerator;
 public class WaterErosionSimulation extends AbstractTerrainStep {
 	private static final Logger LOG = Logger.getLogger(WaterErosionSimulation.class.getName());
 	private static final double BRUSH_STRENGTH = 0.03;
+	private static final float WATER_COLOR_FACTOR = 64;
+	private static final float HEIGHT_DIFF_FACTOR = 4;
+	private static final ColorRGBA BRUSH_COLOR_TERRAIN = new ColorRGBA(1, 1, 1, 0.5f);
+	private static final ColorRGBA BRUSH_COLOR_WATER = new ColorRGBA(0.3f, 0.3f, 1, 0.5f);
+	private static final ColorRGBA COLOR_RIVER_SOURCE = new ColorRGBA(0, 0, 0.7f, 0.5f);
+	private static final ColorRGBA COLOR_RIVER_SOURCE_SELECTED = new ColorRGBA(0, 0, 0, 0.5f);
 	
 	//GUI and settings
 	private WaterErosionScreenController screenController;
@@ -68,6 +77,12 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	private Geometry brushSphere;
 	private ListenerImpl listener;
 	
+	//rivers
+	private final ArrayList<RiverSource> riverSources = new ArrayList<>();
+	private Node riverSourceNode;
+	private int riverEditMode;
+	private int selectedRiver = -1;
+	
 	//solver
 	private ErosionSolver solver;
 	private Texture solverAlphaTexture;
@@ -90,8 +105,16 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		app.setTerrain(map);
 		originalMapScale = app.getHeightmapSpatial().getLocalScale().clone();
 		originalTemperature = (Heightmap) properties.get(KEY_TEMPERATURE);
+		if (originalTemperature == null) {
+			originalTemperature = new Heightmap(originalMap.getSize());
+			originalTemperature.fillHeight(0.5f);
+		}
 		temperature = originalTemperature.clone();
 		originalMoisture = (Heightmap) properties.get(KEY_MOISTURE);
+		if (originalMoisture == null) {
+			originalMoisture = new Heightmap(originalMap.getSize());
+			originalMoisture.fillHeight(0.5f);
+		}
 		moisture = originalMoisture.clone();
 		
 		Nifty nifty = app.getNifty();
@@ -132,6 +155,9 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
         solverMaterial.setFloat("DiffuseMap_2_scale", 1/8f);
 		
 		registerListener();
+		
+		riverSourceNode = new Node("river sources");
+		sceneNode.attachChild(riverSourceNode);
 	}
 
 	@Override
@@ -148,12 +174,19 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		}
 	}
 	
-	private void mouseMoved(float mouseX, float mouseY, int clicked, float tpf) {
+	private void mouseMoved(float mouseX, float mouseY, int clicked, float tpf, boolean mouseMoved) {
 		//Create ray
 		Vector3f dir = app.getCamera().getWorldCoordinates(new Vector2f(mouseX, mouseY), 1);
 		dir.subtractLocal(app.getCamera().getLocation());
 		dir.normalizeLocal();
 		Ray ray = new Ray(app.getCamera().getLocation(), dir);
+		if (riverEditMode==2) {
+			pickRiverSources(ray, clicked, mouseMoved);
+		} else if (riverEditMode>0 || displayMode>0) {
+			editTerrain(ray, clicked, mouseMoved);
+		}
+	}
+	private void editTerrain(Ray ray, int clicked, boolean mouseMoved) {
 		CollisionResults results = new CollisionResults();
 		//shoot ray at the terrain
 		app.getHeightmapSpatial().collideWith(ray, results);
@@ -161,6 +194,16 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			brushSphere.setCullHint(Spatial.CullHint.Always);
 		} else {
 			brushSphere.setCullHint(displayMode==0 ? Spatial.CullHint.Always : Spatial.CullHint.Never);
+			if (displayMode>0) {
+				brushSphere.setCullHint(Spatial.CullHint.Never);
+				brushSphere.getMaterial().setColor("Color", BRUSH_COLOR_TERRAIN);
+			} else if (riverEditMode==1) {
+				brushSphere.setCullHint(Spatial.CullHint.Never);
+				brushSphere.getMaterial().setColor("Color", BRUSH_COLOR_WATER);
+			} else {
+				brushSphere.setCullHint(Spatial.CullHint.Always);
+				return;
+			}
 			Vector3f point = results.getClosestCollision().getContactPoint();
 			brushSphere.setLocalTranslation(point);
 			point.x *= scaleFactor;
@@ -168,29 +211,76 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			Vector3f mapPoint = app.mapWorldToHeightmap(point);
 			//apply brush
 			if (clicked==0) {return;}
-			int direction = clicked==1 ? 1 : -1;
-			float radius = brushSize;
-			float cx = mapPoint.x;
-			float cy = mapPoint.y;
-			for (int x = Math.max(0, (int) (cx - radius)); x<Math.min(map.getSize(), (int) (cx + radius + 1)); ++x) {
-				for (int y = Math.max(0, (int) (cy - radius)); y<Math.min(map.getSize(), (int) (cy + radius + 1)); ++y) {
-					double dist = Math.sqrt((x-cx)*(x-cx) + (y-cy)*(y-cy));
-					if (dist<radius) {
-						dist = dist/radius;
-						dist = Math.cos(dist*dist*Math.PI/2);
-						if (displayMode==1) {
-							temperature.adjustHeightAt(x, y, (float) (dist*direction*BRUSH_STRENGTH));
-						} else {
-							moisture.adjustHeightAt(x, y, (float) (dist*direction*BRUSH_STRENGTH));
+			if (displayMode>0) {
+				int direction = clicked==1 ? 1 : -1;
+				float radius = brushSize*scaleFactor;
+				float cx = mapPoint.x;
+				float cy = mapPoint.y;
+				for (int x = Math.max(0, (int) (cx - radius)); x<Math.min(map.getSize(), (int) (cx + radius + 1)); ++x) {
+					for (int y = Math.max(0, (int) (cy - radius)); y<Math.min(map.getSize(), (int) (cy + radius + 1)); ++y) {
+						double dist = Math.sqrt((x-cx)*(x-cx) + (y-cy)*(y-cy));
+						if (dist<radius) {
+							dist /= radius;
+							dist = Math.cos(dist*dist*Math.PI/2);
+							if (displayMode==1) {
+								temperature.adjustHeightAt(x, y, (float) (dist*direction*BRUSH_STRENGTH));
+							} else {
+								moisture.adjustHeightAt(x, y, (float) (dist*direction*BRUSH_STRENGTH));
+							}
 						}
 					}
 				}
+				if (displayMode==1) {
+					updateTemperatureTexture();
+				} else {
+					updateMoistureTexture();
+				}
+			} else if (riverEditMode==1 && clicked==1 && !mouseMoved) {
+				RiverSource source = new RiverSource();
+				source.x = (int) mapPoint.x;
+				source.y = (int) mapPoint.y;
+				source.radius = brushSize*scaleFactor;
+				source.intensity = 0.5f;
+				Geometry geom = new Geometry("river source", new Sphere(16, 16, 1));
+				geom.setLocalScale(brushSize*TerrainHeighmapCreator.TERRAIN_SCALE);
+				geom.setLocalTranslation(brushSphere.getLocalTranslation());
+				Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+				mat.setColor("Color", COLOR_RIVER_SOURCE);
+				mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+				geom.setMaterial(mat);
+				geom.setQueueBucket(RenderQueue.Bucket.Transparent);
+				riverSourceNode.attachChild(geom);
+				source.geom = geom;
+				riverSources.add(source);
+				LOG.info("river source added");
 			}
-			if (displayMode==1) {
-				updateTemperatureTexture();
-			} else {
-				updateMoistureTexture();
+		}
+	}
+	private void pickRiverSources(Ray ray, int clicked, boolean mouseMoved) {
+		CollisionResults results = new CollisionResults();
+		//pick river source
+		if (riverEditMode==2 && clicked==1) {
+			results.clear();
+			riverSourceNode.collideWith(ray, results);
+			if (selectedRiver>=0) {
+				Material mat = riverSources.get(selectedRiver).geom.getMaterial();
+				mat.setColor("Color", COLOR_RIVER_SOURCE);
 			}
+			selectedRiver = -1;
+			if (results.size()>0) {
+				Geometry geom = results.getClosestCollision().getGeometry();
+				for (int i=0; i<riverSources.size(); ++i) {
+					if (riverSources.get(i).geom==geom) {
+						selectedRiver = i;
+						break;
+					}
+				}
+				if (selectedRiver>=0) {
+					Material mat = riverSources.get(selectedRiver).geom.getMaterial();
+					mat.setColor("Color", COLOR_RIVER_SOURCE_SELECTED);
+				}
+			}
+			LOG.log(Level.INFO, "river source selected: {0}", selectedRiver);
 		}
 	}
 	
@@ -274,7 +364,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 				float g = Math.max(0, 1-slope);
 				float r = 1-g;
 				float wh = solver.getWaterHeight().getHeightAt(y, size-x-1);
-				float b = Math.min(1, wh*32);
+				float b = Math.min(1, wh*WATER_COLOR_FACTOR);
 				g = Math.max(0, g-b/2);
 				r = Math.max(0, r-b/2);
 				data.put((byte) (255*r)).put((byte) (255*g)).put((byte) (255*b)).put((byte) 0);
@@ -344,7 +434,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 				float v = newMap.getHeightAt(y, size-x-1) - scaledMap.getHeightAt(y, size-x-1);
 				minDiff = Math.min(minDiff, v);
 				maxDiff = Math.max(maxDiff, v);
-				v *= 8;
+				v *= HEIGHT_DIFF_FACTOR;
 				v = Math.min(0.5f, Math.max(-0.5f, v));
 				byte val = (byte) (255*(v+0.5f));
 				data.put(val).put(val).put(val).put((byte) 255);
@@ -382,13 +472,15 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		app.setTerrain(map);
 		app.getHeightmapSpatial().setLocalScale(originalMapScale.x * invFactor, originalMapScale.y, originalMapScale.z * invFactor);
 		updateTextures();
+		riverSourceNode.detachAllChildren();
+		riverSources.clear();
 	}
 	/**
 	 * Sets the display mode: 0=none, 1=show+edit temperature, 2=show+edit moisture
 	 * @param mode 
 	 */
 	void guiDisplayMode(int mode) {
-		LOG.info("switch to display mode "+mode);
+		LOG.log(Level.INFO, "switch to display mode {0}", mode);
 		this.displayMode = mode;
 		switch (mode) {
 			case 0: app.forceTerrainMaterial(null); break;
@@ -408,10 +500,15 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	 * @param mode 
 	 */
 	void guiRiverMode(int mode) {
-		
+		riverEditMode = mode;
+		LOG.log(Level.INFO, "switching to river mode {0}", mode);
 	}
 	void guiDeleteRiverSource() {
-		
+		if (selectedRiver>=0) {
+			riverSourceNode.detachChild(riverSources.get(selectedRiver).geom);
+			riverSources.remove(selectedRiver);
+			selectedRiver=-1;
+		}
 	}
 	void guiRiverSourceRadiusChanged(float radius) {
 		
@@ -429,6 +526,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			solverHeightTexture = new Texture2D(size, size, Image.Format.Depth16);
 			iteration = 0;
 		} //else: resume after guiStop()
+		solver.setRiverSources(riverSources);
 		updateSolverTexture();
 		updateSolverHeightmap();
 		app.forceTerrainMaterial(solverMaterial);
@@ -436,7 +534,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		LOG.info("start solving");
 	}
 	private void solverUpdate() {
-		solver.oneIteration();
+		solver.oneIteration(screenController.isRaining(), screenController.isRiverActive());
 		updateSolverTexture();
 		updateSolverHeightmap();
 		newMap = solver.getTerrainHeight();
@@ -467,6 +565,11 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			}
 		}
 	}
+	void guiDeleteWater() {
+		if (solver != null) {
+			solver.deleteWater();
+		}
+	}
 	
 	private void registerListener() {
 		if (listener == null) {
@@ -489,7 +592,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		private float mouseX, mouseY;
 		private boolean left, right;
 		
-		private void update(float tpf) {
+		private void update(float tpf, boolean moved) {
 			int mouse;
 			if (left && right) {
 				mouse = 0;
@@ -500,17 +603,17 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			} else {
 				mouse = 0;
 			}
-			mouseMoved(mouseX, mouseY, mouse, tpf);
+			mouseMoved(mouseX, mouseY, mouse, tpf, moved);
 		}
 
 		@Override
 		public void onAction(String name, boolean isPressed, float tpf) {
 			if ("ErosionMouseLeft".equals(name)) {
 				left = isPressed;
-				update(tpf);
+				update(tpf, false);
 			} else if ("ErosionMouseRight".equals(name)) {
 				right = isPressed;
-				update(tpf);
+				update(tpf, false);
 			} else if ("ErosionCameraLock".equals(name) && isPressed) {
 				cameraLocked = !cameraLocked;
 				app.setCameraEnabled(!cameraLocked);
@@ -522,33 +625,47 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		public void onAnalog(String name, float value, float tpf) {
 			mouseX = app.getInputManager().getCursorPosition().x;
 			mouseY = app.getInputManager().getCursorPosition().y;
-			update(tpf);
+			update(tpf, true);
 		}
 		
 	}
 	
+	public static class RiverSource {
+		public int x;
+		public int y;
+		public float radius;
+		public float intensity;
+		public Geometry geom;
+	}
+	
 	public static class ErosionSolver {
 		//Settings
-		private static final int RAINDROPS_PER_ITERATION = 200;
-		private static final float RAINDROP_WATER = 1f;
-		private static final float DELTA_T = 0.02f;
+		private static final float RAINDROPS_PER_ITERATION = 0.001f;
+		private static final float RAINDROP_WATER = 0.25f;
+		private static final float DELTA_T = 0.015f;
 		private static final float A = 1; //tube area
 		private static final float L = 1; //cell distances
 		private static final float G = 20; //graviation
-		private static final float MIN_SLOPE = 0; //lower threshold for sediment erosion
+		private static final float MIN_SLOPE = 0.005f; //lower threshold for sediment erosion
 		private static final float MAX_SLOPE = 0.1f; //upper bound for the slope
-		private static final float Kc = 0.005f; //sediment capacity constant
-		private static final float KcOcean = 0.001f; //sediment capacity constant
+		private static final float MAX_EROSION = 0.05f; //limits the maximal height that can be eroded
+		private static final float MAX_EVAPORATION = 0.05f; //limits the maximal height that can be evaporated
+		private static final float Kc = 0.5f; //sediment capacity constant
+		private static final float KcOcean = 0.1f; //sediment capacity constant
 		private static final float Ks = 0.1f; //sediment dissolving constant
 		private static final float Kd = 0.1f; //sediment deposition constant
-		private static final float Ke = 0.1f; //evaporation constant
+		private static final float EROSION_FACTOR = 50;
+		private static final float Ke = 0.005f; //evaporation constant
+		private static final float RIVER_FACTOR = 0.2f;
 		//Input
 		private final int size;
+		private final int raindropsPerIteration;
 		private final Heightmap originalHeight;
 		private final Heightmap temperature;
 		private final Heightmap moisture;
 		private final Random rand = new Random();
 		private int iteration = 0;
+		private List<? extends RiverSource> riverSources;
 		//maps
 		private Heightmap terrainHeight;
 		private Heightmap waterHeight;
@@ -569,6 +686,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			this.originalHeight = height;
 			this.terrainHeight = height.clone();
 			
+			this.raindropsPerIteration = (int) (RAINDROPS_PER_ITERATION * size * size);
 			this.waterHeight = new Heightmap(size);
 			this.sediment = new Heightmap(size);
 			this.tmpSediment = new Heightmap(size);
@@ -576,18 +694,44 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			this.velocity = new Vectorfield(size, 2);
 		}
 		
-		public void oneIteration() {
-			iteration++;
-			//if ((iteration%200)<50) {
-				addWater(); //periodic rain fall
-			//}
-			computeFlow();
+		public void setRiverSources(List<? extends RiverSource> sources) {
+			riverSources = sources;
 		}
 		
-		private void addWater() {
+		public void oneIteration(boolean raining, boolean riverActive) {
+			iteration++;
+			if (raining) {
+				addRainWater(); //periodic rain fall
+			}
+			if (riverActive) {
+				addRiverWater();
+			}
+			computeFlow();
+			computeWaterVolumeAndVelocity();
+			computeErosion();
+			computeEvaporation();
+			computeOceanBoundaryConditions();
+		}
+		
+		/**
+		 * For debugging: deletes all water and adds all sediment to the terrain
+		 */
+		public void deleteWater() {
+//			for (int x=0; x<size; ++x) {
+//				for (int y=0; y<size; ++y) {
+//					waterHeight.setHeightAt(x, y, 0);
+//					terrainHeight.adjustHeightAt(x, y, sediment.getHeightAt(x, y));
+//					sediment.setHeightAt(x, y, 0);
+//				}
+//			}
+			waterHeight.fillHeight(0);
+			sediment.fillHeight(0);
+		}
+		
+		private void addRainWater() {
 			//create raindrops
 			int n = 0;
-			while (n<RAINDROPS_PER_ITERATION) {
+			while (n<raindropsPerIteration) {
 				int x = rand.nextInt(size);
 				int y = rand.nextInt(size);
 				if (terrainHeight.getHeightAt(x, y)<=0) {
@@ -598,6 +742,22 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 					//add drop
 					n++;
 					waterHeight.adjustHeightAt(x, y, DELTA_T * RAINDROP_WATER);
+				}
+			}
+		}
+		private void addRiverWater() {
+			if (riverSources!=null) {
+				for (RiverSource s : riverSources) {
+					for (int x = Math.max(0, (int) (s.x - s.radius)); x<Math.min(size, (int) (s.x + s.radius + 1)); ++x) {
+						for (int y = Math.max(0, (int) (s.y - s.radius)); y<Math.min(size, (int) (s.y + s.radius + 1)); ++y) {
+							double dist = Math.sqrt((x-s.x)*(x-s.x) + (y-s.y)*(y-s.y));
+							if (dist<s.radius) {
+								dist /= s.radius;
+								dist = Math.cos(dist*dist*Math.PI/2);
+								waterHeight.adjustHeightAt(x, y, (float) (dist * DELTA_T * s.intensity * RIVER_FACTOR));
+							}
+						}
+					}
 				}
 			}
 		}
@@ -641,6 +801,8 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 					outflowFlux.setScalarAt(x, y, 3, K*outflowFlux.getScalarAt(x, y, 3));
 				}
 			}
+		}
+		private void computeWaterVolumeAndVelocity() {
 			//compute water volume change and velocity field
 			for (int x=0; x<size; ++x) {
 				for (int y=0; y<size; ++y) {
@@ -669,6 +831,8 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 					}
 				}
 			}
+		}
+		private void computeErosion() {
 			//sediment erosion and deposition
 			float erodedSum = 0;
 			float deposSum = 0;
@@ -676,11 +840,18 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 				for (int y=0; y<size; ++y) {
 					float slope = Math.max(MIN_SLOPE, Math.min(MAX_SLOPE, terrainHeight.getSlopeAt(x, y)));
 					float[] v = velocity.getVectorAt(x, y);
-					float c = (terrainHeight.getHeightAt(x, y)<=0 ? KcOcean : Kc) * slope * FastMath.sqrt(v[0]*v[0] + v[1]*v[1]);
+					float c = (terrainHeight.getHeightAt(x, y)<=0 ? KcOcean : Kc) * slope 
+							* FastMath.sqrt(v[0]*v[0] + v[1]*v[1]) * waterHeight.getHeightAt(x, y);
 					float st = sediment.getHeightAt(x, y);
+					float delta = originalHeight.getHeightAt(x, y)-terrainHeight.getHeightAt(x, y);
 					if (c>st) {
 						//erosion
-						float eroded = Ks * (c-st);
+						float ks = Ks * FastMath.exp(-delta*EROSION_FACTOR);
+						float eroded = ks * (c-st);
+						if (delta>MAX_EROSION) {
+//							System.err.println("maximal erosion reached!");
+							continue;
+						}
 						terrainHeight.adjustHeightAt(x, y, -eroded);
 						if (terrainHeight.getHeightAt(x, y)<-5) {
 							System.err.println("error");
@@ -689,7 +860,11 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 						erodedSum+=eroded;
 					} else if (c<st) {
 						//deposition
+						float kd = Kd * FastMath.exp(delta*EROSION_FACTOR);
 						float depos = Kd * (st-c);
+						if (-delta>MAX_EVAPORATION) {
+							continue;
+						}
 						terrainHeight.adjustHeightAt(x, y, depos);
 						sediment.adjustHeightAt(x, y, -depos);
 						deposSum +=depos;
@@ -707,7 +882,17 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			Heightmap tmp = sediment;
 			sediment = tmpSediment;
 			tmpSediment = tmp;
-			
+		}
+		private void computeEvaporation() {	
+			//evaporation
+			float evaporationFactor = (1-Ke*DELTA_T);
+			for (int x=0; x<size; ++x) {
+				for (int y=0; y<size; ++y) {
+					waterHeight.setHeightAt(x, y, waterHeight.getHeightAt(x, y)*evaporationFactor);
+				}
+			}
+		}
+		private void computeOceanBoundaryConditions() {	
 			//oceans act like endless sinks
 			for (int x=0; x<size; ++x) {
 				for (int y=0; y<size; ++y) {

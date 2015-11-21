@@ -37,6 +37,9 @@ public class WaterErosionScreenController implements ScreenController {
 	private Button resetButton;
 	private Label iterationsLabel;
 	private CheckBox heightDifferenceCheckBox;
+	private CheckBox rainCheckBox;
+	private CheckBox riverCheckBox;
+	private Button deleteWaterButton;
 	private Label messageLabel;
 
 	public WaterErosionScreenController(WaterErosionSimulation simulation, int mapSize) {
@@ -66,6 +69,9 @@ public class WaterErosionScreenController implements ScreenController {
 		runButton = screen.findNiftyControl("RunButton", Button.class);
 		stopButton = screen.findNiftyControl("StopButton", Button.class);
 		resetButton = screen.findNiftyControl("ResetButton", Button.class);
+		rainCheckBox = screen.findNiftyControl("RainCheckBox", CheckBox.class);
+		riverCheckBox = screen.findNiftyControl("RiverCheckBox", CheckBox.class);
+		deleteWaterButton = screen.findNiftyControl("DeleteWaterButton", Button.class);
 		iterationsLabel = screen.findNiftyControl("IterationsLabel", Label.class);
 		heightDifferenceCheckBox = screen.findNiftyControl("HeightDifferenceCheckBox", CheckBox.class);
 		messageLabel = screen.findNiftyControl("MessageLabel", Label.class);
@@ -76,6 +82,9 @@ public class WaterErosionScreenController implements ScreenController {
 		resetButton.setEnabled(false);
 		heightDifferenceCheckBox.setEnabled(false);
 		brushSizeSlider.setValue(10);
+		rainCheckBox.setChecked(true);
+		riverCheckBox.setChecked(true);
+		deleteWaterButton.setEnabled(false);
 	}
 
 	@Override
@@ -97,6 +106,7 @@ public class WaterErosionScreenController implements ScreenController {
 		resetButton.setEnabled(!solving);
 		heightDifferenceCheckBox.setEnabled(!solving);
 		heightDifferenceCheckBox.setChecked(false);
+		deleteWaterButton.setEnabled(solving);
 	}
 	void setIteration(int iteration) {
 		iterationsLabel.setText("Iteration: "+iteration);
@@ -104,6 +114,13 @@ public class WaterErosionScreenController implements ScreenController {
 	
 	void setMessageLabelText(String text) {
 		messageLabel.setText(text);
+	}
+	
+	boolean isRaining() {
+		return rainCheckBox.isChecked();
+	}
+	boolean isRiverActive() {
+		return riverCheckBox.isChecked();
 	}
 	
 	@NiftyEventSubscriber(pattern = ".*Button")
@@ -115,6 +132,10 @@ public class WaterErosionScreenController implements ScreenController {
 			simulation.guiStop();
 		} else if (resetButton == e.getButton()) {
 			simulation.guiReset();
+		} else if (deleteWaterButton == e.getButton()) {
+			simulation.guiDeleteWater();
+		} else if (deleteSourceButton == e.getButton()) {
+			simulation.guiDeleteRiverSource();
 		}
 	}
 	
@@ -124,16 +145,46 @@ public class WaterErosionScreenController implements ScreenController {
 		if (temperatureCheckBox==e.getCheckBox()) {
 			if (e.isChecked()) {
 				moistureCheckBox.setChecked(false);
+				addSourceCheckBox.setChecked(false);
+				editSourceCheckBox.setChecked(false);
 				simulation.guiDisplayMode(1);
-			} else if (!moistureCheckBox.isChecked()) {
+				simulation.guiRiverMode(0);
+			} else if (!moistureCheckBox.isChecked() 
+					&& !addSourceCheckBox.isChecked() && !editSourceCheckBox.isChecked()) {
 				simulation.guiDisplayMode(0);
 			}
 		} else if (moistureCheckBox==e.getCheckBox()) {
 			if (e.isChecked()) {
 				temperatureCheckBox.setChecked(false);
+				addSourceCheckBox.setChecked(false);
+				editSourceCheckBox.setChecked(false);
 				simulation.guiDisplayMode(2);
-			} else if (!temperatureCheckBox.isChecked()) {
+				simulation.guiRiverMode(0);
+			} else if (!temperatureCheckBox.isChecked()
+					&& !addSourceCheckBox.isChecked() && !editSourceCheckBox.isChecked()) {
 				simulation.guiDisplayMode(0);
+			}
+		} else if (addSourceCheckBox==e.getCheckBox()) {
+			if (e.isChecked()) {
+				temperatureCheckBox.setChecked(false);
+				moistureCheckBox.setChecked(false);
+				editSourceCheckBox.setChecked(false);
+				simulation.guiDisplayMode(0);
+				simulation.guiRiverMode(1);
+			} else if (!temperatureCheckBox.isChecked() && !moistureCheckBox.isChecked()
+					&& !editSourceCheckBox.isChecked()) {
+				simulation.guiRiverMode(0);
+			}
+		} else if (editSourceCheckBox==e.getCheckBox()) {
+			if (e.isChecked()) {
+				temperatureCheckBox.setChecked(false);
+				moistureCheckBox.setChecked(false);
+				addSourceCheckBox.setChecked(false);
+				simulation.guiDisplayMode(0);
+				simulation.guiRiverMode(2);
+			} else if (!temperatureCheckBox.isChecked() && !moistureCheckBox.isChecked()
+					&& !addSourceCheckBox.isChecked()) {
+				simulation.guiRiverMode(0);
 			}
 		} else if (heightDifferenceCheckBox==e.getCheckBox()) {
 			simulation.guiShowHeightDifference(e.isChecked());

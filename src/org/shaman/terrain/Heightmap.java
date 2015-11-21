@@ -7,6 +7,7 @@ package org.shaman.terrain;
 
 import com.jme3.math.FastMath;
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * A class for storing heightmaps
@@ -32,6 +33,12 @@ public class Heightmap implements Cloneable, Serializable {
 	
 	public int getSize() {
 		return size;
+	}
+	
+	public void fillHeight(float h) {
+		for (int x=0; x<size; ++x) {
+			Arrays.fill(data[x], h);
+		}
 	}
 	
 	/**

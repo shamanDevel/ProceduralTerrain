@@ -63,6 +63,13 @@
 							<control id="StopButton" name="button" label="Stop" width="79px" margin="2px"/>
 							<control id="ResetButton" name="button" label="Reset" width="79px" margin="2px"/>
 						</panel>
+						<panel childLayout="horizontal">
+							<control id="RainCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Rain  " margin="2px"/>
+							<control id="RiverCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="River  " margin="2px"/>
+							<control id="DeleteWaterButton" name="button" label="Delete Water" margin="2px"/>
+						</panel>
 						<control id="IterationsLabel" name="label" textHAlign="left" text="Iterations: 0" width="200px" margin="2px"/>
 						<panel childLayout="horizontal">
 							<control id="HeightDifferenceCheckBox" name="checkbox" margin="2px"/>
