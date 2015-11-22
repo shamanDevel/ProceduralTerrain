@@ -668,7 +668,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		private static final float KcOcean = 0.1f; //sediment capacity constant
 		private static final float Ks = 0.1f; //sediment dissolving constant
 		private static final float Kd = 0.1f; //sediment deposition constant
-		private static final float EROSION_FACTOR = 100;
+		private static final float EROSION_FACTOR = 200;
 		private static final float Ke = 0.005f; //evaporation constant
 		private static final float RIVER_FACTOR = 0.2f;
 		//Input
