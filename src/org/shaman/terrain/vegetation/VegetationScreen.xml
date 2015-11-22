@@ -36,7 +36,7 @@
 						<panel childLayout="absolute" height="20px"/>
 						
 						<control name="label" text="Click on a biome to draw it"/>
-						<image filename="org/shaman/terrain/polygonal/Biomes.png"
+						<image id="BiomeImage" filename="org/shaman/terrain/polygonal/Biomes.png"
 							   filter="true" margin="2px" width="246px" height="133px">
 							<interact onClick="biomeSelected()" />
 						</image>
@@ -63,7 +63,7 @@
 						<panel childLayout="absolute" height="20px"/>
 						<panel childLayout="horizontal">
 							<control id="GeneratePlantsButton" name="button" label="Generate Plants" width="172px" margin="2px"/>
-							<control id="CancelButton" name="button" label="Cancel" width="70px" margin="2px" />
+							<control id="CancelGenerationButton" name="button" label="Cancel" width="70px" margin="2px" />
 						</panel>
 						<panel childLayout="center" width="250px" height="30px">
 						<control id="GeneratePlantsProgressbar" name="progressbar" width="230px" height="30px" margin="2px" />
