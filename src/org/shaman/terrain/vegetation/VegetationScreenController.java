@@ -13,6 +13,7 @@ import de.lessvoid.nifty.examples.progressbar.ProgressbarControl;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import java.util.Random;
+import org.shaman.terrain.polygonal.Biome;
 
 /**
  *
@@ -129,11 +130,79 @@ public class VegetationScreenController implements ScreenController {
 		}
 	}
 	
+	private void selectBiome(Biome b) {
+		selectedBiomeLabel.setText("Selected biome: "+b.name());
+		generator.guiBiomeSelected(b);
+	}
 	public void biomeSelected(int x, int y) {
 		x -= biomeImage.getX();
 		y -= biomeImage.getY();
 		System.out.println("biome clicked at "+x+":"+y);
-		//TODO
+		x -= 27;
+		y -= 20;
+		if (x<0 || y<0) {
+			selectBiome(null);
+			return;
+		}
+		x /= 36;
+		y /= 32;
+		if (x>5 || y>4) {
+			selectBiome(null);
+			return;
+		}
+		Biome b = null;
+		switch (y) {
+			case 0:
+				switch (x) {
+					case 0: b = Biome.SCORCHED; break;
+					case 1: b = Biome.BARE; break;
+					case 2: b = Biome.TUNDRA; break;
+					case 3:
+					case 4:
+					case 5: b = Biome.SNOW; break;
+				}
+				break;
+			case 1:
+				switch (x) {
+					case 0:
+					case 1: b = Biome.TEMPERATE_DESERT; break;
+					case 2:
+					case 3: b = Biome.SHRUBLAND; break;
+					case 4:
+					case 5: b = Biome.TAIGA; break;
+				}
+				break;
+			case 2:
+				switch (x) {
+					case 0: b = Biome.TEMPERATE_DESERT; break;
+					case 1:
+					case 2: b = Biome.GRASSLAND; break;
+					case 3:
+					case 4: b = Biome.TEMPERATE_DECIDUOUS_FOREST; break;
+					case 5: b = Biome.TEMPERATE_RAIN_FOREST; break;
+				}
+				break;
+			case 3:
+				switch (x) {
+					case 0: b = Biome.SUBTROPICAL_DESERT; break;
+					case 1: b = Biome.GRASSLAND; break;
+					case 2:
+					case 3: b = Biome.TROPICAL_SEASONAL_FOREST; break;
+					case 4:
+					case 5: b = Biome.TROPICAL_RAIN_FOREST; break;
+				}
+				break;
+			case 4:
+				switch (x) {
+					case 0:
+					case 1:
+					case 2: b = Biome.BEACH; break;
+					case 3:
+					case 4:
+					case 5: b = Biome.LAKE; break;
+				}
+		}
+		selectBiome(b);
 	}
 	
 }

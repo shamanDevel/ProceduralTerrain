@@ -36,11 +36,11 @@
 						<panel childLayout="absolute" height="20px"/>
 						
 						<control name="label" text="Click on a biome to draw it"/>
-						<image id="BiomeImage" filename="org/shaman/terrain/polygonal/Biomes.png"
-							   filter="true" margin="2px" width="246px" height="133px">
+						<image id="BiomeImage" filename="org/shaman/terrain/vegetation/Biomes.png"
+							   filter="true" margin="2px" width="246px" height="180px">
 							<interact onClick="biomeSelected()" />
 						</image>
-						<control id="SelectedBiomeLabel" name="label" text="Selected Biome: NONE"/>
+						<control id="SelectedBiomeLabel" name="label" width="250px" text="Selected Biome: NONE"/>
 						
 						<panel childLayout="absolute" height="20px"/>
 						
