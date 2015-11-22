@@ -25,9 +25,7 @@ import com.jme3.texture.Texture2D;
 import com.jme3.util.BufferUtils;
 import de.lessvoid.nifty.Nifty;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.shaman.terrain.AbstractTerrainStep;
@@ -35,6 +33,7 @@ import org.shaman.terrain.Heightmap;
 import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.Vectorfield;
 import org.shaman.terrain.polygonal.PolygonalMapGenerator;
+import org.shaman.terrain.vegetation.VegetationGenerator;
 
 /**
  *
@@ -42,6 +41,7 @@ import org.shaman.terrain.polygonal.PolygonalMapGenerator;
  */
 public class WaterErosionSimulation extends AbstractTerrainStep {
 	private static final Logger LOG = Logger.getLogger(WaterErosionSimulation.class.getName());
+	private static final Class<? extends AbstractTerrainStep> NEXT_STEP = VegetationGenerator.class;
 	private static final double BRUSH_STRENGTH = 0.03;
 	private static final float WATER_COLOR_FACTOR = 64;
 	private static final float HEIGHT_DIFF_FACTOR = 2;
@@ -575,6 +575,16 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 			solver.deleteWater();
 		}
 	}
+	void guiNextStep() {
+		Map<Object, Object> props = new HashMap<>(properties);
+		props.put(KEY_HEIGHTMAP, newMap==null ? map : newMap);
+		props.put(KEY_MOISTURE, moisture);
+		props.put(KEY_TEMPERATURE, temperature);
+		props.put(KEY_WATER, solver==null ? new Heightmap(map.getSize()) : solver.getWaterHeight());
+		props.put(KEY_RIVER_SOURCES, riverSources);
+		props.put(KEY_TERRAIN_SCALE, 1f/scaleFactor);
+		super.nextStep(NEXT_STEP, props);
+	}
 	
 	private void registerListener() {
 		if (listener == null) {
@@ -643,15 +653,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		}
 		
 	}
-	
-	public static class RiverSource {
-		public int x;
-		public int y;
-		public float radius;
-		public float intensity;
-		public Geometry geom;
-	}
-	
+		
 	public static class ErosionSolver {
 		//Settings
 		private static final float RAINDROPS_PER_ITERATION = 0.001f;

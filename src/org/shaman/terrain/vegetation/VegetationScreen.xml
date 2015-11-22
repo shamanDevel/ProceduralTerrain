@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty xmlns="https://raw.githubusercontent.com/void256/nifty-gui/1.4/nifty-core/src/main/resources/nifty.xsd" 
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	   xsi:schemaLocation="https://raw.githubusercontent.com/void256/nifty-gui/1.4/nifty-core/src/main/resources/nifty.xsd">
+
+	<useStyles filename="nifty-default-styles.xml" />
+	<useControls filename="nifty-default-controls.xml" />
+	<!-- this is our nifty little progressbar control -->
+    <controlDefinition name="progressbar" controller="de.lessvoid.nifty.examples.progressbar.ProgressbarControl">
+        <image filename="progressbar/progressbar-outer.png" imageMode="resize:15,2,15,15,15,2,15,2,15,2,15,15"
+               childLayout="absolute">
+            <image id="#progress" x="0" y="0" filename="progressbar/progressbar-inner.png" width="32px" height="100%"
+                   imageMode="resize:15,2,15,15,15,2,15,2,15,2,15,15"/>
+            <text id="#progress-text" font="verdana-small-regular.fnt" text="" textHAlign="center" textVAlign="center"
+                  width="100%" height="100%" x="0" y="0" color="#f00f"/>
+        </image>
+    </controlDefinition>
+	
+	<screen id="Vegetation" controller="org.shaman.terrain.vegetation.VegetationScreenController">
+		<!-- main layer -->
+		<layer childLayout="absolute">
+			<panel height="100%" width="100%" childLayout="vertical">
+				<panel id="NavigationPanel" width="100%" height="30px" childLayout="horizontal" backgroundColor="#000a">
+					<control name="label" text="Polygonal Map" width="150px" />
+					<control name="label" text="Terrain Features" width="150px" />
+					<control name="label" text="Water Erosion" width="150px" />
+					<control name="label" text="Vegetation" width="150px" />
+				</panel>
+				<panel childLayout="vertical" backgroundColor="#5558">
+					<panel id="PropertiesPanel" width="250px" height="100%" childLayout="vertical">
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Brush size:" width="100px" margin="2px"/>
+							<control id="BrushSizeSlider" name="horizontalSlider" width="142px" margin="2px"
+									 min="1" max="50" initial="5" stepSize="1" buttonStepSize="5"/>
+						</panel>
+						<panel childLayout="absolute" height="20px"/>
+						
+						<control name="label" text="Click on a biome to draw it"/>
+						<image filename="org/shaman/terrain/polygonal/Biomes.png"
+							   filter="true" margin="2px" width="246px" height="133px">
+							<interact onClick="biomeSelected()" />
+						</image>
+						<control id="SelectedBiomeLabel" name="label" text="Selected Biome: NONE"/>
+						
+						<panel childLayout="absolute" height="20px"/>
+						
+						<control name="label" text="Plants"/>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" width="70px" text="Seed:" margin="2px"/>
+							<control id="SeedTextField" name="textfield" width="118px" margin="2px"/>
+							<control id="SeedButton" name="button" label="New" width="50px" margin="2px" />
+						</panel>
+						<panel childLayout="horizontal">
+							<control id="DensityCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Show+Edit Density" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Plant size:" width="100px" margin="2px"/>
+							<control id="PlantSizeSlider" name="horizontalSlider" width="142px" margin="2px"
+									 min="0.01" max="10" initial="2" stepSize="0.01" buttonStepSize="0.1"/>
+						</panel>
+						
+						<panel childLayout="absolute" height="20px"/>
+						<panel childLayout="horizontal">
+							<control id="GeneratePlantsButton" name="button" label="Generate Plants" width="172px" margin="2px"/>
+							<control id="CancelButton" name="button" label="Cancel" width="70px" margin="2px" />
+						</panel>
+						<panel childLayout="center" width="250px" height="30px">
+						<control id="GeneratePlantsProgressbar" name="progressbar" width="230px" height="30px" margin="2px" />
+						</panel>
+						
+						<panel childLayout="absolute" height="20px"/>
+						<control id="NextStepButton" name="button" label="Next Step" width="246px" margin="2px"/>
+					</panel>
+				</panel>
+			</panel>
+		</layer>
+		<!-- message layer -->
+		<layer childLayout="absolute">
+			<panel childLayout="vertical" height="100%" width="100%">
+				<panel childLayout="absolute" height="50px"/>
+				<panel childLayout="horizontal" width="100%" height="100px">
+					<control id="MessageLabel" name="label" textHAlign="center" 
+							 text="" width="100%" color="#f00f" />
+				</panel>
+			</panel>
+		</layer>
+	</screen>
+	
+</nifty>

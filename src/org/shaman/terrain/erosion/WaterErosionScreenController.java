@@ -40,6 +40,7 @@ public class WaterErosionScreenController implements ScreenController {
 	private CheckBox rainCheckBox;
 	private CheckBox riverCheckBox;
 	private Button deleteWaterButton;
+	private Button nextStepButton;
 	private Label messageLabel;
 
 	public WaterErosionScreenController(WaterErosionSimulation simulation, int mapSize) {
@@ -74,6 +75,7 @@ public class WaterErosionScreenController implements ScreenController {
 		deleteWaterButton = screen.findNiftyControl("DeleteWaterButton", Button.class);
 		iterationsLabel = screen.findNiftyControl("IterationsLabel", Label.class);
 		heightDifferenceCheckBox = screen.findNiftyControl("HeightDifferenceCheckBox", CheckBox.class);
+		nextStepButton = screen.findNiftyControl("NextStepButton", Button.class);
 		messageLabel = screen.findNiftyControl("MessageLabel", Label.class);
 		
 		upscaleDropDown.addAllItems(Arrays.asList(originalSize, originalSize*2, originalSize*4, originalSize*8));
@@ -136,6 +138,8 @@ public class WaterErosionScreenController implements ScreenController {
 			simulation.guiDeleteWater();
 		} else if (deleteSourceButton == e.getButton()) {
 			simulation.guiDeleteRiverSource();
+		} else if (nextStepButton == e.getButton()) {
+			simulation.guiNextStep();
 		}
 	}
 	

@@ -14,6 +14,7 @@ import java.util.Calendar;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import org.shaman.terrain.erosion.RiverSource;
 import org.shaman.terrain.polygonal.Biome;
 
 /**
@@ -44,6 +45,21 @@ public abstract class AbstractTerrainStep implements AppState {
 	 * Biome's oridinal values.
 	 */
 	public static final String KEY_BIOMES = "biomes";
+	/**
+	 * Key for the property storing the water height after the water erosion
+	 * in a {@link Heightmap}
+	 */
+	public static final String KEY_WATER = "water";
+	/**
+	 * Key for a list of {@link RiverSource}. These river sources are added
+	 * and simulated in the hydraulic erosion step and are available in the
+	 * next steps (vegetation).
+	 */
+	public static final String KEY_RIVER_SOURCES = "river-sources";
+	/**
+	 * Key for a float storing an extra scale factor of the terrain in xz-direction.
+	 */
+	public static final String KEY_TERRAIN_SCALE = "terrain-scale";
 	
 	protected AppStateManager stateManager;
 	protected TerrainHeighmapCreator app;

@@ -11,8 +11,10 @@
 		<layer childLayout="absolute">
 			<panel height="100%" width="100%" childLayout="vertical">
 				<panel id="NavigationPanel" width="100%" height="30px" childLayout="horizontal" backgroundColor="#000a">
-					<control name="label" text="Step1" width="70px" />
-					<control name="label" text="Step2" width="70px" />
+					<control name="label" text="Polygonal Map" width="70px" />
+					<control name="label" text="Terrain Features" width="70px" />
+					<control name="label" text="Water Erosion" width="70px" />
+					<control name="label" text="Vegetation" width="70px" />
 				</panel>
 				<panel childLayout="vertical" backgroundColor="#0008">
 					<panel id="PropertiesPanel" width="250px" height="100%" childLayout="vertical">

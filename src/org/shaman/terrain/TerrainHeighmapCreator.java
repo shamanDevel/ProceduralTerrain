@@ -83,6 +83,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.shaman.terrain.erosion.WaterErosionSimulation;
 import org.shaman.terrain.heightmap.*;
 import org.shaman.terrain.polygonal.PolygonalMapGenerator;
+import org.shaman.terrain.vegetation.VegetationGenerator;
 
 
 /**
@@ -98,14 +99,15 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	public static final float TERRAIN_SCALE = 16;
 	private static final boolean RECORDING = false;
 	private static final int RECORDING_FRAMES = 1000 / 10; //20 FPS
-	private static final boolean RECORDING_TIMER = true;
+	private static final boolean RECORDING_TIMER = false;
 	
 	@SuppressWarnings("unchecked")
 	private static final Class<? extends AbstractTerrainStep>[] STEPS = new Class[] {
 		//RandomHeightmapGenerator.class,
 		PolygonalMapGenerator.class,
 		SketchTerrain.class,
-		WaterErosionSimulation.class
+		WaterErosionSimulation.class,
+		VegetationGenerator.class
 	};
 	private static final int FIRST_STEP_INDEX = 0;
 	private AbstractTerrainStep[] steps;
