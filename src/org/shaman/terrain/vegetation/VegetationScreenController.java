@@ -131,7 +131,7 @@ public class VegetationScreenController implements ScreenController {
 	}
 	
 	private void selectBiome(Biome b) {
-		selectedBiomeLabel.setText("Selected biome: "+b.name());
+		selectedBiomeLabel.setText("Selected biome: "+(b==null ? "NONE" : b.name()));
 		generator.guiBiomeSelected(b);
 	}
 	public void biomeSelected(int x, int y) {

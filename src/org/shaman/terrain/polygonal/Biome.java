@@ -50,7 +50,7 @@ public enum Biome {
 	public static Biome getBiome(float temperature, float moisture) {
 		if (temperature<0 || temperature>1 
 				|| moisture<0 || moisture>1) {
-			throw new IllegalArgumentException("arguments are out of bounds");
+			throw new IllegalArgumentException("arguments are out of bounds: temperature="+temperature+" moisture="+moisture);
 		}
 		//Temperature index, from 1 (warm) to 4 (cold)
 		int temp = (int) ((1-temperature) * 4);

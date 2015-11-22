@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.shaman.terrain;
+package org.shaman.terrain.polygonal;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
@@ -17,6 +17,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
+import org.shaman.terrain.Vectorfield;
 import org.shaman.terrain.polygonal.Biome;
 
 /**
@@ -35,7 +36,8 @@ public class BiomesMaterialCreator {
 		"org/shaman/terrain/textures/Shrubland.tga",
 		"org/shaman/terrain/textures/Snow.jpg",
 		"org/shaman/terrain/textures/Stone.jpg",
-		"org/shaman/terrain/textures/Tundra.jpg"
+		"org/shaman/terrain/textures/Tundra.jpg",
+		"org/shaman/terrain/rock2.jpg"
 	};
 	private static final float[] TEXTURE_SCALES = {
 		1/8f,
@@ -47,7 +49,8 @@ public class BiomesMaterialCreator {
 		1/8f,
 		1/8f,
 		1/8f,
-		1/8f
+		1/8f,
+		1/16f
 	};
 	private static final int[] BIOME_TO_TEXTURE = new int[Biome.values().length];
 	static {
@@ -68,6 +71,8 @@ public class BiomesMaterialCreator {
 		BIOME_TO_TEXTURE[Biome.LAKE.ordinal()] = 0;
 		BIOME_TO_TEXTURE[Biome.OCEAN.ordinal()] = 0;
 	}
+	private static final float SLOPE_SCALE = 100f;
+	private static final float SLOPE_POWER = 2f;
 	
 	public static Material createTerrainMaterial(Vectorfield biomes, AssetManager assetManager) {
 		Material mat = new Material(assetManager, "Common/MatDefs/Terrain/TerrainLighting.j3md");
