@@ -33,6 +33,7 @@ public class VegetationScreenController implements ScreenController {
 	private Button newSeedButton;
 	private CheckBox densityCheckBox;
 	private Slider plantSizeSlider;
+	private CheckBox grassCheckButton;
 	private Button generatePlantsButton;
 	private Button cancelGenerationButton;
 	private ProgressbarControl generatePlantsProgressbar;
@@ -57,6 +58,7 @@ public class VegetationScreenController implements ScreenController {
 		newSeedButton = screen.findNiftyControl("SeedButton", Button.class);
 		densityCheckBox = screen.findNiftyControl("DensityCheckBox", CheckBox.class);
 		plantSizeSlider = screen.findNiftyControl("PlantSizeSlider", Slider.class);
+		grassCheckButton = screen.findNiftyControl("GrassCheckBox", CheckBox.class);
 		generatePlantsButton = screen.findNiftyControl("GeneratePlantsButton", Button.class);
 		cancelGenerationButton = screen.findNiftyControl("CancelGenerationButton", Button.class);
 		generatePlantsProgressbar = screen.findControl("GeneratePlantsProgressbar", ProgressbarControl.class);
@@ -121,6 +123,8 @@ public class VegetationScreenController implements ScreenController {
 			generator.guiEditDensity(e.isChecked());
 		} else if (texturedCheckBox == e.getCheckBox()) {
 			generator.guiShowTextured(e.isChecked());
+		} else if (grassCheckButton == e.getCheckBox()) {
+			generator.guiShowGrass(e.isChecked());
 		}
 	}
 	

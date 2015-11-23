@@ -63,6 +63,10 @@
 							<control id="PlantSizeSlider" name="horizontalSlider" width="142px" margin="2px"
 									 min="0.01" max="10" initial="2" stepSize="0.01" buttonStepSize="0.1"/>
 						</panel>
+						<panel childLayout="horizontal">
+							<control id="GrassCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Show Grass" margin="2px"/>
+						</panel>
 						
 						<panel childLayout="absolute" height="20px"/>
 						<panel childLayout="horizontal">

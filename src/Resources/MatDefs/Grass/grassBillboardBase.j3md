@@ -1,0 +1,66 @@
+MaterialDef BillboardGrass {
+
+    MaterialParameters {
+
+        //Fading parameters (don't set these manually).
+        Float FadeEnd
+        Float FadeRange
+        Boolean FadeEnabled
+        
+        //Is the grass swaying or not?
+        Boolean Swaying
+        //The wind vector (determines direction and amplitude of the swaying function).
+        Vector2 Wind
+        //Combined vector for various fading data.
+        //x = The swaying frequency
+        //y = The swaying variation (how the offset varies between patches)
+        //z = Maximum swaying distance (grass beyond this distance does not move).
+        Vector3 SwayData
+        
+        //Use lighting
+        Boolean VertexLighting
+        
+        //Use vertex colors
+        Boolean VertexColors
+
+        //Use self shadowing
+        Boolean SelfShadowing
+        
+        //The texture
+        Texture2D ColorMap
+        //The perlin noise for stipple fading.
+        Texture2D AlphaNoiseMap
+
+        //When texture alpha is below this value, the pixel is discarded
+        Float AlphaThreshold
+        
+        //Used internally.
+        Int NumLights
+    }
+
+    Technique {
+
+        LightMode SinglePass
+
+        VertexShader GLSL100:   Resources/Shaders/Grass/BillboardGrass.vert
+        FragmentShader GLSL100: Resources/Shaders/Grass/Grass.frag
+
+        WorldParameters {
+            WorldViewProjectionMatrix
+            WorldMatrix
+            CameraPosition
+            CameraLeft
+            Time
+        }
+
+        Defines {
+            SWAYING : Swaying
+            FADE_ENABLED : FadeEnabled
+            VERTEX_LIGHTING : VertexLighting
+            VERTEX_COLORS : VertexColors
+            SELF_SHADOWING : SelfShadowing
+            NUM_LIGHTS : NumLights
+        }
+    }
+
+}

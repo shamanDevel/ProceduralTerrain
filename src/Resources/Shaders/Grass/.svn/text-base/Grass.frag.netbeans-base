@@ -1,0 +1,31 @@
+varying vec2 texCoord;
+varying vec4 color;
+
+#ifdef VERTEX_LIGHTING
+varying vec3 diffuseLight;
+varying vec3 ambientLight;
+#endif
+
+uniform sampler2D m_ColorMap;
+uniform sampler2D m_AlphaNoiseMap;
+
+void main() {
+
+    vec4 outColor = texture2D(m_ColorMap, texCoord);
+    
+    #ifdef VERTEX_LIGHTING    
+    outColor.rgb *= (diffuseLight + ambientLight);
+    #endif
+    outColor.rgb*= color.rgb;
+
+    #ifdef FADE_ENABLED
+    if(color.a < texture2D(m_AlphaNoiseMap, texCoord).r){
+        discard;
+    }
+    #endif
+    if(outColor.a < 0.4){
+        discard;
+    }
+    gl_FragColor = outColor;
+}
+

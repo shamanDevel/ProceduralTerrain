@@ -6,7 +6,6 @@
 package org.shaman.terrain.vegetation;
 
 import com.jme3.collision.CollisionResults;
-import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
@@ -45,6 +44,7 @@ public class VegetationGenerator extends AbstractTerrainStep {
 	private float brushSize;
 	private boolean textured = false;
 	private float plantSize;
+	private boolean showGrass;
 	private long seed;
 	
 	//Input
@@ -174,6 +174,25 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		}
 	}
 	
+	private void updateGrass() {
+		if (!showGrass) return;
+//		Forester forester = new Forester(sceneNode, app.getCamera(), app.getHeightmapSpatial());
+//		forester.
+//		ProceduralGrassLoader pgl = forester.createProceduralGrass(50);
+//		Material mat1 = new Material(app.getAssetManager(), "Resources/grassBase.j3md");
+//		mat1.setBoolean("IsImpostor", false);
+//		mat1.setTexture("ColorMap", app.getAssetManager().loadTexture("Resources/grass.png"));
+//		Material mat2 = new Material(app.getAssetManager(), "Resources/grassBase.j3md");
+//		mat2.setBoolean("IsImpostor", true);
+//		mat2.setTexture("ColorMap", app.getAssetManager().loadTexture("Resources/grass.png"));
+//		GrassLayer layer = pgl.addLayer(mat1, mat2, AbstractGrassLoader.MeshType.CROSSQUADS);
+//		layer.setMinHeight(2);
+//		layer.setMaxHeight(3);
+//		layer.setMinWidth(2);
+//		layer.setMaxWidth(3);
+		LOG.info("grass added");
+	}
+	
 	void guiBiomeSelected(@Nullable Biome biome) {
 		LOG.info("biome selected: "+biome);
 		selectedBiome = biome;
@@ -201,6 +220,11 @@ public class VegetationGenerator extends AbstractTerrainStep {
 	void guiPlantSizeChanged(float scale) {
 		LOG.info("plant size changed: "+scale);
 		plantSize = scale;
+	}
+	void guiShowGrass(boolean show) {
+		LOG.info("show grass: "+show);
+		showGrass = show;
+		updateGrass();
 	}
 	void guiGeneratePlants() {
 		LOG.info("generate plants");
