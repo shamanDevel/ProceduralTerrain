@@ -28,6 +28,7 @@ public class VegetationScreenController implements ScreenController {
 	private Slider brushSizeSlider;
 	private Element biomeImage;
 	private Label selectedBiomeLabel;
+	private CheckBox texturedCheckBox;
 	private TextField seedTextField;
 	private Button newSeedButton;
 	private CheckBox densityCheckBox;
@@ -51,6 +52,7 @@ public class VegetationScreenController implements ScreenController {
 		brushSizeSlider = screen.findNiftyControl("BrushSizeSlider", Slider.class);
 		biomeImage = screen.findElementById("BiomeImage");
 		selectedBiomeLabel = screen.findNiftyControl("SelectedBiomeLabel", Label.class);
+		texturedCheckBox = screen.findNiftyControl("TexturedCheckBox", CheckBox.class);
 		seedTextField = screen.findNiftyControl("SeedTextField", TextField.class);
 		newSeedButton = screen.findNiftyControl("SeedButton", Button.class);
 		densityCheckBox = screen.findNiftyControl("DensityCheckBox", CheckBox.class);
@@ -117,6 +119,8 @@ public class VegetationScreenController implements ScreenController {
 		System.out.println("checkbox "+id+" changed: "+e.isChecked());
 		if (densityCheckBox == e.getCheckBox()) {
 			generator.guiEditDensity(e.isChecked());
+		} else if (texturedCheckBox == e.getCheckBox()) {
+			generator.guiShowTextured(e.isChecked());
 		}
 	}
 	

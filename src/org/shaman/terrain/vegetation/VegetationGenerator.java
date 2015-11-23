@@ -36,13 +36,14 @@ import org.shaman.terrain.polygonal.Biome;
  */
 public class VegetationGenerator extends AbstractTerrainStep {
 	private static final Logger LOG = Logger.getLogger(VegetationGenerator.class.getName());
-	private static final double BRUSH_STRENGTH = 0.03;
+	private static final double BRUSH_STRENGTH = 0.3;
 	
 	//GUI and settings
 	private VegetationScreenController screenController;
 	private boolean editDensity = false;
 	private Biome selectedBiome;
 	private float brushSize;
+	private boolean textured = false;
 	private float plantSize;
 	private long seed;
 	
@@ -109,16 +110,16 @@ public class VegetationGenerator extends AbstractTerrainStep {
 				float m = clamp(moisture.getHeightAt(x, y));
 				float t = clamp(temperature.getHeightAt(x, y));
 				float h = map.getHeightAt(x, y);
-				//if (h<=0) {
+				if (h<=0) {
 					biomes.setScalarAt(x, y, Biome.OCEAN.ordinal(), 1);
-				//} else {
-				//	Biome b = Biome.getBiome(t, 1-m);
-				//	biomes.setScalarAt(x, y, b.ordinal(), 1);
-				//}
+				} else {
+					Biome b = Biome.getBiome(t, 1-m);
+					biomes.setScalarAt(x, y, b.ordinal(), 1);
+				}
 			}
 		}
 		materialCreator = new BiomesMaterialCreator(app.getAssetManager(), biomes);
-		app.forceTerrainMaterial(materialCreator.getMaterial());
+		app.forceTerrainMaterial(materialCreator.getMaterial(textured));
 	}
 
 	@Override
@@ -151,13 +152,12 @@ public class VegetationGenerator extends AbstractTerrainStep {
 			brushSphere.setCullHint(selectedBiome==null ? Spatial.CullHint.Always : Spatial.CullHint.Never);
 			Vector3f point = results.getClosestCollision().getContactPoint();
 			brushSphere.setLocalTranslation(point);
-			point.x *= scaleFactor;
-			point.z *= scaleFactor;
+			point.x /= scaleFactor;
+			point.z /= scaleFactor;
 			Vector3f mapPoint = app.mapWorldToHeightmap(point);
 			//apply brush
 			if (clicked!=1 || selectedBiome==null) {return;}
-			int direction = 1;
-			float radius = brushSize*scaleFactor;
+			float radius = brushSize/scaleFactor;
 			float cx = mapPoint.x;
 			float cy = mapPoint.y;
 			for (int x = Math.max(0, (int) (cx - radius)); x<Math.min(map.getSize(), (int) (cx + radius + 1)); ++x) {
@@ -166,9 +166,11 @@ public class VegetationGenerator extends AbstractTerrainStep {
 					if (dist<radius) {
 						dist /= radius;
 						dist = Math.cos(dist*dist*Math.PI/2) * BRUSH_STRENGTH;
+						materialCreator.updateBiomes(x, y, selectedBiome, (float) dist);
 					}
 				}
 			}
+			materialCreator.updateMaterial(textured);
 		}
 	}
 	
@@ -182,6 +184,11 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		if (brushSphere != null) {
 			brushSphere.setLocalScale(brushSize*TerrainHeighmapCreator.TERRAIN_SCALE);
 		}
+	}
+	void guiShowTextured(boolean textured) {
+		this.textured = textured;
+		materialCreator.updateMaterial(textured);
+		app.forceTerrainMaterial(materialCreator.getMaterial(textured));
 	}
 	void guiSeedChanged(long seed) {
 		LOG.info("seed changed: "+seed);
