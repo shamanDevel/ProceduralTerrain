@@ -13,7 +13,10 @@ import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.shadow.DirectionalLightShadowRenderer;
 import com.jme3.system.AppSettings;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.terrain.heightmap.HeightMap;
@@ -62,6 +65,9 @@ public class GrassTest extends SimpleApplication {
         rootNode.addLight(light);
 		AmbientLight ambientLight = new AmbientLight(new ColorRGBA(0.2f, 0.2f, 0.2f, 1));
 		rootNode.addLight(ambientLight);
+		DirectionalLightShadowRenderer shadowRenderer = new DirectionalLightShadowRenderer(assetManager, 512, 4);
+		shadowRenderer.setLight(light);
+		viewPort.addProcessor(shadowRenderer);
 		
 		Texture grass = assetManager.loadTexture("org/shaman/terrain/grass.jpg");
 		matTerrain = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
@@ -72,6 +78,7 @@ public class GrassTest extends SimpleApplication {
 		terrain.setMaterial(matTerrain);
         terrain.setModelBound(new BoundingBox());
         terrain.updateModelBound();
+		terrain.setShadowMode(RenderQueue.ShadowMode.Receive);
 		rootNode.attachChild(terrain);
 		
 		//init grass
@@ -93,6 +100,11 @@ public class GrassTest extends SimpleApplication {
 		layer.setMaxWidth(2.4f);
 		layer.setMinWidth(1.f);
 		layer.setPlantingAlgorithm(new GPAUniform(0.3f));
+		layer.setSwaying(true);
+		layer.setWind(new Vector2f(1, 0));
+		layer.setSwayingVariation(0.4f);
+		layer.setSwayingFrequency(2f);
+//		layer.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 	}
 
 	@Override

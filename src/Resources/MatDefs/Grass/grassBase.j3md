@@ -64,8 +64,8 @@ MaterialDef Grass {
 
     Technique PreShadow {
 
-        VertexShader GLSL100 :   Shaders/PSSM/GrassPreShadow.vert
-        FragmentShader GLSL100 : Shaders/PSSM/GrassPreShadow.frag
+        VertexShader GLSL100 :   Common/MatDefs/Shadow/PreShadow.vert
+        FragmentShader GLSL100 : Common/MatDefs/Shadow/PreShadow.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -74,16 +74,20 @@ MaterialDef Grass {
             CameraPosition
         }
 
+        WorldParameters {
+            WorldViewProjectionMatrix
+            WorldViewMatrix
+        }
+
         Defines {
-            SWAYING : Swaying
-            FADE_ENABLED : FadeEnabled
+            DIFFUSEMAP_ALPHA : DiffuseMap
         }
 
         RenderState {
             FaceCull Off
             DepthTest On
             DepthWrite On
-            //PolyOffset 5 0
+            PolyOffset 5 0
             ColorWrite Off
         }
 
