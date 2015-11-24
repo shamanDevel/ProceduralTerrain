@@ -18,9 +18,9 @@ uniform sampler2D m_AlphaNoiseMap;
 
 void main() {
     #ifdef FADE_ENABLED
-    if(texCoord.z < texture2D(m_AlphaNoiseMap, texCoord.xy).r){
-        discard;
-    }
+    //if(texCoord.z < texture2D(m_AlphaNoiseMap, texCoord.xy).r){
+    //    discard;
+    //}
     #endif
 
     vec4 outColor = texture2D(m_ColorMap, texCoord.xy);
@@ -36,6 +36,8 @@ void main() {
     #ifdef VERTEX_COLORS
     outColor.rgb*= color.rgb;
     #endif
+
+	outColor.a*=texCoord.z;
 
     gl_FragColor = outColor;
 }

@@ -62,6 +62,7 @@ public class VegetationGenerator extends AbstractTerrainStep {
 	
 	//biomes
 	private BiomesMaterialCreator materialCreator;
+	private GrassCreator grass;
 
 	@Override
 	@SuppressWarnings("unchecked")
@@ -89,7 +90,9 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		
 		app.setTerrain(map);
 		originalMapScale = app.getHeightmapSpatial().getLocalScale().clone();
-		app.getHeightmapSpatial().setLocalScale(originalMapScale.x * scaleFactor, originalMapScale.y, originalMapScale.z * scaleFactor);
+//		app.getHeightmapSpatial().setLocalScale(originalMapScale.x * scaleFactor, originalMapScale.y, originalMapScale.z * scaleFactor);
+		app.getHeightmapSpatial().setLocalTranslation(0, 0, 0);
+		app.getHeightmapSpatial().setLocalScale(1);
 		
 		brushSphere = new Geometry("brush", new Sphere(32, 32, 1));
 		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
@@ -130,7 +133,9 @@ public class VegetationGenerator extends AbstractTerrainStep {
 
 	@Override
 	public void update(float tpf) {
-		
+		if (grass != null) {
+			grass.update(tpf);
+		}
 	}
 	
 	private float clamp(float v) {
@@ -176,20 +181,10 @@ public class VegetationGenerator extends AbstractTerrainStep {
 	
 	private void updateGrass() {
 		if (!showGrass) return;
-//		Forester forester = new Forester(sceneNode, app.getCamera(), app.getHeightmapSpatial());
-//		forester.
-//		ProceduralGrassLoader pgl = forester.createProceduralGrass(50);
-//		Material mat1 = new Material(app.getAssetManager(), "Resources/grassBase.j3md");
-//		mat1.setBoolean("IsImpostor", false);
-//		mat1.setTexture("ColorMap", app.getAssetManager().loadTexture("Resources/grass.png"));
-//		Material mat2 = new Material(app.getAssetManager(), "Resources/grassBase.j3md");
-//		mat2.setBoolean("IsImpostor", true);
-//		mat2.setTexture("ColorMap", app.getAssetManager().loadTexture("Resources/grass.png"));
-//		GrassLayer layer = pgl.addLayer(mat1, mat2, AbstractGrassLoader.MeshType.CROSSQUADS);
-//		layer.setMinHeight(2);
-//		layer.setMaxHeight(3);
-//		layer.setMinWidth(2);
-//		layer.setMaxWidth(3);
+		if (grass==null) {
+			grass = new GrassCreator(app, map, materialCreator.getBiomes(), sceneNode);
+			grass.showGrass(true);
+		}
 		LOG.info("grass added");
 	}
 	

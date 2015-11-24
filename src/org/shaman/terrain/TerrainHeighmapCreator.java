@@ -224,14 +224,14 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		// Print error to log.
         LOG.log(Level.SEVERE, errMsg, t);
         // Display error message on screen if not in headless mode
-        if (context.getType() != JmeContext.Type.Headless) {
-            if (t != null) {
-                JmeSystem.showErrorDialog(errMsg + "\n" + t.getClass().getSimpleName() +
-                        (t.getMessage() != null ? ": " +  t.getMessage() : ""));
-            } else {
-                JmeSystem.showErrorDialog(errMsg);
-            }
-        }
+//        if (context.getType() != JmeContext.Type.Headless) {
+//            if (t != null) {
+//                JmeSystem.showErrorDialog(errMsg + "\n" + t.getClass().getSimpleName() +
+//                        (t.getMessage() != null ? ": " +  t.getMessage() : ""));
+//            } else {
+//                JmeSystem.showErrorDialog(errMsg);
+//            }
+//        }
 		//do not stop application
 	}
 	

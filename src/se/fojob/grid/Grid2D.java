@@ -157,7 +157,7 @@ public class Grid2D<T extends Cell2D> extends ArrayList<T> implements Cell2D{
         T c = null;
         for(int i = 0; i < size(); i++){
             c = get(i);
-            if(c.hashCode() == hash){
+            if(c!=null && c.hashCode() == hash){
                 return c;
             }
         }
