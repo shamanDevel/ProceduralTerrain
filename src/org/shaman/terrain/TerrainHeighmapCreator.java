@@ -382,7 +382,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
         terrain.setMaterial(matTerrain);
         terrain.setModelBound(new BoundingBox());
         terrain.updateModelBound();
-        terrain.setLocalTranslation(0, -HEIGHMAP_HEIGHT_SCALE/2, 0);
+//        terrain.setLocalTranslation(0, -HEIGHMAP_HEIGHT_SCALE/2, 0);
         terrain.setLocalScale(TERRAIN_SCALE);
 		rootNode.attachChild(terrain);
 	}
@@ -395,7 +395,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	 */
 	public Vector3f getHeightmapPoint(int x, int y) {
 		float h = heightmap.getHeightAt(x, y);
-		Vector3f v = new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
+		Vector3f v = new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE, y - heightmap.getSize()/2);
 		v.multLocal(TERRAIN_SCALE);
 		return v;
 	}
@@ -408,13 +408,13 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	 */
 	public Vector3f getHeightmapPoint(float x, float y) {
 		float h = heightmap.getHeightInterpolating(x, y);
-		Vector3f v = new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
+		Vector3f v = new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE, y - heightmap.getSize()/2);
 		v.multLocal(TERRAIN_SCALE);
 		return v;
 	}
 	
 	public Vector3f mapHeightmapToWorld(float x, float y, float h) {
-		Vector3f v = new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE -HEIGHMAP_HEIGHT_SCALE/2, y - heightmap.getSize()/2);
+		Vector3f v = new Vector3f(x - heightmap.getSize()/2, h*HEIGHMAP_HEIGHT_SCALE, y - heightmap.getSize()/2);
 		v.multLocal(TERRAIN_SCALE);
 		return v;
 	}
@@ -422,7 +422,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	public Vector3f mapWorldToHeightmap(Vector3f world) {
 		float x = world.x/TERRAIN_SCALE + heightmap.getSize()/2;
 		float y = world.z/TERRAIN_SCALE + heightmap.getSize()/2;
-		float h = (world.y/TERRAIN_SCALE + HEIGHMAP_HEIGHT_SCALE/2) / HEIGHMAP_HEIGHT_SCALE;
+		float h = (world.y/TERRAIN_SCALE) / HEIGHMAP_HEIGHT_SCALE;
 		return new Vector3f(x, y, h);
 	}
 	

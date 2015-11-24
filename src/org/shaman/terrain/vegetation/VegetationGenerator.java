@@ -91,8 +91,6 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		app.setTerrain(map);
 		originalMapScale = app.getHeightmapSpatial().getLocalScale().clone();
 //		app.getHeightmapSpatial().setLocalScale(originalMapScale.x * scaleFactor, originalMapScale.y, originalMapScale.z * scaleFactor);
-		app.getHeightmapSpatial().setLocalTranslation(0, 0, 0);
-		app.getHeightmapSpatial().setLocalScale(1);
 		
 		brushSphere = new Geometry("brush", new Sphere(32, 32, 1));
 		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");

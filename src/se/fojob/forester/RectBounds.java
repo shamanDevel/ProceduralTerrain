@@ -108,4 +108,10 @@ public class RectBounds {
     public void setzMin(float zMin) {
         this.zMin = zMin;
     }
+
+	@Override
+	public String toString() {
+		return "RectBounds{" + "xMin=" + xMin + ", xMax=" + xMax + ", zMin=" + zMin + ", zMax=" + zMax + ", center=" + center + '}';
+	}
+	
 }//RectBounds2D

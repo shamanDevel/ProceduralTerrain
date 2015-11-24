@@ -239,9 +239,16 @@ public class GeometryPagingEngine implements PagingEngine{
             int delta = (int)(tpf*1000);
             for(int i = 0; i < cache.size(); i++){
                 tile = cache.get(i);
+				if (tile==null) {
+					log.warning("tile is null");
+					cache.remove(i);
+					i--;
+					continue;
+				}
                 if(tile.getCacheTimer() >= cacheTime){
                     cache.remove(i);
                     tile.unload();
+					i--;
                 } else {
                     tile.increaseCacheTimer(delta);
                 }

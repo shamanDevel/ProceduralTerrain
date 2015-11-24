@@ -21,12 +21,18 @@ import java.util.logging.Logger;
 import org.shaman.terrain.Heightmap;
 import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.Vectorfield;
+import org.shaman.terrain.polygonal.Biome;
 import se.fojob.forester.Forester;
+import se.fojob.forester.RectBounds;
 import se.fojob.forester.grass.GrassLayer;
 import se.fojob.forester.grass.GrassLoader;
+import se.fojob.forester.grass.GrassPage;
 import se.fojob.forester.grass.algorithms.GPAUniform;
+import se.fojob.forester.grass.algorithms.GrassPlantingAlgorithm;
 import se.fojob.forester.grass.datagrids.MapGrid;
+import se.fojob.forester.image.DensityMap;
 import se.fojob.forester.image.FormatReader;
+import se.fojob.forester.util.FastRandom;
 
 /**
  *
@@ -72,19 +78,20 @@ public class GrassCreator {
 			grassMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
 			forester = Forester.getInstance();
 			forester.initialize(sceneNode, app.getCamera(), app.getHeightmapSpatial(), app);
-			GrassLoader grassLoader = forester.createGrassLoader(map.getSize(), 4, 400, 200);
+			GrassLoader grassLoader = forester.createGrassLoader(map.getSize(), 4, 400*TerrainHeighmapCreator.TERRAIN_SCALE, 200*TerrainHeighmapCreator.TERRAIN_SCALE);
 			MapGrid grid = grassLoader.createMapGrid();
 			grid.addDensityMap(createDensityMap(map), 0, 0, 0);
 			layer = grassLoader.addLayer(grassMat.clone(), GrassLayer.MeshType.CROSSQUADS);
 			layer.setDensityTextureData(0, FormatReader.Channel.Green);
 			layer.setDensityMultiplier(3f);
-			layer.setMaxHeight(2f);
-			layer.setMinHeight(1.f);
-			layer.setMaxWidth(2.f);
-			layer.setMinWidth(1.f);
-			layer.setPlantingAlgorithm(new GPAUniform(0.3f));
+			layer.setMaxHeight(2f*TerrainHeighmapCreator.TERRAIN_SCALE);
+			layer.setMinHeight(1.f*TerrainHeighmapCreator.TERRAIN_SCALE);
+			layer.setMaxWidth(2.f*TerrainHeighmapCreator.TERRAIN_SCALE);
+			layer.setMinWidth(1.f*TerrainHeighmapCreator.TERRAIN_SCALE);
+//			layer.setPlantingAlgorithm(new GPAUniform(0.3f));
+			layer.setPlantingAlgorithm(new GrassPlantingAlgorithmImpl());
 			layer.setSwaying(true);
-			layer.setWind(new Vector2f(1, 0));
+			layer.setWind(new Vector2f(1*TerrainHeighmapCreator.TERRAIN_SCALE, 0));
 			layer.setSwayingVariation(0.4f);
 			layer.setSwayingFrequency(2f);
 			enabled = true;
@@ -92,6 +99,58 @@ public class GrassCreator {
 			sceneNode.setCullHint(show ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
 			enabled = show;
 		}
+	}
+	private class GrassPlantingAlgorithmImpl implements GrassPlantingAlgorithm {
+
+		@Override
+		public int generateGrassData(GrassPage page, GrassLayer layer, DensityMap densityMap, float[] grassData, int grassCount) {
+			RectBounds bounds = page.getBounds();
+			//Populating the array of locations (and also getting the total amount
+			//of quads).
+			FastRandom rand = new FastRandom();
+			float width = bounds.getWidth();
+			//Dens is size width * width.
+			System.out.println("page: "+page+", bounds: "+page.getBounds());
+//			float[] dens = densityMap.getDensityUnfiltered(page, layer.getDmChannel());
+			//Iterator
+			int iIt = 0;
+
+			float minX = Float.POSITIVE_INFINITY;
+			float maxX = Float.NEGATIVE_INFINITY;
+			float v[] = null;
+			for (int i = 0; i < grassCount; i++) {
+				float x = rand.unitRandom() * (bounds.getWidth() - 0.01f);
+				float z = rand.unitRandom() * (bounds.getWidth() - 0.01f);
+				minX = Math.min(minX, x);
+				maxX = Math.max(maxX, x);
+
+//				float d = dens[(int)x + (int)width * (int)z];
+//				d=1;
+//				float h = map.getHeightInterpolating(x/map.getSize(), z/map.getSize());
+//				d = h>0 ? 0.7f : 0;
+//				float d = 1;
+				float tx = ((x+bounds.getxMin())+(map.getSize()/2));
+				float ty = ((z+bounds.getzMin())+(map.getSize()/2));
+//				float h = map.getHeightInterpolating(tx, ty);
+//				float d = h>0 ? 1 : 0;
+				v = biomes.getVectorInterpolating(tx, ty, v);
+				float d = v[Biome.GRASSLAND.ordinal()] + 0.25f*v[Biome.TUNDRA.ordinal()];
+
+				d *= d;
+
+				if (rand.unitRandom() + 0.3 < d ) {
+					grassData[iIt++] = (x + bounds.getxMin())*TerrainHeighmapCreator.TERRAIN_SCALE;
+					grassData[iIt++] = (z + bounds.getzMin())*TerrainHeighmapCreator.TERRAIN_SCALE;
+					grassData[iIt++] = rand.unitRandom();
+					//-pi/2 -> pi/2
+					grassData[iIt++] = (-0.5f + rand.unitRandom())*3.141593f;
+				}
+			}
+			System.out.println("minx="+minX+" maxx="+maxX);
+			//The iterator divided by four is the grass-count.
+			return iIt/4;
+		}
+		
 	}
 	private Texture createDensityMap(Heightmap map) {
 		ByteBuffer data = BufferUtils.createByteBuffer(map.getSize() * map.getSize() * 4);
