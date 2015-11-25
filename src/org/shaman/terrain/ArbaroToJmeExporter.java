@@ -146,7 +146,10 @@ public class ArbaroToJmeExporter extends MeshExporter{
 		stemMesh.updateCounts();
 		stemMesh.updateBound();
 		Geometry geom = new Geometry("Stem", stemMesh);
-		Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+//		Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+		Material mat = new Material(assetManager, "org/shaman/terrain/shader/Tree.j3md");
+		mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+		geom.setQueueBucket(RenderQueue.Bucket.Transparent);
 		if (barkTex!=null) {
 			Texture tex = assetManager.loadTexture(barkTex);
 			tex.setWrap(Texture.WrapMode.Repeat);
@@ -167,7 +170,8 @@ public class ArbaroToJmeExporter extends MeshExporter{
 			leafMesh.updateCounts();
 			leafMesh.updateBound();
 			geom = new Geometry("Leaves", leafMesh);
-			mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+//			mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+			mat = new Material(assetManager, "org/shaman/terrain/shader/Tree.j3md");
 			if (leafTex!=null) {
 				mat.setTexture("DiffuseMap", assetManager.loadTexture(leafTex));
 				mat.getAdditionalRenderState().setAlphaTest(true);

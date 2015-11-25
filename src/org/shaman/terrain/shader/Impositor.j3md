@@ -51,16 +51,22 @@ MaterialDef Unshaded {
         Float PCFEdge
 
         Float ShadowMapSize
+
+		Float ImpositorAlpha
     }
 
     Technique {
-        VertexShader GLSL150:   Common/MatDefs/Misc/Unshaded.vert
+        VertexShader GLSL150:   org/shaman/terrain/shader/Impositor.vert
         FragmentShader GLSL150: org/shaman/terrain/shader/Impositor.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
-            ViewProjectionMatrix
+            NormalMatrix
+            WorldViewMatrix
             ViewMatrix
+            CameraPosition
+            WorldMatrix
+            ViewProjectionMatrix   
         }
 
         Defines {

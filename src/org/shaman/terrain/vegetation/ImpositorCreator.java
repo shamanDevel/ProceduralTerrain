@@ -44,8 +44,8 @@ import javax.imageio.ImageIO;
 public class ImpositorCreator extends SimpleApplication{
 	private static final String TREE_FILE = "./treemesh/Tree1.j3o";
 	private static final String OUTPUT_FOLDER = "./treemesh/Tree1/";
-	private static final int TEXTURE_SIZE = 512;
-	public static final int IMPOSITOR_COUNT = 32;
+	private static final int TEXTURE_SIZE = 1024;
+	public static final int IMPOSITOR_COUNT = 8;
 
 	/**
 	 * @param args the command line arguments
@@ -107,6 +107,8 @@ public class ImpositorCreator extends SimpleApplication{
 		sceneNode.setQueueBucket(RenderQueue.Bucket.Gui);
 		for (Geometry geom : geometries) {
 			geom.setQueueBucket(RenderQueue.Bucket.Gui);
+			geom.getMaterial().setFloat("FadeNear", 2000);
+			geom.getMaterial().setFloat("FadeFar", 3000);
 		}
 		//transform to match texture size
 		Node sceneNode2 = new Node("scene2");

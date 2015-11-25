@@ -16,6 +16,7 @@ varying vec2 texCoord1;
 varying vec2 texCoord2;
 
 varying vec4 vertColor;
+varying float impositorAlpha;
 
 void main(){
     vec4 color = vec4(1.0);
@@ -39,6 +40,8 @@ void main(){
             color.rgb *= texture2D(m_LightMap, texCoord1).rgb;
         #endif
     #endif
+
+	color.a *= impositorAlpha;
 
     #if defined(DISCARD_ALPHA)
         if(color.a < m_AlphaDiscardThreshold){

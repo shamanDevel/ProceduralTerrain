@@ -66,10 +66,10 @@ public class QuadXZ extends Mesh {
     public void updateGeometry(float width, float height, boolean flipCoords) {
         this.width = width;
         this.height = height;
-        setBuffer(VertexBuffer.Type.Position, 3, new float[]{-width/2,      0,      0,
-                                                width/2,  0,      0,
-                                                width/2,  0, height,
-                                                -width/2, 0, height
+        setBuffer(VertexBuffer.Type.Position, 3, new float[]{width/2,      0,      0,
+                                                -width/2,  0,      0,
+                                                -width/2,  0, height,
+                                                +width/2, 0, height
                                                 });
         
 
@@ -84,10 +84,10 @@ public class QuadXZ extends Mesh {
                                                     1, 1,
                                                     0, 1});
         }
-        setBuffer(VertexBuffer.Type.Normal, 3, new float[]{0, 0, 1,
-                                              0, 0, 1,
-                                              0, 0, 1,
-                                              0, 0, 1});
+        setBuffer(VertexBuffer.Type.Normal, 3, new float[]{0, 1, 0,
+                                              0, 1, 0,
+                                              0, 1, 0,
+                                              0, 1, 0});
         if (height < 0){
             setBuffer(VertexBuffer.Type.Index, 3, new short[]{0, 2, 1,
                                                  0, 3, 2});
