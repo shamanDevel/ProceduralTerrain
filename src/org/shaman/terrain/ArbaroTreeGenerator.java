@@ -22,7 +22,9 @@
 
 package org.shaman.terrain;
 
+import com.jme3.export.binary.BinaryExporter;
 import com.jme3.math.ColorRGBA;
+import com.jme3.scene.Spatial;
 import net.sourceforge.arbaro.gui.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -236,7 +238,12 @@ import net.sourceforge.arbaro.tree.TreeGeneratorFactory;
 			exporter.setLeafTexture("org/shaman/terrain/textures2/"+params.getParam("LeafTexture").getValue());
 			exporter.setLeafRotation(Float.parseFloat(params.getParam("LeafTextureRotation").getValue()));
 			exporter.doWrite();
-			spatialViewer.setSpatial(exporter.getSpatial());
+			Spatial spatial = exporter.getSpatial();
+			spatialViewer.setSpatial(spatial);
+			
+			//save spatial
+			BinaryExporter bexp = new BinaryExporter();
+			bexp.save(spatial, new File("./treemesh/Tree1.j3o"));
 			
 		} catch (Exception exc) {
 			exc.printStackTrace();
