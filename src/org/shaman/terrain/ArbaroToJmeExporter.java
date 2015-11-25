@@ -40,7 +40,7 @@ import org.apache.commons.lang3.ArrayUtils;
  */
 public class ArbaroToJmeExporter extends MeshExporter{
 	private static final Logger LOG = Logger.getLogger(ArbaroToJmeExporter.class.getName());
-	private static final float BARK_UV_SCALING = 16;
+	private static final float BARK_UV_SCALING = 1;
 	
 	long vertexProgressCount=0;
 	long faceProgressCount=0;
@@ -213,12 +213,13 @@ public class ArbaroToJmeExporter extends MeshExporter{
 			vertices.hasMoreElements();) {
 				Vertex vertex = (Vertex)vertices.nextElement();
 				stemVertices.add(new Vector3f((float) vertex.point.getX(), (float) vertex.point.getY(), (float) vertex.point.getZ()));
+				stemUVs.add(new Vector2f((float) vertex.point.u * BARK_UV_SCALING, (float) vertex.point.v * BARK_UV_SCALING));
 		}
-		for (Enumeration vertices = mesh.allVertices(true);
-			vertices.hasMoreElements();) {
-				UVVector vertex = (UVVector)vertices.nextElement();
-				stemUVs.add(new Vector2f((float) vertex.u * BARK_UV_SCALING, (float) vertex.v * 256));
-		}
+//		for (Enumeration vertices = mesh.allVertices(true);
+//			vertices.hasMoreElements();) {
+//				UVVector vertex = (UVVector)vertices.nextElement();
+//				stemUVs.add(new Vector2f((float) vertex.u * BARK_UV_SCALING, (float) vertex.v * 256));
+//		}
 	}
 	
 	private void writeStemFaces() {

@@ -113,6 +113,12 @@ class SubsegmentImpl implements StemSection {
 				
 				pt = trf.apply(pt);
 				points[i] = pt;
+				
+				//Edit by Sebastian Weiss:
+				//set texture coordinates
+				pt.hasTexCoords = true;
+				pt.u = angle/360.0;
+				pt.v = pt.getZ();
 			}
 		}
 		

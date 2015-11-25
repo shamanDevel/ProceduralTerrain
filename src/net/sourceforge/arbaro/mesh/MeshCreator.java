@@ -22,8 +22,10 @@
 
 package net.sourceforge.arbaro.mesh;
 
+import java.util.Enumeration;
 import net.sourceforge.arbaro.export.Progress;
 import net.sourceforge.arbaro.export.Console;
+import net.sourceforge.arbaro.transformation.Vector;
 import net.sourceforge.arbaro.tree.*;
 
 /**
@@ -58,6 +60,7 @@ class MeshCreator implements TreeTraversal {
 		// proceed into segments and subsegments itself
 		// removing all mesh creation code from Stem, Segment, 
 		// Subsegment
+//		System.out.println("enter stem "+stem.getTreePosition()+" at level "+stem.getLevel());
 
 		if (level >= 0 && stem.getLevel() < level) {
 			return true; // look further for stems
@@ -72,6 +75,7 @@ class MeshCreator implements TreeTraversal {
 				MeshPartCreator partCreator = new MeshPartCreator(stem, /*params,*/ useQuads);
 				MeshPart meshpart = partCreator.createMeshPart(progress);
 				if (meshpart != null) {
+					rewriteUVCoordinates(meshpart);
 					mesh.addMeshpart(meshpart);
 				}
 				
@@ -86,6 +90,33 @@ class MeshCreator implements TreeTraversal {
 //				throw new TraversalException(e.toString());
 //			}
 		}	
+	}
+	
+	private static void rewriteUVCoordinates(MeshPart meshpart) {
+		Stem stem = meshpart.getStem();
+//		System.out.println("min="+stem.getMinPoint()+" max="+stem.getMaxPoint()+" length="+stem.getLength()+" vertices="+meshpart.vertexCount());
+//		assert (meshpart.uvCount() == meshpart.vertexCount());
+		Vector N = stem.getMaxPoint().sub(stem.getMinPoint()).normalize();
+		Vector W = stem.getMinPoint().add(new Vector(1, 0, 0));
+		W = W.sub(N.mul(N.getX()*W.getX() + N.getY()*W.getY() + N.getZ()*W.getZ()));
+		Vector U = new Vector(N.getY()*W.getZ() - N.getZ()*W.getY(), N.getZ()*W.getX() - N.getX()*W.getZ(), N.getX()*W.getY() - N.getY()*W.getX());
+//		Enumeration<UVVector> e1 = meshpart.allVertices(true);
+		Enumeration<Vertex> e2 = meshpart.allVertices(false);
+		for (; e2.hasMoreElements(); ) {
+//			UVVector tex = e1.nextElement();
+			Vertex vertex = e2.nextElement();
+			Vector vec = vertex.point.sub(stem.getMinPoint());
+			//project vec on N to get v
+			double texV = N.getX()*vec.getX() + N.getY()*vec.getY() + N.getZ()*vec.getZ();
+			//project on the plane to find the angle
+			Vector w = vec.sub(N.mul(texV));
+			double dx = w.getX()*W.getX() + w.getY()*W.getY() + w.getZ()*W.getZ();
+			double dy = w.getX()*U.getX() + w.getY()*U.getY() + w.getZ()*U.getZ();
+			double texU = (Math.atan2(dy, dx)+Math.PI)/(4*Math.PI);
+			//set tex coordinates
+			vec.u = texU;
+			vec.v = texV * stem.getLength();
+		}
 	}
 	
 	public boolean enterTree(Tree tree) {

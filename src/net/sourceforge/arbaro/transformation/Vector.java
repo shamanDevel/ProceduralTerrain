@@ -44,6 +44,9 @@ public final class Vector {
 	
 	private double[] coord = {0,0,0};
 	
+	public double u,v;
+	public boolean hasTexCoords;
+	
 	public Vector() {
 		coord = new double[Z+1];
 		//coord = {0,0,0};

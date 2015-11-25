@@ -166,7 +166,13 @@ public class MeshSection extends java.util.Vector {
 	 * @param mapU 
 	 */
 	public void addPoint(Vector pt, double mapU) {
-		addElement(new Vertex(pt,null,new UVVector(mapU,mapV)));
+		if (pt.hasTexCoords) {
+			//System.out.println("adding2 ("+pt.getX()+", "+pt.getY()+", "+pt.getY()+") ["+pt.u+", "+pt.v+"]");
+			addElement(new Vertex(pt, null, new UVVector(pt.u, pt.v)));
+		} else {
+			//System.out.println("adding1 ("+pt.getX()+", "+pt.getY()+", "+pt.getY()+") ["+mapU+", "+mapV+"]");
+			addElement(new Vertex(pt,null,new UVVector(mapU,mapV)));
+		}
 	} 
 	
 	/**

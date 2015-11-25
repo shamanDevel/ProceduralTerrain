@@ -107,7 +107,7 @@ public class ControlCurveMesh {
 		Ns[A.length-1] = Vector3f.ZERO;
 		angles[A.length-1] = 0;
 		//draw the tube
-		float step = (float) (2*Math.PI / TUBE_RESOLUTION); //if the medial axis was traced correctly, the angle should always be 180°
+		float step = (float) (2*Math.PI / TUBE_RESOLUTION); 
 		for (int i = 0; i < A.length - 1; i++) {
 			for (int j = 0; j < TUBE_RESOLUTION; j++) {
 				Vector3f N1 = rotate(j*step + angles[i], CAs[i].mult(CURVE_SIZE), Ns[i]);
