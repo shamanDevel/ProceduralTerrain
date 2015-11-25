@@ -35,6 +35,8 @@ import java.io.FileReader;
 import java.util.Hashtable;
 import java.util.Enumeration;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.event.*;
 
@@ -50,7 +52,7 @@ import org.xml.sax.helpers.DefaultHandler;
 /**
  * Read parameters from Config style text file
  * 
- * @author wolfram
+ * @author wolfram, Sebastian Weiss
  *
  */
 class CfgTreeParser {
@@ -160,7 +162,18 @@ class XMLTreeParser {
  */
 
 public class Params {
-	
+	private static final Logger LOG = Logger.getLogger(Params.class.getName());
+	public static final String[] BARK_TEXTURES = {
+		"bark0001.jpg", "bark0006.jpg", "bark0007.jpg", "bark0015.jpg",
+		"bark0016.jpg", "bark0017.jpg", "bark0018.jpg", "bark0019.jpg",
+		"bark0023.jpg", "bark0025.jpg"
+	};
+	public static final String[] LEAF_TEXTURES = {
+		"leaf0001.png", "leaf0002.png", "leaf0003.png", "leaf0005.png",
+		"leaf0006.png", "leaf0007.png", "leaf0008.png", "leaf0009.png",
+		"leaf0010.png", "leaf0011.png", "leaf0020.png", "leaf0021.png",
+		"leaf0022.png", "leaf0023.png"
+	};
 	
 	// Tree Shapes 
 	public final static int CONICAL = 0;
@@ -246,6 +259,12 @@ public class Params {
 	
 	// base splits
 	public int _0BaseSplits;
+	
+	// textures
+	public String barkTexture;
+	public double barkTextureScale;
+	public String leafTexture;
+	public double leafTextureRotation;
 	
 	// variables need for stem creation
 	public double scale_tree;
@@ -378,6 +397,9 @@ public class Params {
 		writeParamXML(w,"0Scale",_0Scale); 
 		writeParamXML(w,"0ScaleV",_0ScaleV);
 		writeParamXML(w,"0BaseSplits",_0BaseSplits);
+		writeParamXML(w, "BarkTexture", barkTexture);
+		writeParamXML(w, "LeafTexture", leafTexture);
+		writeParamXML(w, "LeafTextureRotation", leafTextureRotation);
 		
 		for (int i=0; i <= Math.min(Levels,3); i++) {
 			levelParams[i].toXML(w,i==Levels); // i==Levels => leaf level only
@@ -399,7 +421,9 @@ public class Params {
 		if (par != null) {
 			return par.intValue();
 		} else {
-			throw new ParamException("bug: param "+name+" not found!");
+//			throw new ParamException("bug: param "+name+" not found!");
+			LOG.log(Level.WARNING, "parameter {0} not found!", name);
+			return 1;
 		}
 	}
 	
@@ -408,7 +432,9 @@ public class Params {
 		if (par != null) {
 			return par.doubleValue();
 		} else {
-			throw new ParamException("bug: param "+name+" not found!");
+//			throw new ParamException("bug: param "+name+" not found!");
+			LOG.log(Level.WARNING, "parameter {0} not found!", name);
+			return 0;
 		}   
 	}
 	
@@ -417,7 +443,9 @@ public class Params {
 		if (par != null) {
 			return par.getValue();
 		} else {
-			throw new ParamException("bug: param "+name+" not found!");
+//			throw new ParamException("bug: param "+name+" not found!");
+			LOG.log(Level.WARNING, "parameter {0} not found!", name);
+			return null;
 		}    
 	}
 	
@@ -451,6 +479,9 @@ public class Params {
 		PruneWidthPeak = getDblParam("PruneWidthPeak");
 		_0BaseSplits = getIntParam("0BaseSplits");
 		Species = getStrParam("Species");
+		barkTexture = getStrParam("BarkTexture");
+		leafTexture = getStrParam("LeafTexture");
+		leafTextureRotation = getDblParam("LeafTextureRotation");
 //		Seed = getIntParam("Seed");
 //		outputType = getIntParam("OutFormat");
 		
@@ -485,6 +516,11 @@ public class Params {
 				throw new ParamException("nSplitAngle may not be 0.");
 			}
 		}
+		
+		barkTexture = null;
+		barkTextureScale = 1;
+		leafTexture = null;
+		leafTextureRotation = 0;
 		
 		// create one random generator for every level
 		// so you can develop a tree level by level without
@@ -646,6 +682,11 @@ public class Params {
 			String group, String short_desc, String long_desc) {
 		paramDB.put(name,new StringParam(name,deflt,group,AbstractParam.GENERAL,
 				order++,short_desc,long_desc));
+	}
+	
+	private void strConstParam(String name, String deflt, String group,
+			String short_desc, String long_desc, String[] values) {
+		paramDB.put(name, new StringConstantsParam(values, name, deflt, group, AbstractParam.GENERAL, order++, short_desc, long_desc));
 	}
 	
 	private void registerParams() {
@@ -1059,6 +1100,10 @@ public class Params {
 				"base like for conifers.<br>\n"
 		);
 		
+		strConstParam("BarkTexture", BARK_TEXTURES[0], "TEXTURE", "bark texture", "bark texture", BARK_TEXTURES);
+		
+		strConstParam("LeafTexture", LEAF_TEXTURES[0], "TEXTURE", "leaf texture", "leaf texture", LEAF_TEXTURES);
+		dblParam("LeafTextureRotation", -Double.MAX_VALUE, Double.MAX_VALUE, 0, "TEXTURE", "leaf texture rotation (°)", "Rotation of the leaf textur in degree");
 		
 //		outParam("OutFormat",MESH,CONES,MESH,
 //				"RENDER","the output file format",

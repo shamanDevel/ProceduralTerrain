@@ -229,9 +229,12 @@ import net.sourceforge.arbaro.tree.TreeGeneratorFactory;
 			MeshGenerator meshGenerator = MeshGeneratorFactory.createMeshGenerator(/*params,*/ useQuads);
 			ArbaroToJmeExporter exporter = new ArbaroToJmeExporter(spatialViewer.getAssetManager(), tree,meshGenerator);
 //			exporter.setBarkTexture("org/shaman/terrain/treetex/bark3.jpg");
-			exporter.setBarkColor(new ColorRGBA(130f / 255f, 80f / 255f, 50f / 255f, 1f));
-			exporter.setBarkColor(new ColorRGBA(200f / 255f, 180f / 255f, 160f / 255f, 1f));
+//			exporter.setBarkColor(new ColorRGBA(130f / 255f, 80f / 255f, 50f / 255f, 1f));
+//			exporter.setBarkColor(new ColorRGBA(200f / 255f, 180f / 255f, 160f / 255f, 1f));
 //			exporter.setLeafTexture("org/shaman/terrain/treetex/leaf1.png");
+			exporter.setBarkTexture("org/shaman/terrain/textures2/"+params.getParam("BarkTexture").getValue());
+			exporter.setLeafTexture("org/shaman/terrain/textures2/"+params.getParam("LeafTexture").getValue());
+			exporter.setLeafRotation(Float.parseFloat(params.getParam("LeafTextureRotation").getValue()));
 			exporter.doWrite();
 			spatialViewer.setSpatial(exporter.getSpatial());
 			

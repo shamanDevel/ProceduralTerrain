@@ -9,6 +9,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
@@ -22,6 +23,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.sourceforge.arbaro.export.*;
 import net.sourceforge.arbaro.mesh.*;
@@ -64,6 +66,7 @@ public class ArbaroToJmeExporter extends MeshExporter{
 	private String leafTex;
 	private ColorRGBA barkCol;
 	private boolean writeLeaves = true;
+	private float leafRotation = 0;
 	
 	public ArbaroToJmeExporter(AssetManager assetManager, Tree tree, MeshGenerator meshGenerator) {
 		super(meshGenerator);
@@ -74,16 +77,23 @@ public class ArbaroToJmeExporter extends MeshExporter{
 	}
 	
 	public void setBarkTexture(String tex) {
+		LOG.log(Level.INFO, "use bark texture {0}", tex);
 		barkTex = tex;
 	}
 	public void setBarkColor(ColorRGBA col) {
 		barkCol = col;
 	}
 	public void setLeafTexture(String tex) {
+		LOG.log(Level.INFO, "use leaf texture {0}", tex);
 		leafTex = tex;
 	}
 	public void writeLeaves(boolean leaves) {
+		LOG.log(Level.INFO, "write leaves: {0}", leaves);
 		writeLeaves = leaves;
+	}
+	public void setLeafRotation(float rotDegree) {
+		LOG.log(Level.INFO, "use leaf rotation of {0}", rotDegree);
+		leafRotation = FastMath.DEG_TO_RAD * rotDegree;
 	}
 	
 	public com.jme3.scene.Spatial getSpatial() {
@@ -162,6 +172,7 @@ public class ArbaroToJmeExporter extends MeshExporter{
 				mat.setTexture("DiffuseMap", assetManager.loadTexture(leafTex));
 				mat.getAdditionalRenderState().setAlphaTest(true);
 				mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+				mat.setFloat("AlphaDiscardThreshold", 0.5f);
 				geom.setQueueBucket(RenderQueue.Bucket.Transparent);
 			} else {
 				mat.setColor("Diffuse", ColorRGBA.Green);
@@ -256,8 +267,18 @@ public class ArbaroToJmeExporter extends MeshExporter{
 		if (leafMesh.isFlat()) {
 			for (int i=0; i<leafMesh.getShapeVertexCount(); i++) {
 				UVVector v = leafMesh.shapeUVAt(i);
-				leafTmpUVs.add(new Vector2f((float) v.u, (float) v.v));
+				float x = (float) v.u;
+				float y = (float) v.v;
 //				leafUVs.add(new Vector2f((float) v.u, (float) v.v));
+				if (leafRotation != 0) {
+					//transform it
+					x -= 0.5f; y -= 0.5f;
+					float x2 = FastMath.cos(leafRotation)*x - FastMath.sin(leafRotation)*y;
+					float y2 = FastMath.sin(leafRotation)*x + FastMath.cos(leafRotation)*y;
+					x = x2+0.5f;
+					y = y2+0.5f;
+				}
+				leafTmpUVs.add(new Vector2f(x, y));
 			}	
 		}
 		

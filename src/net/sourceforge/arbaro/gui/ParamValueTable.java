@@ -106,6 +106,38 @@ public final class ParamValueTable extends JPanel {
 
 	}
 	
+	/********************** StringConstantBox *****************************/
+
+	class StringConstantBox extends JComboBox {
+		private static final long serialVersionUID = 1L;
+
+		public StringConstantBox() {
+			super();
+			setEditable(true);
+		}
+		
+		public void setItems(String[] items) {
+			removeAllItems();
+			for (String item : items)
+				addItem(item);
+		}
+		
+		public void setValue(AbstractParam p) {
+			// select item
+			for (int i=0; i<getItemCount(); i++) {
+				if (getItemAt(i).equals(p.getValue())) {
+					setSelectedIndex(i);
+					return;
+				}
+			}
+		}
+		
+		public String getValue() {
+			return (String)getSelectedItem();
+		}
+
+	}
+	
 	/********************** ShapeBox *****************************/
 
 	class ShapeBox extends JComboBox {
@@ -214,6 +246,7 @@ public final class ParamValueTable extends JPanel {
 		ShapeBox shapeBox;
 		LeafShapeBox leafShapeBox;
 		JComponent editor;
+		StringConstantBox stringConstantBox;
 		
 		void editingStopped() {
 			fireEditingStopped();
@@ -238,6 +271,12 @@ public final class ParamValueTable extends JPanel {
 	    		}
 	    	});
 			
+			stringConstantBox = new StringConstantBox();
+			stringConstantBox.addActionListener(new ActionListener() {
+	    		public void actionPerformed(ActionEvent e) {
+	    			editingStopped();
+	    		}
+	    	});
 		}
 		
 		public Object getCellEditorValue() {
@@ -246,6 +285,8 @@ public final class ParamValueTable extends JPanel {
 					param.setValue(shapeBox.getValue());
 				} else if (editor == leafShapeBox) {
 					param.setValue(leafShapeBox.getValue());
+				} else if (editor == stringConstantBox) {
+					param.setValue(stringConstantBox.getValue());
 				} else { 
 					param.setValue(paramField.getText());
 				}
@@ -271,6 +312,10 @@ public final class ParamValueTable extends JPanel {
 			} else if (param.getName().equals("LeafShape")) {
 				leafShapeBox.setValue(param);
 				editor = leafShapeBox;
+			} else if (param instanceof StringConstantsParam) {
+				stringConstantBox.setItems(((StringConstantsParam) param).getItems());
+				stringConstantBox.setValue(param);
+				editor = stringConstantBox;
 			} else {
 				paramField.setText(param.toString());
 				paramField.selectAll();

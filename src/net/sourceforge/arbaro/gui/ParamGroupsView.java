@@ -161,6 +161,7 @@ public final class ParamGroupsView extends JTree {
 		addGroup(general,"PRUNING","Pruning/Envelope",AbstractParam.GENERAL);
 		//addGroup(general,"MISC","Miscellaneous",AbstractParam.GENERAL);
 		addGroup(general,"QUALITY","Quality",AbstractParam.GENERAL);
+		addGroup(general, "TEXTURE", "Textures", AbstractParam.GENERAL);
 		
 		for (int i=0; i<4; i++) {
 			String lName = "Level "+i;
