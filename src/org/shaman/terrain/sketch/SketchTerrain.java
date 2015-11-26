@@ -64,7 +64,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	private static final int CURVE_RESOLUTION = 8;
 	private static final int CURVE_SAMPLES = 128;
 	private static final boolean DEBUG_DIFFUSION_SOLVER = false;
-	private static final boolean SAVE_TEXTURES = true;
+	private static final boolean SAVE_TEXTURES = false;
 	private static final int DIFFUSION_SOLVER_ITERATIONS = 100;
 	
 	private Heightmap map;
@@ -503,9 +503,9 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	
 	private class DiffusionSolver {
 		//settings
-		private final double BETA_SCALE = 0.9;
+		private final double BETA_SCALE = 1.0;
 		private final double ALPHA_SCALE = 0.7;
-		private final double GRADIENT_SCALE = 1.5/TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE;
+		private final double GRADIENT_SCALE = 1.3/TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE;
 		private final float SLOPE_ALPHA_FACTOR = 0f;
 		private final boolean EVALUATE_SLOPE_RELATIVE_TO_ORIGINAL = false;
 		private final boolean LIMIT_SMOOTHING = true;
@@ -546,13 +546,15 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			vertexColorMat.getAdditionalRenderState().setDepthTest(true);
 			vertexColorMat.getAdditionalRenderState().setDepthWrite(true);
 			Material grayMat1 = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-			grayMat1.setColor("Color", new ColorRGBA(1-(float) ALPHA_SCALE, 1-(float) ALPHA_SCALE, 1-(float) ALPHA_SCALE, 1));
+			//grayMat1.setColor("Color", new ColorRGBA(1-(float) ALPHA_SCALE, 1-(float) ALPHA_SCALE, 1-(float) ALPHA_SCALE, 1));
+			grayMat1.setColor("Color", ColorRGBA.White);
 			grayMat1.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
 			grayMat1.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 			grayMat1.getAdditionalRenderState().setDepthTest(true);
 			grayMat1.getAdditionalRenderState().setDepthWrite(true);
 			Material grayMat2 = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-			grayMat2.setColor("Color", new ColorRGBA(1-(float) BETA_SCALE, 1-(float) BETA_SCALE, 1-(float) BETA_SCALE, 1));
+//			grayMat2.setColor("Color", new ColorRGBA(1-(float) BETA_SCALE, 1-(float) BETA_SCALE, 1-(float) BETA_SCALE, 1));
+			grayMat2.setColor("Color", ColorRGBA.White);
 			grayMat2.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
 			grayMat2.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 			grayMat2.getAdditionalRenderState().setDepthTest(true);
@@ -652,6 +654,8 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			mat.plusEquals(elevation.arrayTimes(beta));
 			//add laplace constraint
 			Matrix laplace = new Matrix(size, size);
+//			Matrix gamma1 = new Matrix(size, size);
+//			Matrix gamma2 = new Matrix(size, size);
 			for (int x=0; x<size; ++x) {
 				for (int y=0; y<size; ++y) {
 					double v = 0;
@@ -660,14 +664,20 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 					v += last.get(x, Math.max(0, y-1));
 					v += last.get(x, Math.min(size-1, y+1));
 					v /= 4.0;
+					v *= 1 - alpha.get(x, y) - beta.get(x, y);
 					if (LIMIT_SMOOTHING) {
 						v *= gamma.get(x, y);
-					} else {
-						v *= 1 - alpha.get(x, y) - beta.get(x, y);
 					}
+//					gamma2.set(x, y, 1 - alpha.get(x, y) - beta.get(x, y));
+//					gamma1.set(x, y, (1 - alpha.get(x, y) - beta.get(x, y)) * gamma.get(x, y));
 					laplace.set(x, y, v);
 				}
 			}
+//			if (iteration==1) {
+//				saveFloatMatrix(gamma1, "diffusion/Gamma1.png", 1);
+//				saveFloatMatrix(gamma2, "diffusion/Gamma2.png", 1);
+//				saveFloatMatrix(gamma1.minus(gamma2), "diffusion/GammaDiff.png", 1);
+//			}
 //			saveFloatMatrix(laplace, "diffusion/Laplace"+iteration+".png",1);
 			mat.plusEquals(laplace);
 			//add gradient constraint
@@ -864,7 +874,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			Vector3f[] pos = new Vector3f[points.length*4 + 4];
 			ColorRGBA[] col = new ColorRGBA[points.length*4 + 4];
 			ColorRGBA c1 = new ColorRGBA(1, 1, 1, 1);
-			ColorRGBA c2 = new ColorRGBA(1, 1, 1, 0);
+			ColorRGBA c2 = new ColorRGBA(1, 1, 1, 1);
 			for (int i=0; i<points.length; ++i) {
 				Vector3f p = new Vector3f(points[i].x, points[i].y, 1-points[i].height);
 				float dx,dy;

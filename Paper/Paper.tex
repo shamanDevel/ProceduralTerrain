@@ -323,7 +323,7 @@ Each feature curve consists of two or more control points. Each control point ha
 	\item a position $(x,y,z)$ in the world
 	\item a boolean if it constraints elevation
 	\item a float $plateau$, specifying the size of the flat plateau on top of the curve
-	\item four floats $s_l, \alpha_l, s_r, \alpha_r$ specifying the size and angle of the slopes left and right of the curve
+	\item four floats $s_l, \varphi_l, s_r, \varphi_r$ specifying the size and angle of the slopes left and right of the curve
 \end{itemize}
 In the example in Fig. \ref{fig:diffusion1}, the slope sizes are zero, so no slope constraints are applied.
 
@@ -334,7 +334,11 @@ The other constraining values are linearly interpolated.
 The task of the diffusion solver is to modify the terrain so that it remains smooth while preserving the feature constraints.
 The diffusion solver iteratively updates the terrain using the following recursion: Let $H^i$ be the height map at the i-th iteration.
 \begin{equation}
-	H^{k+1}[i,j] = \alpha E[i,j] + \beta G^{k+1}[i,j] + (1-\alpha-\beta) L^{k+1}[i,j]
+\begin{array}{rcl}
+	H^{k+1}[i,j] &=& \alpha[i,j] E[i,j]  \\
+	             &+& \beta[i,j] G^{k+1}[i,j]  \\
+							 &+& (1-\alpha[i,j]-\beta[i,j]) L^{k+1}[i,j]
+\end{array}
 \label{eq:Diffusion1}
 \end{equation}
 $E$ is the forced elevation at the given point, it is directly created from the elevation constraints of the feature curves.
@@ -350,7 +354,7 @@ The gradient term is defined in the following way:
 	N^k[i,j] = \textbf{n}_x^2 H^k[i-\text{sign}(\textbf{n}_x),j] + \textbf{n}_y^2 H^k[i, j-\text{sign}(\textbf{n}_y)]
 \label{eq:Diffusion3}
 \end{equation}
-The gradient equation tend to satisfy the provided gradient $G$. $G$ is directly calculated from $\sin(\alpha_l)$ and $\sin(\alpha_r)$, i.e. from the slope angles defined at the control points.
+The gradient equation tend to satisfy the provided gradient $G$. $G$ is directly calculated from $\sin(\varphi_l)$ and $\sin(\varphi_r)$, i.e. from the slope angles defined at the control points.
 The vector $\textbf{n}=(\textbf{n}_x,\textbf{n}_y)$ describes the normalized direction of the gradient. This vector is orthogonal to the feature curve when projected in the plane and point away from the curve. In Fig. \ref{fig:featsExist2}, some of them are displayed as gray lines going away from the plateau.
 
 The Laplace term smoothes the terrain by averaging the neighbor cells:
