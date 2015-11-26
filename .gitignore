@@ -10,3 +10,8 @@ hs_err_pid*
 /dist/
 Thumbs.db
 saves/
+Paper/Paper.aux
+Paper/Paper.bbl
+Paper/Paper.blg
+Paper/Paper.log
+Paper/Paper.out
