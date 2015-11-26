@@ -444,10 +444,12 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		if (selectedCurveIndex==-1) {
 			return;
 		}
-		Node n = featureCurveNodes.remove(selectedCurveIndex);
-		featureCurves.remove(selectedCurveIndex);
+		Node n = featureCurveNodes.get(selectedCurveIndex);
+		featureCurveNodes.set(selectedCurveIndex, null);
+		featureCurves.set(selectedCurveIndex, null);
 		curveNode.detachChild(n);
 		selectCurve(-1, null);
+		selectedCurveIndex = -1;
 	}
 	public void guiDeleteControlPoint() {
 		if (selectedCurveIndex==-1 || selectedPointIndex==-1) {
@@ -540,6 +542,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			Node gradientNode = new Node();
 			
 			for (ControlCurve curve : curves) {
+				if (curve==null) continue;
 				//sample curve
 				int samples = 32;
 				ControlPoint[] points = new ControlPoint[samples+1];
