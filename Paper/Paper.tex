@@ -242,14 +242,14 @@ As a last step, we assign a biome to each center based on its temperature and mo
 \subsubsection{Heightmap}
 The next steps in the processing pipeline all require a heightmap. A height map is just a rectangular grid of values where each cell stores the height at this point. We also use the same datastructure to store moisture and temperature values.
 
-Notation: Let $h$ be the heightmap. Then we identified the cell at position $i,j$ with either $h_{i,j}$ or $h[i,j]$, depending on the readability. When coordinates lie outside the map, we clamp them. When the coordinates are not integers, but lie between cells, we perform a bilinear interpolation between the neighboring cells.
+Notation: Let $H$ be the heightmap. Then we identified the cell at position $i,j$ with either $H_{i,j}$ or $H[i,j]$, depending on the readability. When coordinates lie outside the map, we clamp them. When the coordinates are not integers, but lie between cells, we perform a bilinear interpolation between the neighboring cells.
 
 \subsubsection{Base elevation}
 Since we already display the polygon graph from the previous steps using triangle meshes, we can just render the elevation mesh from step \ref{Elevation} to obtain a base elevation of the generated terrain. 
 
 However, the straight corners of the polygonal cells are still visible. Therefore we have to distort the height map by replacing each height with the height of the cell an offset away. The offset is defined by a perlin noise. For more details on this, see chapter "Combination and perturbation" in \cite{JacobOlsen.2004}. The increase the height difference between flatlands and mountains, we apply the following scaling to the height values:
 \begin{equation}
-	h \leftarrow signum(h) \cdot |h|^{1.5}
+	h \leftarrow sign(h) \cdot |h|^{1.5}
 \label{eq:HeightScaling}
 \end{equation}
 
@@ -298,6 +298,90 @@ With the terrain created in this step, we can proceed to the next step.
 
 \section{Terrain Features}\label{TerrainFeatures}
 Starting from the terrain from the previous chapter, the user has now the ability to fine-tune the terrain features.
+This is an implementation of \cite{Hnaidi.2010} with some extensions. More examples and further explanations are available in this paper.
+
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/diffusion1}
+		\caption{feature curves}
+		\label{fig:featurecurves}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/diffusion2}
+		\caption{resulting terrain}
+		\label{fig:resultingterrain}
+	\end{subfigure}
+	\caption{Defining feature curves}\label{fig:diffusion1}
+\end{figure*}
+\subsection{Feature curves}
+In the center of this processing steps stand feature curves. Feature curves are added by the user and a solver (\ref{DiffusionSolver}) then modifies the terrain with respect to them.
+Example feature curves forming hills can be seen in Fig. \ref{fig:featurecurves} (white spheres are the control points and the blue tupe is the interpolated curve) and the resulting terrain in Fig. \ref{fig:resultingterrain}.
+
+Each feature curve consists of two or more control points. Each control point has the following properties:
+\begin{itemize}
+	\item a position $(x,y,z)$ in the world
+	\item a boolean if it constraints elevation
+	\item a float $plateau$, specifying the size of the flat plateau on top of the curve
+	\item four floats $s_l, \alpha_l, s_r, \alpha_r$ specifying the size and angle of the slopes left and right of the curve
+\end{itemize}
+In the example in Fig. \ref{fig:diffusion1}, the slope sizes are zero, so no slope constraints are applied.
+
+Between the control points, the position is interpolated using cubic hermit splines and quadratic hermit splines at the start and end point (I use the code from the CurveAverage project).
+The other constraining values are linearly interpolated. 
+
+\subsection{Diffusion solver}\label{DiffusionSolver}
+The task of the diffusion solver is to modify the terrain so that it remains smooth while preserving the feature constraints.
+The diffusion solver iteratively updates the terrain using the following recursion: Let $H^i$ be the height map at the i-th iteration.
+\begin{equation}
+	H^{k+1}[i,j] = \alpha E[i,j] + \beta G^{k+1}[i,j] + (1-\alpha-\beta) L^{k+1}[i,j]
+\label{eq:Diffusion1}
+\end{equation}
+$E$ is the forced elevation at the given point, it is directly created from the elevation constraints of the feature curves.
+$G$ describes the gradient or the slope and $L$ is a Laplace smoothing term.
+The values $\alpha$ and $\beta$, with $0\leq\alpha\leq 1, 0\leq\beta\leq 1, \alpha+\beta\leq 1$, specify the weighting of the single term. On the plateaus of the feature curves we set $\alpha=0.9$ and $\beta=0$. This forces the elevation to match the desired height while adding a little bit of smoothing to it. During slopes of the feature curve, we use $\alpha=0$ and $\beta=0.5$. By that, both the slope constraints and smoothing constraints are satisfied. Outside of the influence of the feature curves, we set $\alpha=0, \beta=0$.
+
+The gradient term is defined in the following way:
+\begin{equation}
+	G^{k+1}[i,j] = N^k[i,j]+G[i,j] \newline
+\label{eq:Diffusion2}
+\end{equation}
+\begin{equation}
+	N^k[i,j] = \textbf{n}_x^2 H^k[i-\text{sign}(\textbf{n}_x),j] + \textbf{n}_y^2 H^k[i, j-\text{sign}(\textbf{n}_y)]
+\label{eq:Diffusion3}
+\end{equation}
+The gradient equation tend to satisfy the provided gradient $G$. $G$ is directly calculated from $\sin(\alpha_l)$ and $\sin(\alpha_r)$, i.e. from the slope angles defined at the control points.
+The vector $\textbf{n}=(\textbf{n}_x,\textbf{n}_y)$ describes the normalized direction of the gradient. This vector is orthogonal to the feature curve when projected in the plane and point away from the curve. In Fig. \ref{fig:featsExist2}, some of them are displayed as gray lines going away from the plateau.
+
+The Laplace term smoothes the terrain by averaging the neighbor cells:
+\begin{equation}
+\begin{array}{rcl}
+	L^{k+1}[i,j] &=& \frac{1}{4}(H^k[i-1,j]+H^k[i+1,j] \\
+							 & & +H^k[i,j-1]+H^k[i,j+1])
+\end{array}
+\label{eq:Diffusion4}
+\end{equation}
+
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/diffusionEditExisting1}
+		\caption{original terrain}
+		\label{fig:featsExist1}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/diffusionEditExisting2}
+		\caption{adding feature curves}
+		\label{fig:featsExist2}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/diffusionEditExisting3}
+		\caption{resulting terrain}
+		\label{fig:featsExist3}
+	\end{subfigure}
+	\caption{Adding features to existing terrain}\label{fig:diffusion2}
+\end{figure*}
+\subsection{Integrate into existing terrain}
 
 \section{Hydraulic Erosion}\label{HydraulicErosion}
 TODO
