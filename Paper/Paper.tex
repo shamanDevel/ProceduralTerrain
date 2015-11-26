@@ -395,26 +395,51 @@ However, simply starting with the existing terrain as $H^0$ does not work becaus
 \end{center}
 This works as long as there are no sharp features already existing right next to the new feature curve. If that is the case, as in the image above, adding the curves together produces unwanted results because of these inferences.
 
-This case happens quite often as seen in Fig. \ref{fig:diffusion3}. Here we define a new feature curve right next to an existing mountain. Although the curve's slope does not touch the existing terrain, the smoothing term inside the diffusion solver also increases the height outside of the feature curve. This leads to a growth of the mountain on the left.
-From a designer's perspective, this behaviour might be not wanted because it is hard to predict and control.
+This case happens quite often as seen in Fig. \ref{fig:diffusion3}. Here we define a new feature curve right next to an existing mountain. Although the curve's slope does not touch the existing terrain, the smoothing term inside the diffusion solver also increases the height outside of the feature curve. This leads to a growth of the mountain on the left (the tip of the mountain is now much higher than the control point, before it was about the same height).
+From a designer's perspective, this behavior might be not wanted because it is hard to predict and control.
 
 \begin{figure*}
 	\centering
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.3\textwidth}
 		\includegraphics[width=\textwidth]{images/diffusionError1}
 		\caption{original terrain with new feature curve}
 		\label{fig:diffusionError1}
 	\end{subfigure}
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.3\textwidth}
 		\includegraphics[width=\textwidth]{images/diffusionError2}
-		\caption{inference, mountain on the left side also grows}
+		\caption{inference, left mountain is modified}
 		\label{fig:diffusionError2}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/diffusionErrorSolved}
+		\caption{limiting smoothing to remove inference}
+		\label{fig:diffusionError3}
 	\end{subfigure}
 	\caption{Inferences between new feature curves and existing terrain features}\label{fig:diffusion3}
 \end{figure*}
 
+\subsection{Extension of the solver}
+We propose now another solution that both keeps existing terrain features while it preserves the local control and removes the inferences mentioned before.
+The idea is to limit the smoothing term $L$ to influence only a customizable region around a feature curve.
+For this, we add two new parameters, $l_l$ and $l_r$, to each control point. They specify the local radius of an envelope around the plateau and slope of the feature curve.
+It not only extends along the slope, but also over the start and end of the feature curve. 
+
+We then set $\gamma$ to 1 inside this envelope and to 0 outside and modify equation \ref{eq:Diffusion1} to include $\gamma$:
+\begin{equation}
+\begin{array}{rcl}
+	H^{k+1}[i,j] &=& \alpha[i,j] E[i,j]  \\
+	             &+& \beta[i,j] G^{k+1}[i,j]  \\
+							 &+& \gamma[i,j] (1-\alpha[i,j]-\beta[i,j]) L^{k+1}[i,j]
+\end{array}
+\label{eq:Diffusion1_mod}
+\end{equation}
+
+Because we no limit the smoothing area, we can apply the solver directly on the original height map without smoothing out existing features. There is no need anymore to solve the diffusion equation on a separate map with relative heights as done in the previous section.
+
+In Fig. \ref{fig:diffusionError3} you see the problematic situation again, but this time, the smoothing region is bounded as described before. The border of the smoothing envelope is visualized by the black lines. Note that the old mountain is preserved and the new feature is blended into the terrain without discontinuities.
+
 \section{Hydraulic Erosion}\label{HydraulicErosion}
-TODO
+Now the shape of the terrain is fully defined, and the next step is to increase the realism by performing erosion.
 
 \section{Vegetation}\label{Vegetation}
 TODO
