@@ -16,9 +16,14 @@
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage[pdftex]{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{listings}
 
 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
 \renewcommand{\algorithmiccomment}[1]{\ \ // #1} % C-like // Comments
+\lstset{language=Java, tabsize=4}
 
 \hyphenation{render}
 
@@ -39,10 +44,10 @@
 
 \maketitle
 
-%\begin{tikzpicture}[remember picture,overlay]
-%   \node[anchor=north east,inner sep=0pt] at (current page.north east)
-%              {\includegraphics[scale=0.2]{pic}};
-%\end{tikzpicture}
+\begin{tikzpicture}[remember picture,overlay]
+   \node[anchor=north east,inner sep=0pt] at (current page.north east)
+              {\includegraphics[scale=0.2]{pic}};
+\end{tikzpicture}
 
 \begin{abstract}
 	Abstract
@@ -53,6 +58,7 @@ Terrain is a topic of endless discussion in computer graphics. It has to cover a
 It is extremely time consuming to create a large-scale terrain that is also interesting when viewed closely. 
 
 In this project I present a framework for generating terrain, from a coarse grained height map to vegetation generation. The focus lies on combining existing techniques for performing the single tasks.
+The result should be an island because it provides a natural border of the world.
 
 Applications of procedural terrain include computer games, movies and geographic visualization and simulation.
 The project was heavily inspired by a talk about "The Good Dinosaur" from Pixar Animation Studios.
@@ -66,25 +72,239 @@ On a 2D-scope, \cite{AmitPatel.2010} should be mentioned because it describes a 
 After the terrain is created, it must be populated with vegetation. Rendering of grass is described in e.g. \cite{KurtPelzer.} and \cite{Boulanger.2005}. Trees must be generated first and for that, \cite{AdamRunionsBrendanLanePrzemyslawPrusinkiewicz.2007} and \cite{Weber.} should be mentioned.
 
 \section{Overview}
+The framework consists of the following steps that are executed one after another:
+\begin{enumerate}
+	\item generating an initial map using voronoi regions, chapter \ref{PolygonalMap}
+	\item editing the terrain by user-defined features, chapter \ref{TerrainFeatures}
+	\item simulate water and erosion to increase the realism, chapter \ref{HydraulicErosion}
+	\item define biomes and populate the scene with grass and trees, chapter \ref{Vegetation}
+\end{enumerate}
+
+\section{Polygonal Map}\label{PolygonalMap}
+As a first step, we have to come up with a good initial terrain to help the user with the terrain features.
+These techniques are taken from \cite{AmitPatel.2010}.
+
+\subsection{Voronoi Regions}
+We could start with a regular grid of squares or hexagons, but using a Voronoi diagram provides more randomness.
+
+At the beginning, we generate random points, called center points, in the plane from -1 to 1 in x and y coordinate and compute the Voronoi diagram (Fig. \ref{fig:voronoi}).
+
+Because the shapes of the polygons are too irregular, we perform a relaxation step by replacing each center point by the average of the polygon corners (Fig. \ref{fig:relaxation}).
+Applying this step several times results in more and more uniform polygons. In practice, two or three iterations provide good results.
+
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/voronoi-polygons}
+		\caption{initial region}
+		\label{fig:voronoi}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/voronoi-2-lloyd}
+		\caption{relaxation}
+		\label{fig:relaxation}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/voronoi-and-delaunay}
+		\caption{graph representation}
+		\label{fig:graph}
+	\end{subfigure}
+	\caption{Initial polygon map}\label{fig:PolygonalMap}
+\end{figure*}
+
+\subsection{Graph representation}
+For further processing of the polygons, we have to build a graph representation (Fig. \ref{fig:graph}).
+The graph datastructure consists of the following three classes:
+\begin{lstlisting}
+	class Center  {
+		int index;
+		Vector2f location;
+		boolean water;
+		boolean ocean;
+		boolean border;
+		Biome biome;
+		float elevation;
+		float moisture;
+		float temperature;
+		List<Center> neighbors;
+		List<Edge> borders;
+		List<Corner> corners;
+	}
+\end{lstlisting}
+\begin{lstlisting}
+	class Edge {
+		int index;
+		Center d0, d1; //Delaunay
+		Corner v0, v1; //Voronoi
+		Vector2f midpoint;
+		int riverVolume;
+	}
+\end{lstlisting}
+\begin{lstlisting}
+	class Corner {
+		int index;
+		Vector2f point;
+		boolean ocean;
+		boolean water;
+		boolean coast;
+		boolean border;
+		float elevation;
+		float moisture;
+		float temperature;
+		int river;
+		List<Center> touches;
+		List<Edge> incident;
+		List<Corner> adjacent;
+	}
+\end{lstlisting}
+The class Center stores the center of a voronoi region, and the vertices of the voronoi polygons are represented by Corner. Because of the duality between the Voronoi Diagram and Delaunay triangulations, an edge connects both two corners (as an edge of a voronoi polygon) and two centers (as an edge in the delaunay triangulations).
+The other properties of the three classes are needed in the next step.
+
+\subsection{Island shape}
+As a next step, we have to define the general shape of the island.
+A simple way to get the desired shape is to combine perlin noise\footnote{http://mrl.nyu.edu/~perlin/doc/oscar.html} with a distance from the center.
+Let $(x,y)$ be a point and we want to know if it is in the water or not.
+\begin{equation}
+ noise := \sum_{i=0}^n{\text{noise}(x\: o_b\: o_s^i, y\: o_b\: o_s^i)\:a_b\: a_s^{-i}}
+\label{eq:elevation1}
+\end{equation}
+\begin{equation}
+	water(x,y) := noise < offset + scale\:(x^2,y^2)
+\label{eq:elevation2}
+\end{equation}
+The function $water(x,y)$ returns true iff the point $(x,y)$ is in the water. The function noise(x,y) returns the value of the perlin noise at the specified position.
+
+There are many values to tweak: $n$ defines the number of octaves that are summed together, $o_b$ specifies the base octave, $o_s$ the octave scale, $a_b$ the base amplitude and $a_s$ the amplitude scale. $scale$ defines the influence of the distance to the center of the map versus the perlin noise and $offset$ is the specifies a base island size.
+In our experiments, we use the following values: $n=4, o_b=6, o_s=2, a_b=0.5, a_s=2.5, scale=2.2, offset=-0.2$.
+
+This function is evaluated for every corner (stored in the water-property). A center is labeled as water if at least 30\% of the corners are water.
+The result can be seen in Fig. \ref{fig:shape}
+
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/elevation1}
+		\caption{initial shape}
+		\label{fig:shape}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/elevation2}
+		\caption{elevation}
+		\label{fig:elevation}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/temperature}
+		\caption{temperature}
+		\label{fig:temperature}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/moisture}
+		\caption{moisture}
+		\label{fig:moisture}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/biomes}
+		\caption{biomes}
+		\label{fig:biomes}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.3\textwidth}
+		\includegraphics[width=\textwidth]{images/heightmap}
+		\caption{generated heightmap}
+		\label{fig:heightmap}
+	\end{subfigure}
+	\caption{Elevation and Moisture}\label{fig:PolygonalMap2}
+\end{figure*}
+
+To distinguish between oceans and lakes, we use a flood fill from the border of the map and mark every water polygon on the way as 'ocean' until we reach the coast.
+Corners are marked as 'coast' if they touch centers that are ocean and land.
+
+\subsection{Elevation}\label{Elevation}
+After creating the initial island shape, we assign elevation values to every corner and center (Fig. \ref{fig:elevation}).
+For that we start from every coast corner and traverse the graph using breath-first along the corners. When traversing over land, we increase the elevation and over the sea we decrease the elevation. By that we obtain mountains and a continental shelf. Only when walking along or over lakes, we do not increase the elevation. This leads to flat areas that are later filled with water.
+
+From the elevation, we directly derive the temperature: The higher it is, the colder it is. (Fig. \ref{fig:temperature}).
+
+Until now, the elevation and temperature were defined for corners. To get these values for centers as well, we simply average them.
+
+\subsection{Moisture}
+To obtain moisture values, we start with creating rivers.
+
+First we select random corners that are not coast or water and from there we follow the path of the steepest descent until reaching the ocean. At each step, we increase the amount of water the river carries. We then initial the moisture value of the river corners with the water amount. To achieve more distributed rivers, you might start a new river only at corners that are at least one or two steps away from an existing river.
+
+Second we perform a breath-first-search starting from river corners. At each step, we decrease the moisture by a multiplicative factor of e.g. 0.8 (works well in our experiments). By that, the rivers spread their moisture over the land depending on the amount of water they carry.
+
+Third we average again the moisture of each corner to obtain the moisture per center.
+The result can be seen in \ref{fig:moisture}.
+
+As a last step, we assign a biome to each center based on its temperature and moisture (Fig. \ref{fig:biomes}). This acts as a starting point for chapter \ref{Vegetation}. More details on the biomes are described in section \ref{Biomes}.
+
+\subsection{Generating the height map}
+\subsubsection{Heightmap}
+The next steps in the processing pipeline all require a heightmap. A height map is just a rectangular grid of values where each cell stores the height at this point. We also use the same datastructure to store moisture and temperature values.
+
+Notation: Let $h$ be the heightmap. Then we identified the cell at position $i,j$ with either $h_{i,j}$ or $h[i,j]$, depending on the readability. When coordinates lie outside the map, we clamp them. When the coordinates are not integers, but lie between cells, we perform a bilinear interpolation between the neighboring cells.
+
+\subsubsection{Base elevation}
+Since we already display the polygon graph from the previous steps using triangle meshes, we can just render the elevation mesh from step \ref{Elevation} to obtain a base elevation of the generated terrain. 
+
+However, the straight corners of the polygonal cells are still visible. Therefore we have to distort the height map by replacing each height with the height of the cell an offset away. The offset is defined by a perlin noise. For more details on this, see chapter "Combination and perturbation" in \cite{JacobOlsen.2004}. The increase the height difference between flatlands and mountains, we apply the following scaling to the height values:
+\begin{equation}
+	h \leftarrow signum(h) \cdot |h|^{1.5}
+\label{eq:HeightScaling}
+\end{equation}
+
+\subsubsection{Adding noise}
+The terrain still looks very boring, we need more noise to create hills and mountains.
+Therefore we add a multi fractal noise to the heightmap. The equation is taken from Chapter 4.3 of \cite{Hnaidi.2010}.
+\begin{equation}
+	N(x,y) := A(x,y) \sum_{k=0}^n \frac{\text{noise}(r^k x, r^k y)}{r^{k(1-R(x,y)}}
+\label{eq:HeightmapNoise}
+\end{equation}
+noise is again the perlin noise function, $r$ is the octave factor (here $r=2$) and $n$ is the number of octaves (we use $n=5$). The scalarfield $A$ defines the amplitude of the noise at the given terrain position and $R$ the roughness (how the octaves are mixed together).
+In our experience we compute $A$ and $R$ based on the biomes using the values from table \ref{tab:NoiseProperties}.
+\begin{table}[htbp]
+	\centering
+		\begin{tabular}{l|c|c}
+			Biome & $A$ & $R$ \\ \hline
+			Snow & 0.5 & 0.7 \\
+			Tundra & 0.5 & 0.5 \\
+			Bare & 0.4 & 0.4 \\
+			Scorched & 0.7 & 0.3 \\
+			Taiga & 0.4 & 0.3 \\
+			Shrubland & 0.5 & 0.2 \\
+			Temperate desert & 0.1 & 0.1 \\
+			Temperate rain forest & 0.3 & 0.2 \\
+			Deciduous forest & 0.3 & 0.4 \\
+			Grassland & 0.4 & 0.5 \\
+			Tropical rain forest & 0.3 & 0.2 \\
+			Tropical seasonal forest & 0.3 & 0.2 \\
+			Subtropical desert & 0.3 & 0.6 \\
+			Beach & 0.3 & 0.5 \\
+			Lake & 0.2 & 0.2 \\
+			Ocean & 0.2 & 0.1
+		\end{tabular}
+	\caption{Noise properties}
+	\label{tab:NoiseProperties}
+\end{table}
+The noise value $N$ is then simply added to the final height map.
+
+The result can be seen in Fig. \ref{fig:heightmap}. (The seed used is 658175619cff )
+
+\subsection{User interaction}
+In our implementation, the user can modify the elevation, temperature and moisture values starting from the presented initial values.
+By that, the user can create custom island shapes, raise mountains, build valleys and define the biomes by editing the temperature and moisture values.
+
+With the terrain created in this step, we can proceed to the next step.
+
+\section{Terrain Features}\label{TerrainFeatures}
+Starting from the terrain from the previous chapter, the user has now the ability to fine-tune the terrain features.
+
+\section{Hydraulic Erosion}\label{HydraulicErosion}
 TODO
 
-\section{Polygonal Map}
+\section{Vegetation}\label{Vegetation}
 TODO
-
-\subsection{Graph Datastructure}
-TODO
-
-\subsubsection{Test}
-TODO
-
-\section{Terrain Features}
-TODO
-
-\section{Hydraulic Erosion}
-TODO
-
-\section{Vegetation}
-TODO
+\subsection{Biomes}\label{Biomes}
 
 \section{Conclusion and future work}
 TODO
