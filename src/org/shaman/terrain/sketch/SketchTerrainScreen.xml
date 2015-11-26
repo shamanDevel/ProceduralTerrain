@@ -52,6 +52,11 @@
 									 min="-90" max="90" initial="-5" stepSize="1" buttonStepSize="1"/>
 						</panel>
 						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Smoothing left:" width="122px" margin="2px"/>
+							<control id="SmoothLeftSlider" name="horizontalSlider" width="120px" margin="2px"
+									 min="0" max="100" initial="5" stepSize="1" buttonStepSize="5"/>
+						</panel>
+						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Slope size right:" width="122px" margin="2px"/>
 							<control id="SlopeSizeRightSlider" name="horizontalSlider" width="120px" margin="2px"
 									 min="0" max="200" initial="5" stepSize="1" buttonStepSize="5"/>
@@ -61,7 +66,11 @@
 							<control id="SlopeAngleRightSlider" name="horizontalSlider" width="120px" margin="2px"
 									 min="-90" max="90" initial="-5" stepSize="1" buttonStepSize="1"/>
 						</panel>
-						
+						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Smoothing right:" width="122px" margin="2px"/>
+							<control id="SmoothRightSlider" name="horizontalSlider" width="120px" margin="2px"
+									 min="0" max="100" initial="5" stepSize="1" buttonStepSize="5"/>
+						</panel>
 						<panel childLayout="absolute" height="20px"/>
 						<control name="label" textHAlign="left"text="Presets for new curves:" margin="2px"/>
 						<control id="PresetListBox" name="listBox" vertical="optional" horizontal="optional" 

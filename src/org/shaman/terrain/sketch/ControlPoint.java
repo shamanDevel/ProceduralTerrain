@@ -33,11 +33,16 @@ public class ControlPoint {
 	public float extend2;
 	public float noiseAmplitude;
 	public float noiseRoughness;
+	public float smooth1;
+	public float smooth2;
 
 	public ControlPoint() {
 	}
 
-	public ControlPoint(float x, float y, float height, float plateau, float angle1, float extend1, float angle2, float extend2, float noiseAmplitude, float noiseRoughness) {
+	public ControlPoint(float x, float y, float height, float plateau, 
+			float angle1, float extend1, float angle2, float extend2, 
+			float noiseAmplitude, float noiseRoughness,
+			float smooth1, float smooth2) {
 		this.x = x;
 		this.y = y;
 		this.height = height;
@@ -48,11 +53,16 @@ public class ControlPoint {
 		this.extend2 = extend2;
 		this.noiseAmplitude = noiseAmplitude;
 		this.noiseRoughness = noiseRoughness;
+		this.smooth1 = smooth1;
+		this.smooth2 = smooth2;
 	}
 
 	@Override
 	public String toString() {
-		return "ControlPoint{" + "x=" + x + ", y=" + y + ", height=" + height + ", plateau=" + plateau + ", angle1=" + angle1 + ", extend1=" + extend1 + ", angle2=" + angle2 + ", extend2=" + extend2 + ", noiseAmplitude=" + noiseAmplitude + ", noiseRoughness=" + noiseRoughness + '}';
+		return "ControlPoint{" + "x=" + x + ", y=" + y + ", height=" + height + ", plateau=" + plateau 
+				+ ", angle1=" + angle1 + ", extend1=" + extend1 + ", angle2=" + angle2 + ", extend2=" + extend2 
+				+ ", noiseAmplitude=" + noiseAmplitude + ", noiseRoughness=" + noiseRoughness 
+				+ ", smooth1=" + smooth1 + ", smooth2=" + smooth2 + '}';
 	}
 	
 }

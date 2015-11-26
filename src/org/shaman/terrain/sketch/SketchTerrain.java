@@ -227,9 +227,11 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		ControlCurveMesh mesh = new ControlCurveMesh(curve, "Curve"+index, app);
 		node.attachChild(mesh.getTubeGeometry());
 		node.attachChild(mesh.getSlopeGeometry());
+		node.attachChild(mesh.getSmoothGeometry());
 		
 		node.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 		mesh.getSlopeGeometry().setShadowMode(RenderQueue.ShadowMode.Off);
+		mesh.getSmoothGeometry().setShadowMode(RenderQueue.ShadowMode.Off);
 		featureCurveNodes.add(node);
 		featureCurveMesh.add(mesh);
 		curveNode.attachChild(node);
@@ -371,6 +373,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			addControlPointsToNode(newCurve.getPoints(), newCurveNode, -1);
 			newCurveMesh = new ControlCurveMesh(newCurve, "dummy", app);
 			newCurveNode.attachChild(newCurveMesh.getSlopeGeometry());
+			newCurveNode.attachChild(newCurveMesh.getSmoothGeometry());
 			newCurveNode.attachChild(newCurveMesh.getTubeGeometry());
 			curveNode.attachChild(newCurveNode);
 			screenController.setMessage("ADDING A NEW FEATURE");
@@ -380,10 +383,12 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			addControlPointsToNode(newCurve.getPoints(), newCurveNode, -1);
 			newCurveMesh.updateMesh();
 			newCurveNode.attachChild(newCurveMesh.getSlopeGeometry());
+			newCurveNode.attachChild(newCurveMesh.getSmoothGeometry());
 			newCurveNode.attachChild(newCurveMesh.getTubeGeometry());
 		}
 		newCurveNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 		newCurveMesh.getSlopeGeometry().setShadowMode(RenderQueue.ShadowMode.Off);
+		newCurveMesh.getSmoothGeometry().setShadowMode(RenderQueue.ShadowMode.Off);
 	}
 	
 	private ControlPoint createNewControlPoint(float x, float y, float h) {

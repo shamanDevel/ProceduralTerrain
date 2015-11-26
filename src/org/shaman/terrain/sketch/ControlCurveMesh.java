@@ -33,8 +33,10 @@ public class ControlCurveMesh {
 	private final ControlCurve curve;
 	private final Mesh tubeMesh;
 	private final Mesh slopeMesh;
+	private final Mesh smoothMesh;
 	private final Geometry tubeGeom;
 	private final Geometry slopeGeom;
+	private final Geometry smoothGeom;
 
 	public ControlCurveMesh(ControlCurve curve, String tubeName, TerrainHeighmapCreator app) {
 		this.curve = curve;
@@ -42,11 +44,15 @@ public class ControlCurveMesh {
 		
 		tubeMesh = new Mesh();
 		slopeMesh = new Mesh();
+		smoothMesh = new Mesh();
 		slopeMesh.setMode(Mesh.Mode.Lines);
 		slopeMesh.setLineWidth(5);
+		smoothMesh.setMode(Mesh.Mode.Lines);
+		smoothMesh.setLineWidth(4);
 		updateMesh();
 		tubeGeom = new Geometry(tubeName, tubeMesh);
 		slopeGeom = new Geometry("slope", slopeMesh);
+		smoothGeom = new Geometry("smooth", smoothMesh);
 		Material tubeMat = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
 		tubeMat.setBoolean("UseMaterialColors", true);
 		tubeMat.setColor("Diffuse", ColorRGBA.Blue);
@@ -59,6 +65,11 @@ public class ControlCurveMesh {
 		slopeMat.getAdditionalRenderState().setAlphaTest(true);
 		slopeGeom.setMaterial(slopeMat);
 		slopeGeom.setCullHint(Spatial.CullHint.Never);
+		Material smoothMat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+		smoothMat.setColor("Color", ColorRGBA.Black);
+		smoothMat.getAdditionalRenderState().setAlphaTest(true);
+		smoothGeom.setMaterial(smoothMat);
+		smoothGeom.setCullHint(Spatial.CullHint.Never);
 	}
 	
 	public Geometry getTubeGeometry() {
@@ -69,9 +80,14 @@ public class ControlCurveMesh {
 		return slopeGeom;
 	}
 	
+	public Geometry getSmoothGeometry() {
+		return smoothGeom;
+	}
+	
 	public final void updateMesh() {
 		updateTube();
 		updateSlope();
+		updateSmooth();
 	}
 	
 	private void updateTube() {
@@ -242,5 +258,122 @@ public class ControlCurveMesh {
 		slopeMesh.setBuffer(VertexBuffer.Type.Index, 1, BufferUtils.createIntBuffer(ArrayUtils.toPrimitive(indices.toArray(new Integer[indices.size()]))));
 		slopeMesh.setMode(Mesh.Mode.Lines);
 		slopeMesh.updateCounts();
+	}
+	
+	private void updateSmooth() {
+		//buffers
+		ArrayList<Vector3f> positions = new ArrayList<>(7*(SLOPE_SAMPLES+1));
+		ArrayList<Integer> indices = new ArrayList<>();
+		
+		//create samples
+		ControlPoint[] points = new ControlPoint[SLOPE_SAMPLES+1];
+		for (int i=0; i<=SLOPE_SAMPLES; ++i) {
+			points[i] = curve.interpolate(i / (float) SLOPE_SAMPLES);
+		}
+		
+		//add vertices
+		for (int i=0; i<points.length; ++i) {
+			ControlPoint p = points[i];
+			Vector3f c = app.mapHeightmapToWorld(p.x, p.y, p.height);
+			float dx,dy;
+			if (i==0) {
+				dx = points[i+1].x - points[i].x;
+				dy = points[i+1].y - points[i].y;
+			} else if (i==points.length-1) {
+				dx = points[i].x - points[i-1].x;
+				dy = points[i].y - points[i-1].y;
+			} else {
+				dx = (points[i+1].x - points[i-1].x) / 2f;
+				dy = (points[i+1].y - points[i-1].y) / 2f;
+			}
+			float sum = (float) Math.sqrt(dx*dx + dy*dy);
+			dx /= sum;
+			dy /= sum;
+			Vector3f l1 = app.mapHeightmapToWorld(
+					p.x - (p.plateau + FastMath.cos(p.angle1)*p.extend1)*dy, 
+					p.y + (p.plateau + FastMath.cos(p.angle1)*p.extend1)*dx, 
+					p.height - FastMath.sin(p.angle1)*p.extend1/TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE);
+			Vector3f r1 = app.mapHeightmapToWorld(
+					p.x + (p.plateau + FastMath.cos(p.angle2)*p.extend2)*dy, 
+					p.y - (p.plateau + FastMath.cos(p.angle2)*p.extend2)*dx, 
+					p.height - FastMath.sin(p.angle2)*p.extend2/TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE);
+			Vector3f l2 = app.mapHeightmapToWorld(
+					p.x - ((p.plateau + FastMath.cos(p.angle1)*p.extend1)+p.smooth1)*dy, 
+					p.y + ((p.plateau + FastMath.cos(p.angle1)*p.extend1)+p.smooth1)*dx, 
+					p.height - FastMath.sin(p.angle1)*p.extend1/TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE);
+			Vector3f r2 = app.mapHeightmapToWorld(
+					p.x + ((p.plateau + FastMath.cos(p.angle2)*p.extend2)+p.smooth2)*dy, 
+					p.y - ((p.plateau + FastMath.cos(p.angle2)*p.extend2)+p.smooth2)*dx, 
+					p.height - FastMath.sin(p.angle2)*p.extend2/TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE);
+			
+			positions.add(l1);
+			positions.add(l2);
+			positions.add(r1);
+			positions.add(r2);
+		}
+		//add first and last
+		ControlPoint p = points[0];
+		float dx = points[1].x - points[0].x;
+		float dy = points[1].y - points[0].y;
+		float sum = (float) Math.sqrt(dx*dx + dy*dy);
+		dx /= sum;
+		dy /= sum;
+		float smooth = (p.smooth1+p.smooth2)/2;
+		Vector3f l = app.mapHeightmapToWorld(p.x - p.plateau*dy - smooth*dx, p.y + p.plateau*dx - smooth*dy, p.height);
+		Vector3f r = app.mapHeightmapToWorld(p.x + p.plateau*dy - smooth*dx, p.y - p.plateau*dx - smooth*dy, p.height);
+		positions.add(l);
+		positions.add(r);
+		p = points[points.length-1];
+		dx = points[points.length-1].x - points[points.length-2].x;
+		dy = points[points.length-1].y - points[points.length-2].y;
+		sum = (float) Math.sqrt(dx*dx + dy*dy);
+		dx /= sum;
+		dy /= sum;
+		smooth = (p.smooth1+p.smooth2)/2;
+		l = app.mapHeightmapToWorld(p.x - p.plateau*dy + smooth*dx, p.y + p.plateau*dx + smooth*dy, p.height);
+		r = app.mapHeightmapToWorld(p.x + p.plateau*dy + smooth*dx, p.y - p.plateau*dx + smooth*dy, p.height);
+		positions.add(l);
+		positions.add(r);
+		
+		//add indices
+		for (int i=0; i<points.length; ++i) {
+			indices.add(4*i + 0);
+			indices.add(4*i + 1);
+			indices.add(4*i + 2);
+			indices.add(4*i + 3);
+			
+			if (i<points.length-1) {
+				indices.add(4*i + 1);
+				indices.add(4*i + 1 + 4);
+				indices.add(4*i + 3);
+				indices.add(4*i + 3 + 4);
+			}
+		}
+		indices.add(0);
+		indices.add(positions.size()-4);
+		indices.add(positions.size()-4);
+		indices.add(1);
+		indices.add(2);
+		indices.add(positions.size()-3);
+		indices.add(positions.size()-3);
+		indices.add(3);
+		indices.add(positions.size()-4);
+		indices.add(positions.size()-3);
+		indices.add(positions.size()-8);
+		indices.add(positions.size()-2);
+		indices.add(positions.size()-2);
+		indices.add(positions.size()-7);
+		indices.add(positions.size()-6);
+		indices.add(positions.size()-1);
+		indices.add(positions.size()-1);
+		indices.add(positions.size()-5);
+		indices.add(positions.size()-2);
+		indices.add(positions.size()-1);
+		
+		//set buffers
+		smoothMesh.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(positions.toArray(new Vector3f[positions.size()])));
+		smoothMesh.setBuffer(VertexBuffer.Type.Index, 1, BufferUtils.createIntBuffer(ArrayUtils.toPrimitive(indices.toArray(new Integer[indices.size()]))));
+		smoothMesh.setMode(Mesh.Mode.Lines);
+		smoothMesh.updateCounts();
 	}
 }

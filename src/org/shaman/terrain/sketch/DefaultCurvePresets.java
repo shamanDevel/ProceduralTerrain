@@ -34,7 +34,7 @@ public class DefaultCurvePresets {
 
 		@Override
 		public ControlPoint createControlPoint(float x, float y, float height, ControlPoint[] oldPoints, Heightmap heightmap) {
-			return new ControlPoint(x, y, height, 5, 0, 0, 0, 0, 0, 0);
+			return new ControlPoint(x, y, height, 5, 0, 0, 0, 0, 0, 0, 10, 10);
 		}
 		
 	}
@@ -52,7 +52,7 @@ public class DefaultCurvePresets {
 			float plateau = 1;
 			float extend = (float) ((height - heightmap.getHeightInterpolating(x, y)) / Math.cos(angle) * 0.7);
 			extend *= TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE;
-			return new ControlPoint(x, y, height, plateau, angle, extend, angle, extend, 0, 0);
+			return new ControlPoint(x, y, height, plateau, angle, extend, angle, extend, 0, 0, 5, 5);
 		}
 		
 	}
@@ -70,7 +70,7 @@ public class DefaultCurvePresets {
 			float plateau = 10;
 			float extend = (float) ((height - heightmap.getHeightInterpolating(x, y)) / Math.cos(angle) * 0.7);
 			extend *= TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE;
-			return new ControlPoint(x, y, height, plateau, angle, extend, angle, extend, 0, 0);
+			return new ControlPoint(x, y, height, plateau, angle, extend, angle, extend, 0, 0, 5, 5);
 		}
 		
 	}
@@ -89,7 +89,7 @@ public class DefaultCurvePresets {
 			float extend = (float) ((height - heightmap.getHeightInterpolating(x, y)) / Math.cos(angle) * 0.7);
 			extend *= TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE;
 			extend = Math.abs(extend);
-			return new ControlPoint(x, y, height, plateau, angle, extend, angle, extend, 0, 0);
+			return new ControlPoint(x, y, height, plateau, angle, extend, angle, extend, 0, 0, 5, 5);
 		}
 		
 	}
@@ -106,7 +106,7 @@ public class DefaultCurvePresets {
 			float angle = 80 * FastMath.DEG_TO_RAD;
 			float extend = (float) ((height - heightmap.getHeightInterpolating(x, y)) * 2.0);
 			extend *= TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE;
-			return new ControlPoint(x, y, height, 1, angle, extend, 0, 30, 0, 0);
+			return new ControlPoint(x, y, height, 1, angle, extend, 0, 30, 0, 0, 0, 15);
 		}
 		
 	}
@@ -123,7 +123,7 @@ public class DefaultCurvePresets {
 			float angle = 80 * FastMath.DEG_TO_RAD;
 			float extend = (float) ((height - heightmap.getHeightInterpolating(x, y)) * 2.0);
 			extend *= TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE;
-			return new ControlPoint(x, y, height, 1, 0, 30, angle, extend, 0, 0);
+			return new ControlPoint(x, y, height, 1, 0, 30, angle, extend, 0, 0, 15, 0);
 		}
 		
 	}
@@ -139,7 +139,7 @@ public class DefaultCurvePresets {
 		public ControlPoint createControlPoint(float x, float y, float height, ControlPoint[] oldPoints, Heightmap heightmap) {
 			float angle = -80 * FastMath.DEG_TO_RAD;
 			float extend = 20;
-			ControlPoint p = new ControlPoint(x, y, height, 0, angle, extend, angle, extend, 0, 0);
+			ControlPoint p = new ControlPoint(x, y, height, 0, angle, extend, angle, extend, 0, 0, 5, 5);
 			p.hasElevation = false;
 			return p;
 		}

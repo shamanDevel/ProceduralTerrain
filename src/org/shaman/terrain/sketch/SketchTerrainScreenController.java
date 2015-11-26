@@ -36,8 +36,10 @@ public class SketchTerrainScreenController implements ScreenController {
 	private Slider plateauSizeSlider;
 	private Slider slopeSizeLeftSlider;
 	private Slider slopeAngleLeftSlider;
+	private Slider smoothLeftSlider;
 	private Slider slopeSizeRightSlider;
 	private Slider slopeAngleRightSlider;
+	private Slider smoothRightSlider;
 	private ListBox<String> presetListBox;
 	private Button solveButton;
 	private Label iterationsLabel;
@@ -72,8 +74,10 @@ public class SketchTerrainScreenController implements ScreenController {
 		plateauSizeSlider = screen.findNiftyControl("PlateauSlider", Slider.class);
 		slopeSizeLeftSlider = screen.findNiftyControl("SlopeSizeLeftSlider", Slider.class);
 		slopeAngleLeftSlider = screen.findNiftyControl("SlopeAngleLeftSlider", Slider.class);
+		smoothLeftSlider = screen.findNiftyControl("SmoothLeftSlider", Slider.class);
 		slopeSizeRightSlider = screen.findNiftyControl("SlopeSizeRightSlider", Slider.class);
 		slopeAngleRightSlider = screen.findNiftyControl("SlopeAngleRightSlider", Slider.class);
+		smoothRightSlider = screen.findNiftyControl("SmoothRightSlider", Slider.class);
 		presetListBox = screen.findNiftyControl("PresetListBox", ListBox.class);
 		solveButton = screen.findNiftyControl("SolveButton", Button.class);
 		iterationsLabel = screen.findNiftyControl("IterationsLabel", Label.class);
@@ -119,6 +123,8 @@ public class SketchTerrainScreenController implements ScreenController {
 				slopeAngleLeftSlider.setValue(point.angle1 * SLOPE_ANGLE_SCALE);
 				slopeSizeRightSlider.setValue(point.extend2 * SLOPE_SIZE_SCALE);
 				slopeAngleRightSlider.setValue(point.angle2 * SLOPE_ANGLE_SCALE);
+				smoothLeftSlider.setValue(point.smooth1);
+				smoothRightSlider.setValue(point.smooth2);
 				disableInput = false;
 			}
 		}
@@ -144,6 +150,8 @@ public class SketchTerrainScreenController implements ScreenController {
 		slopeAngleLeftSlider.setEnabled(editPoint);
 		slopeSizeRightSlider.setEnabled(editPoint);
 		slopeAngleRightSlider.setEnabled(editPoint);
+		smoothLeftSlider.setEnabled(editPoint);
+		smoothRightSlider.setEnabled(editPoint);
 		presetListBox.setEnabled(newCurve);
 	}
 	
@@ -161,6 +169,8 @@ public class SketchTerrainScreenController implements ScreenController {
 		slopeAngleLeftSlider.setEnabled(false);
 		slopeSizeRightSlider.setEnabled(false);
 		slopeAngleRightSlider.setEnabled(false);
+		smoothLeftSlider.setEnabled(false);
+		smoothRightSlider.setEnabled(false);
 		presetListBox.setEnabled(false);
 	}
 	public void stopSolving() {
@@ -228,6 +238,10 @@ public class SketchTerrainScreenController implements ScreenController {
 			controlPoint.extend2 = e.getValue() / SLOPE_SIZE_SCALE;
 		} else if (e.getSlider()==slopeAngleRightSlider) {
 			controlPoint.angle2 = e.getValue() / SLOPE_ANGLE_SCALE;
+		} else if (e.getSlider()==smoothLeftSlider) {
+			controlPoint.smooth1 = e.getValue();
+		} else if (e.getSlider()==smoothRightSlider) {
+			controlPoint.smooth2 = e.getValue();
 		}
 		sketchTerrain.guiControlPointChanged();
 	}

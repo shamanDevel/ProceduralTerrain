@@ -113,6 +113,8 @@ public class ControlCurve {
 		p.extend2 = (1 - t) * p1.extend2 + t * p2.extend2;
 		p.noiseAmplitude = (1 - t) * p1.noiseAmplitude + t * p2.noiseAmplitude;
 		p.noiseRoughness = (1 - t) * p1.noiseRoughness + t * p2.noiseRoughness;
+		p.smooth1 = (1-t) * p1.smooth1 + t * p2.smooth1;
+		p.smooth2 = (1-t) * p1.smooth2 + t * p2.smooth2;
 		return p;
 	}
 
