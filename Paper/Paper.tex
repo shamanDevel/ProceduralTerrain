@@ -382,6 +382,32 @@ The Laplace term smoothes the terrain by averaging the neighbor cells:
 	\caption{Adding features to existing terrain}\label{fig:diffusion2}
 \end{figure*}
 \subsection{Integrate into existing terrain}
+Defining the whole terrain only with the feature curves is very tedious. Therefore we want to start with an existing terrain, as described in chapter \ref{PolygonalMap}.
+However, simply starting with the existing terrain as $H^0$ does not work because the Laplace term would just smooth out every feature apart from the feature curves.
+
+\cite{FloraPonjouTasseArnaudEmilienMariePauleCaniStefanieHahmannAdrienBernhardt.2014} proposes a different solution. They compute the elevation and gradient constraints relative to the original terrain, then solve the diffusion equation on a flat map and add them together. The idea is visualized in the following image:
+\begin{center}
+	\includegraphics[width=0.30\textwidth]{images/DiffusionAddFeatures}
+\end{center}
+This works as long as there are no sharp features already existing right next to the new feature curve. If that is the case, as in the image above, adding the curves together produces unwanted results because of these inferences.
+
+This case happens quite often as seen in Fig. \ref{fig:diffusion3}. Here we define a new feature curve right next to an existing mountain. Although the curve's slope does not touch the existing terrain, the smoothing term inside the diffusion solver also increases the height outside of the feature curve. This leads to a growth of the mountain on the left.
+From a designer's perspective, this behaviour might be not wanted because it is hard to predict and control.
+
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/diffusionError1}
+		\caption{original terrain with new feature curve}
+		\label{fig:diffusionError1}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/diffusionError2}
+		\caption{inference, mountain on the left side also grows}
+		\label{fig:diffusionError2}
+	\end{subfigure}
+	\caption{Inferences between new feature curves and existing terrain features}\label{fig:diffusion3}
+\end{figure*}
 
 \section{Hydraulic Erosion}\label{HydraulicErosion}
 TODO
