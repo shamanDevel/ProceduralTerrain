@@ -359,6 +359,7 @@ public class ControlCurveMesh {
 		indices.add(3);
 		indices.add(positions.size()-4);
 		indices.add(positions.size()-3);
+		
 		indices.add(positions.size()-8);
 		indices.add(positions.size()-2);
 		indices.add(positions.size()-2);

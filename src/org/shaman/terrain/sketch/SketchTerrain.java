@@ -504,10 +504,11 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	private class DiffusionSolver {
 		//settings
 		private final double BETA_SCALE = 0.9;
-		private final double ALPHA_SCALE = 0.5;
-		private final double GRADIENT_SCALE = 0.01;
+		private final double ALPHA_SCALE = 0.7;
+		private final double GRADIENT_SCALE = 1.5/TerrainHeighmapCreator.HEIGHMAP_HEIGHT_SCALE;
 		private final float SLOPE_ALPHA_FACTOR = 0f;
-		private final boolean EVALUATE_SLOPE_RELATIVE_TO_ORIGINAL = true;
+		private final boolean EVALUATE_SLOPE_RELATIVE_TO_ORIGINAL = false;
+		private final boolean LIMIT_SMOOTHING = true;
 		
 		//input
 		private final int size;
@@ -515,7 +516,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		
 		//matrices
 		private Matrix elevation; //target elevation
-		private Matrix alpha, beta; //factors specifying the influence of the gradient, smootheness and elevation
+		private Matrix alpha, beta, gamma; //factors specifying the influence of the gradient, smootheness and elevation
 		private Matrix gradX, gradY; //the normalized direction of the gradient at this point
 		private Matrix gradH; //the target gradient / height difference from the reference point specified by gradX, gradY
 
@@ -532,6 +533,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			elevation = new Matrix(size, size);
 			alpha = new Matrix(size, size);
 			beta = new Matrix(size, size);
+			gamma = new Matrix(size, size);
 			gradX = new Matrix(size, size);
 			gradY = new Matrix(size, size);
 			gradH = new Matrix(size, size);
@@ -543,8 +545,22 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			vertexColorMat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 			vertexColorMat.getAdditionalRenderState().setDepthTest(true);
 			vertexColorMat.getAdditionalRenderState().setDepthWrite(true);
+			Material grayMat1 = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+			grayMat1.setColor("Color", new ColorRGBA(1-(float) ALPHA_SCALE, 1-(float) ALPHA_SCALE, 1-(float) ALPHA_SCALE, 1));
+			grayMat1.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+			grayMat1.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+			grayMat1.getAdditionalRenderState().setDepthTest(true);
+			grayMat1.getAdditionalRenderState().setDepthWrite(true);
+			Material grayMat2 = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+			grayMat2.setColor("Color", new ColorRGBA(1-(float) BETA_SCALE, 1-(float) BETA_SCALE, 1-(float) BETA_SCALE, 1));
+			grayMat2.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+			grayMat2.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+			grayMat2.getAdditionalRenderState().setDepthTest(true);
+			grayMat2.getAdditionalRenderState().setDepthWrite(true);
+			
 			Node elevationNode = new Node();
 			Node gradientNode = new Node();
+			Node smoothingNode = new Node();
 			
 			for (ControlCurve curve : curves) {
 				if (curve==null) continue;
@@ -555,29 +571,51 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 					points[i] = curve.interpolate(i / (float) samples);
 				}
 				
-				Geometry lineGeom = new Geometry("line", createLineMesh(points));
+				Mesh lineMesh = createLineMesh(points);
+				Geometry lineGeom = new Geometry("line", lineMesh);
 				lineGeom.setMaterial(vertexColorMat);
 				lineGeom.setQueueBucket(RenderQueue.Bucket.Gui);
-				Geometry plateauGeom = new Geometry("plateau", createPlateauMesh(points));
+				Mesh plateauMesh = createPlateauMesh(points);
+				Geometry plateauGeom = new Geometry("plateau", plateauMesh);
 				plateauGeom.setMaterial(vertexColorMat);
 				plateauGeom.setQueueBucket(RenderQueue.Bucket.Gui);
 				elevationNode.attachChild(lineGeom);
 				elevationNode.attachChild(plateauGeom);
 				
-				Geometry slopeGeom = new Geometry("slope", createSlopeMesh(points));
+				Mesh slopeMesh = createSlopeMesh(points);
+				Geometry slopeGeom = new Geometry("slope", slopeMesh);
 				slopeGeom.setMaterial(vertexColorMat);
 				slopeGeom.setQueueBucket(RenderQueue.Bucket.Gui);
 				gradientNode.attachChild(slopeGeom);
+				
+				Geometry smoothGeom = new Geometry("smooth", createSmoothingMesh(points));
+				smoothGeom.setMaterial(vertexColorMat);
+				smoothGeom.setQueueBucket(RenderQueue.Bucket.Gui);
+				smoothingNode.attachChild(smoothGeom);
+				Geometry smoothGeom2 = new Geometry("smooth2", slopeMesh);
+				smoothGeom2.setMaterial(grayMat1);
+				smoothGeom2.setQueueBucket(RenderQueue.Bucket.Gui);
+				smoothingNode.attachChild(smoothGeom2);
+				Geometry smoothGeom3 = new Geometry("smooth3", lineMesh);
+				smoothGeom3.setMaterial(grayMat2);
+				smoothGeom3.setQueueBucket(RenderQueue.Bucket.Gui);
+				smoothingNode.attachChild(smoothGeom3);
+				Geometry smoothGeom4 = new Geometry("smooth4", plateauMesh);
+				smoothGeom4.setMaterial(grayMat2);
+				smoothGeom4.setQueueBucket(RenderQueue.Bucket.Gui);
+				smoothingNode.attachChild(smoothGeom4);
 			}
 			
 			elevationNode.setCullHint(Spatial.CullHint.Never);
 			gradientNode.setCullHint(Spatial.CullHint.Never);
+			smoothingNode.setCullHint(Spatial.CullHint.Never);
 			
 			for (Spatial s : elevationNode.getChildren()) {
 				fillMatrix(elevation, s, true);
 			}
 			
 			fillSlopeMatrix(gradientNode);
+			fillMatrix(gamma, smoothingNode, true);
 			
 			vertexColorMat.setBoolean("VertexColor", false);
 			vertexColorMat.setColor("Color", ColorRGBA.White);
@@ -599,6 +637,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 				saveFloatMatrix(elevation, "diffusion/Elevation.png", 0.5);
 				saveMatrix(beta, "diffusion/Beta.png");
 				saveMatrix(alpha, "diffusion/Alpha.png");
+				saveMatrix(gamma, "diffusion/Gamma.png");
 				saveFloatMatrix(gradX, "diffusion/GradX.png",1);
 				saveFloatMatrix(gradY, "diffusion/GradY.png",1);
 				saveFloatMatrix(gradH, "diffusion/GradH.png",50);
@@ -621,10 +660,15 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 					v += last.get(x, Math.max(0, y-1));
 					v += last.get(x, Math.min(size-1, y+1));
 					v /= 4.0;
-					v *= 1 - alpha.get(x, y) - beta.get(x, y);
+					if (LIMIT_SMOOTHING) {
+						v *= gamma.get(x, y);
+					} else {
+						v *= 1 - alpha.get(x, y) - beta.get(x, y);
+					}
 					laplace.set(x, y, v);
 				}
 			}
+//			saveFloatMatrix(laplace, "diffusion/Laplace"+iteration+".png",1);
 			mat.plusEquals(laplace);
 			//add gradient constraint
 			Matrix gradient = new Matrix(size, size);
@@ -784,10 +828,10 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2) * dy, 
 						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2) * -dx, 0);
 				ColorRGBA c1, c2, c3, c4;
-				c1 = new ColorRGBA(-dy/2 + 0.5f, dx/2 + 0.5f, -FastMath.sin(points[i].angle1) + 0.5f, 1);
-				c2 = new ColorRGBA(c1.r, c1.g, c1.b, 0);
-				c3 = new ColorRGBA(dy/2 + 0.5f, -dx/2 + 0.5f, -FastMath.sin(points[i].angle2) + 0.5f, 1);
-				c4 = new ColorRGBA(c3.r, c3.g, c3.b, 0);
+				c1 = new ColorRGBA(-dy/2 + 0.5f, dx/2 + 0.5f, -FastMath.sin(points[i].angle1)/2 + 0.5f, 1);
+				c2 = new ColorRGBA(c1.r, c1.g, c1.b, 0.5f);
+				c3 = new ColorRGBA(dy/2 + 0.5f, -dx/2 + 0.5f, -FastMath.sin(points[i].angle2)/2 + 0.5f, 1);
+				c4 = new ColorRGBA(c3.r, c3.g, c3.b, 0.5f);
 				col[4*i + 0] = c1;
 				col[4*i + 1] = c2;
 				col[4*i + 2] = c3;
@@ -809,6 +853,119 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 				index[12*i + 10] = 4*i + 3;
 				index[12*i + 11] = 4*i + 7;
 			}
+			Mesh m = new Mesh();
+			m.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(pos));
+			m.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(col));
+			m.setBuffer(VertexBuffer.Type.Index, 1, index);
+			m.setMode(Mesh.Mode.Triangles);
+			return m;
+		}
+		private Mesh createSmoothingMesh(ControlPoint[] points) {
+			Vector3f[] pos = new Vector3f[points.length*4 + 4];
+			ColorRGBA[] col = new ColorRGBA[points.length*4 + 4];
+			ColorRGBA c1 = new ColorRGBA(1, 1, 1, 1);
+			ColorRGBA c2 = new ColorRGBA(1, 1, 1, 0);
+			for (int i=0; i<points.length; ++i) {
+				Vector3f p = new Vector3f(points[i].x, points[i].y, 1-points[i].height);
+				float dx,dy;
+				if (i==0) {
+					dx = points[i+1].x - points[i].x;
+					dy = points[i+1].y - points[i].y;
+				} else if (i==points.length-1) {
+					dx = points[i].x - points[i-1].x;
+					dy = points[i].y - points[i-1].y;
+				} else {
+					dx = (points[i+1].x - points[i-1].x) / 2f;
+					dy = (points[i+1].y - points[i-1].y) / 2f;
+				}
+				float sum = (float) Math.sqrt(dx*dx + dy*dy);
+				dx /= sum;
+				dy /= sum;
+				pos[4*i + 0] = p.add(
+						(points[i].plateau + FastMath.cos(points[i].angle1)*points[i].extend1) * -dy, 
+						(points[i].plateau + FastMath.cos(points[i].angle1)*points[i].extend1) * dx, 0);
+				pos[4*i + 1] = p.add(
+						(points[i].plateau + (FastMath.cos(points[i].angle1)*points[i].extend1)+points[i].smooth1) * -dy, 
+						(points[i].plateau + (FastMath.cos(points[i].angle1)*points[i].extend1)+points[i].smooth1) * dx, 0);
+				pos[4*i + 2] = p.add(
+						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2) * dy, 
+						(points[i].plateau + FastMath.cos(points[i].angle2)*points[i].extend2) * -dx, 0);
+				pos[4*i + 3] = p.add(
+						(points[i].plateau + (FastMath.cos(points[i].angle2)*points[i].extend2)+points[i].smooth2) * dy, 
+						(points[i].plateau + (FastMath.cos(points[i].angle2)*points[i].extend2)+points[i].smooth2) * -dx, 0);
+				col[4*i + 0] = c1;
+				col[4*i + 1] = c2;
+				col[4*i + 2] = c1;
+				col[4*i + 3] = c2;
+			}
+			//add first and last smoothing
+			Vector3f p = new Vector3f(points[0].x, points[0].y, 1-points[0].height);
+			float dx,dy;
+			dx = points[1].x - points[0].x;
+			dy = points[1].y - points[0].y;
+			float sum = (float) Math.sqrt(dx*dx + dy*dy);
+			dx /= sum;
+			dy /= sum;
+			float smooth = (points[0].smooth1+points[0].smooth2)/2;
+			pos[pos.length-4] = p.add(points[0].plateau * -dy - smooth*dx , points[0].plateau * dx - smooth*dy, 0);
+			pos[pos.length-3] = p.add(points[0].plateau * +dy - smooth*dx , points[0].plateau * -dx - smooth*dy, 0);
+			col[pos.length-4] = c2;
+			col[pos.length-3] = c2;
+			p = new Vector3f(points[points.length-1].x, points[points.length-1].y, 1-points[points.length-1].height);
+			dx = points[points.length-1].x - points[points.length-2].x;
+			dy = points[points.length-1].y - points[points.length-2].y;
+			sum = (float) Math.sqrt(dx*dx + dy*dy);
+			dx /= sum;
+			dy /= sum;
+			smooth = (points[points.length-1].smooth1+points[points.length-1].smooth2)/2;
+			pos[pos.length-2] = p.add(points[points.length-1].plateau * -dy + smooth*dx , points[points.length-1].plateau * dx + smooth*dy, 0);
+			pos[pos.length-1] = p.add(points[points.length-1].plateau * +dy + smooth*dx , points[points.length-1].plateau * -dx + smooth*dy, 0);
+			col[pos.length-2] = c2;
+			col[pos.length-1] = c2;
+			//indices
+			int[] index = new int[(points.length-1) * 12 + 24];
+			for (int i=0; i<points.length-1; ++i) {
+				index[12*i] = 4*i;
+				index[12*i + 1] = 4*i + 4;
+				index[12*i + 2] = 4*i + 1;
+				index[12*i + 3] = 4*i + 4;
+				index[12*i + 4] = 4*i + 5;
+				index[12*i + 5] = 4*i + 1;
+				
+				index[12*i + 6] = 4*i + 2;
+				index[12*i + 7] = 4*i + 3;
+				index[12*i + 8] = 4*i + 6;
+				index[12*i + 9] = 4*i + 6;
+				index[12*i + 10] = 4*i + 3;
+				index[12*i + 11] = 4*i + 7;
+			}
+			int offset = 12*(points.length-1);
+			index[offset] = 0;
+			index[offset+1] = pos.length-4;
+			index[offset+2] = 1;
+			index[offset+3] = 0;
+			index[offset+4] = pos.length-4;
+			index[offset+5] = pos.length-3;
+			index[offset+6] = 0;
+			index[offset+7] = pos.length-3;
+			index[offset+8] = 2;
+			index[offset+9] = 2;
+			index[offset+10] = pos.length-3;
+			index[offset+11] = 3;
+			
+			index[offset+12] = pos.length-8;
+			index[offset+13] = pos.length-2;
+			index[offset+14] = pos.length-7;
+			index[offset+15] = pos.length-8;
+			index[offset+16] = pos.length-2;
+			index[offset+17] = pos.length-1;
+			index[offset+18] = pos.length-8;
+			index[offset+19] = pos.length-1;
+			index[offset+20] = pos.length-6;
+			index[offset+21] = pos.length-6;
+			index[offset+22] = pos.length-1;
+			index[offset+23] = pos.length-5;
+			
 			Mesh m = new Mesh();
 			m.setBuffer(VertexBuffer.Type.Position, 3, BufferUtils.createFloatBuffer(pos));
 			m.setBuffer(VertexBuffer.Type.Color, 4, BufferUtils.createFloatBuffer(col));
@@ -982,7 +1139,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 					if (Math.abs(v)<0.002) {
 						v=0;
 					}
-					gradH.set(x, y, v + gradH.get(x, y));
+					gradH.set(x, y, v*2 + gradH.get(x, y));
 //					data.get();
 					double a = data.getFloat();
 					alpha.set(x, y, a);
