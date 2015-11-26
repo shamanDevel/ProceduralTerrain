@@ -64,6 +64,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	private static final int CURVE_RESOLUTION = 8;
 	private static final int CURVE_SAMPLES = 128;
 	private static final boolean DEBUG_DIFFUSION_SOLVER = false;
+	private static final boolean SAVE_TEXTURES = true;
 	private static final int DIFFUSION_SOLVER_ITERATIONS = 100;
 	
 	private Heightmap map;
@@ -577,7 +578,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			//copy existing heightmap data
 			for (int x=0; x<map.getSize(); ++x) {
 				for (int y=0; y<map.getSize(); ++y) {
-					elevation.set(x, y, elevation.get(x, y) - originalMap.getHeightAt(x, y) - 0.5f);
+					elevation.set(x, y, elevation.get(x, y) - originalMap.getHeightAt(x, y));
 				}
 			}
 			
@@ -586,8 +587,8 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			gradH.timesEquals(GRADIENT_SCALE);
 
 			//save for debugging
-			if (DEBUG_DIFFUSION_SOLVER) {
-				saveMatrix(elevation, "diffusion/Elevation.png");
+			if (DEBUG_DIFFUSION_SOLVER || SAVE_TEXTURES) {
+				saveFloatMatrix(elevation, "diffusion/Elevation.png", 0.5);
 				saveMatrix(beta, "diffusion/Beta.png");
 				saveMatrix(alpha, "diffusion/Alpha.png");
 				saveFloatMatrix(gradX, "diffusion/GradX.png",1);
