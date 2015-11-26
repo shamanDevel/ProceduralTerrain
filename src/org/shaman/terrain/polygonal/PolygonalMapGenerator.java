@@ -46,7 +46,6 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	private static final Logger LOG = Logger.getLogger(PolygonalMapGenerator.class.getName());
 	private static final Class<? extends AbstractTerrainStep> NEXT_STEP = SketchTerrain.class;
 	private static final float BRUSH_RADIUS = 0.03f;
-	private static final boolean SHOW_RIVERS = false;
 
 	//GUI and settings
 	private PolygonalScreenController screenController;
@@ -62,6 +61,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 	private int mapSize;
 	private int mapSeed;
 	private boolean initialized = false;
+	private boolean showRivers = false;
 	
 	//computation
 	private Voronoi voronoi;
@@ -643,6 +643,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 			riverCounter++;
 		}
 		LOG.info("count of created rivers: "+riverCounter);
+		showRivers = true;
 		
 		//assign moisture
 		Queue<Graph.Corner> queue = new ArrayDeque<>();
@@ -861,7 +862,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		geom1.setMaterial(mat);
 		moistureNode.attachChild(geom1);
 		//river
-		if (SHOW_RIVERS) {
+		if (showRivers) {
 			posList.clear();
 			colorList.clear();
 			for (Graph.Edge e : graph.edges) {
@@ -1093,6 +1094,7 @@ public class PolygonalMapGenerator extends AbstractTerrainStep {
 		if (graph==null || brush==0) {
 			return;
 		}
+		showRivers = false;
 		Vector2f p = new Vector2f(x, y);
 		ArrayList<Pair<Graph.Corner, Float>> influenced = new ArrayList<>();
 		for (Graph.Corner q : graph.corners) {
