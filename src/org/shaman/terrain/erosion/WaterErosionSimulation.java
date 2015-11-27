@@ -468,7 +468,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		scaleFactor = factor;
 		for (int x=0; x<scaledMap.getSize(); ++x) {
 			for (int y=0; y<scaledMap.getSize(); ++y) {
-				scaledMap.setHeightAt(x, y, originalMap.getHeightInterpolating(x*invFactor, y*invFactor));
+				scaledMap.setHeightAt(x, y, originalMap.getHeightInterpolatingBicubic(x*invFactor, y*invFactor));
 				temperature.setHeightAt(x, y, originalTemperature.getHeightInterpolating(x*invFactor, y*invFactor));
 				moisture.setHeightAt(x, y, originalMoisture.getHeightInterpolating(x*invFactor, y*invFactor));
 			}

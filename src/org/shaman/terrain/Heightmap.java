@@ -101,6 +101,46 @@ public class Heightmap implements Cloneable, Serializable {
 	}
 	
 	/**
+	 * Performs a bicubic interpolation to get the height between grid positions.
+	 * See http://www.paulinternet.nl/?page=bicubic
+	 * @param tx
+	 * @param ty
+	 * @return 
+	 */
+	public float getHeightInterpolatingBicubic(float tx, float ty) {
+		tx = Math.max(0, Math.min(size-1, tx));
+		ty = Math.max(0, Math.min(size-1, ty));
+		int x = (int) Math.floor(tx);
+		int y = (int) Math.floor(ty);
+		float fx = tx%1;
+		float fy = ty%1;
+		
+		float q00 = getHeightAtClamping(x-1, y-1);
+		float q01 = getHeightAtClamping(x-1, y);
+		float q02 = getHeightAtClamping(x-1, y+1);
+		float q03 = getHeightAtClamping(x-1, y+2);
+		float q10 = getHeightAtClamping(x, y-1);
+		float q11 = getHeightAtClamping(x, y);
+		float q12 = getHeightAtClamping(x, y+1);
+		float q13 = getHeightAtClamping(x, y+2);
+		float q20 = getHeightAtClamping(x+1, y-1);
+		float q21 = getHeightAtClamping(x+1, y);
+		float q22 = getHeightAtClamping(x+1, y+1);
+		float q23 = getHeightAtClamping(x+1, y+2);
+		float q30 = getHeightAtClamping(x+2, y-1);
+		float q31 = getHeightAtClamping(x+2, y);
+		float q32 = getHeightAtClamping(x+2, y+1);
+		float q33 = getHeightAtClamping(x+2, y+2);
+		
+		float q0 = q01 + 0.5f * fy*(q02 - q00 + fy*(2*q00 - 5*q01 + 4*q02 - q03 + fy*(3*(q01 - q02) + q03 - q00)));
+		float q1 = q11 + 0.5f * fy*(q12 - q10 + fy*(2*q10 - 5*q11 + 4*q12 - q13 + fy*(3*(q11 - q12) + q13 - q10)));
+		float q2 = q21 + 0.5f * fy*(q22 - q20 + fy*(2*q20 - 5*q21 + 4*q22 - q23 + fy*(3*(q21 - q22) + q23 - q20)));
+		float q3 = q31 + 0.5f * fy*(q32 - q30 + fy*(2*q30 - 5*q31 + 4*q32 - q33 + fy*(3*(q31 - q32) + q33 - q30)));
+		
+		return q1 + 0.5f * fx*(q2 - q0 + fx*(2*q0 - 5*q1 + 4*q2 - q3 + fx*(3*(q1 - q2) + q3 - q0)));
+	}
+	
+	/**
 	 * Sets the height at the specific coordinate.
 	 * If the coordinates are outside of the boundary, nothing changes
 	 * @param x
