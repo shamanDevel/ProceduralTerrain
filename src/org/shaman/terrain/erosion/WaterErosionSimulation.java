@@ -903,9 +903,9 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		}
 		private void computeEvaporation() {	
 			//evaporation
-			float evaporationFactor = (1-Ke*DELTA_T);
 			for (int x=0; x<size; ++x) {
 				for (int y=0; y<size; ++y) {
+					float evaporationFactor = (1-Ke*temperature.getHeightAt(x, y)*DELTA_T);
 					waterHeight.setHeightAt(x, y, waterHeight.getHeightAt(x, y)*evaporationFactor);
 				}
 			}
@@ -918,6 +918,8 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 						waterHeight.setHeightAt(x, y, 0);
 						outflowFlux.setVectorAt(x, y, NULL_FLUX);
 						velocity.setVectorAt(x, y, NULL_VELOCITY);
+						originalHeight.adjustHeightAt(x, y, sediment.getHeightAt(x, y));
+						sediment.setHeightAt(x, y, 0);
 					}
 				}
 			}

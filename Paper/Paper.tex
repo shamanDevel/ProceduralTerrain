@@ -226,7 +226,7 @@ From the elevation, we directly derive the temperature: The higher it is, the co
 
 Until now, the elevation and temperature were defined for corners. To get these values for centers as well, we simply average them.
 
-\subsection{Moisture}
+\subsection{Moisture}\label{PolygonalMoisture}
 To obtain moisture values, we start with creating rivers.
 
 First we select random corners that are not coast or water and from there we follow the path of the steepest descent until reaching the ocean. At each step, we increase the amount of water the river carries. We then initial the moisture value of the river corners with the water amount. To achieve more distributed rivers, you might start a new river only at corners that are at least one or two steps away from an existing river.
@@ -242,7 +242,7 @@ As a last step, we assign a biome to each center based on its temperature and mo
 \subsubsection{Heightmap}
 The next steps in the processing pipeline all require a heightmap. A height map is just a rectangular grid of values where each cell stores the height at this point. We also use the same datastructure to store moisture and temperature values.
 
-Notation: Let $H$ be the heightmap. Then we identified the cell at position $i,j$ with either $H_{i,j}$ or $H[i,j]$, depending on the readability. When coordinates lie outside the map, we clamp them. When the coordinates are not integers, but lie between cells, we perform a bilinear interpolation between the neighboring cells.
+Notation: Let $H$ be the heightmap. Then we identified the cell at position $i,j$ with either $H_{i,j}$ or $H[i,j]$, depending on the readability. When coordinates lie outside the map, we clamp them. When the coordinates are not integers, but lie between cells, we perform a bilinear interpolation between the neighboring cells. When two heightmaps, or in the general case two scalar- or vectorfields, are added or multiplied together in this paper, these are always element-wise operations.
 
 \subsubsection{Base elevation}
 Since we already display the polygon graph from the previous steps using triangle meshes, we can just render the elevation mesh from step \ref{Elevation} to obtain a base elevation of the generated terrain. 
@@ -440,6 +440,97 @@ In Fig. \ref{fig:diffusionError3} you see the problematic situation again, but t
 
 \section{Hydraulic Erosion}\label{HydraulicErosion}
 Now the shape of the terrain is fully defined, and the next step is to increase the realism by performing erosion.
+
+Erosion is comes in many shapes in the nature: there is thermal erosion which decomposes larger stones into smaller ones, wind erosion which carries sand over long distances and finally water erosion.
+Water erosion or hydraulic erosion is caused by flowing water that erodes the terrain, transports sediment along the river and finally deposits it somewhere.
+Since the hydraulic erosion is the strongest one, we focus on this type of erosion in the presented framework.
+
+We use an adapted version of the model presented in \cite{Mei.}.
+
+\subsection{Erosion Model}
+The algorithms follows the following steps, which are repeatedly executed using the timestep $\Delta t$ (e.g. $\Delta t = 0.01$):
+\begin{enumerate}
+	\item increment water by rainfall
+	\item flow simulation
+	\item change water volume
+	\item erosion, deposition and sediment transportation
+	\item evaporation
+\end{enumerate}
+In the next sections, we use the following notation for describing the involved variables, all of them are scalarfields or vectorfields on the grid of the terrain:
+\begin{itemize}
+	\item terrain height $b$
+	\item water height $d$
+	\item suspended sediment $s$
+	\item outflow flux $\textbf{f}=(f^L,f^R,f^T,f^B)$
+	\item water velocity $\textbf{v}=(u,v)$
+\end{itemize}
+\begin{center}
+	\includegraphics[width=0.4\textwidth]{images/erosionVariables}
+\end{center}
+
+\subsubsection{Water increment}
+Rainfall is simulated by sampling water drops over the terrain. The probability of each cell to 'emit' a water drop is equal to the moisture. The moisture map is initialized with the information created at the very beginning, in chapter \ref{PolygonalMoisture}. The user can edit this moisture value before starting the simulation. By using random rain drops instead of a global water increment, we add more randomness to the scene. A single raindrop erodes the terrain a little bit, forming a tiny river bed. Next drops that are created nearby are now more likely to follow this path as well. This then leads to formation of river beds instead of just removing sediment from slopes uniformly.
+
+In addition, the user can place river sources on the terrain. They act as a constant source of water.
+
+Let $r_t[x,y]$ be the water that arrives at the current time step at position $(x,y)$. Then the water height is modified in the following way:
+\begin{equation}
+	d_t[x,y] = d_t[x,y] + \Delta t \cdot r_t[x,y]
+\label{eq:ErosionRain}
+\end{equation}
+
+\subsubsection{Flow simulation}
+In the flow simulation, we simulate the way water flows from higher positions to lower positions. We approximate this by using virtual pipes that connect two adjacent cells in the grid. The amount of water that flows from one cell to the other is called the outflow flux.
+
+The outflow flux from the current cell to the neighbor cell to the left is computed as follows:
+\begin{equation}
+	f_{t+\Delta t}^L[x,y] = \max(0, f_t^L[x,y]+\Delta t \cdot g \cdot \Delta h_t^L[x,y]
+\label{eq:ErosionFlow1}
+\end{equation}
+Whereby the height difference to the left cell is calculated using:
+\begin{equation}
+	\Delta h_t^L[x,y] = b_t[x,y]+d_t[x,y]-b_t[x-1,y]-d_t[x-1,y]
+\label{eq:ErosionFlow2}
+\end{equation}
+$f^R$, $f^T$ and $f^B$ are calculated in the same way.
+The gravitation constant $g$ specifies the amount of acceleration of the flow by the height difference. In our experiments, we set $g=10$.
+
+It can now happen that after subtracting the sum of the outflow flux from the water height (see \ref{Erosion3}), the water height becomes negative.
+To avoid this, all four outflow flux values are scaled with the following scaling factor $K$ (evaluated cell-wise).
+\begin{equation}
+	K=\min(1, \frac{d}{(f^L+f^R+f^T+f^B)\cdot \Delta t})
+\label{eq:ErosionFlow3}
+\end{equation}
+
+\subsubsection{Water volume change}\label{Erosion3}
+After computing the outflow flux, we can define the change of the water volume as:
+\begin{equation}
+\begin{array}{rcl}
+	\Delta V[x,y] &=& \Delta t \cdot (\sum{f_{in}} - \sum{f_{out}}) \\
+	              &=& \Delta t \cdot (f_{t+\Delta t}^L[x+1,y] + f_{t+\Delta t}^R[x-1,y] \\
+								& & f_{t+\Delta t}^B[x,y+1] + f_{t+\Delta t}^T[x,y-1] \\
+								& & - \sum_{i\in\{L,R,T,B\}}{f_{t+\Delta t}^i[x,y]} )
+\end{array}
+\label{eq:ErosionVolume1}
+\end{equation}
+The water height per cell is then modified using:
+\begin{equation}
+	d_{t+\Delta t}[x,y] = d_t[x,y] + \Delta V[x,y]
+\label{eq:ErosionVolume2}
+\end{equation}
+For the next step, \ref{ErosionDeposition}, we need to compute the horizontal velocity of the water $\textbf{v}=(u,v)$.
+Let $\bar{d}$ be the arithmetic average of the water height before and after equation \ref{eq:ErosionVolume2}.
+Then the velocity along the x-axis is compute as:
+\begin{equation}
+	u = \frac{f^R[x-1,y]-f^L[x,y] + f^R[x,y]-f^L[x+1,y]}{2\bar{d}}
+\label{eq:ErosionVolume3}
+\end{equation}
+$v$, the velocity along the y-axis is computed similarly.
+
+\subsubsection{Erosion, deposition and sediment transportation}\label{ErosionDeposition}
+
+
+\subsection{Adaptions and limitations}
 
 \section{Vegetation}\label{Vegetation}
 TODO
