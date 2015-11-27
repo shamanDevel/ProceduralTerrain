@@ -81,6 +81,7 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		} else {
 			scaleFactor = 0.5f; //test
 		}
+		LOG.info("terrain scale factor: "+scaleFactor);
 		
 		Nifty nifty = app.getNifty();
 		screenController = new VegetationScreenController(this);
