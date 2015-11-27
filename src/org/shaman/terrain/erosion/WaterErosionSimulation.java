@@ -658,14 +658,14 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		//Settings
 		private static final float RAINDROPS_PER_ITERATION = 0.001f;
 		private static final float RAINDROP_WATER = 0.25f;
-		private static final float DELTA_T = 0.015f;
+		private static final float DELTA_T = 0.01f;
 		private static final float A = 1; //tube area
 		private static final float L = 1; //cell distances
 		private static final float G = 20; //graviation
 		private static final float MIN_SLOPE = 0.005f; //lower threshold for sediment erosion
 		private static final float MAX_SLOPE = 0.1f; //upper bound for the slope
-		private static final float MAX_EROSION = 0.05f; //limits the maximal height that can be eroded
-		private static final float MAX_EVAPORATION = 0.05f; //limits the maximal height that can be evaporated
+		private static final float MAX_EROSION = 0.1f; //limits the maximal height that can be eroded
+		private static final float MAX_DEPOSITION = 0.1f; //limits the maximal height that can be disposed
 		private static final float Kc = 0.5f; //sediment capacity constant
 		private static final float KcOcean = 0.1f; //sediment capacity constant
 		private static final float Ks = 0.1f; //sediment dissolving constant
@@ -862,10 +862,12 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 					float delta = originalHeight.getHeightAt(x, y)-terrainHeight.getHeightAt(x, y);
 					if (c>st) {
 						//erosion
-						float ks = Ks * FastMath.exp(-delta*EROSION_FACTOR);
-						float eroded = ks * (c-st);
+//						float ks = Ks;
+//						float eroded = ks * (c-st);
+						float eroded = (float) ((c-st) * Math.pow(2, -(delta/(MAX_EROSION/2))) * Ks);
+						eroded = Math.max(0, Math.min(eroded, MAX_EROSION - delta));
 						if (delta>MAX_EROSION) {
-//							System.err.println("maximal erosion reached!");
+							System.err.println("maximal erosion reached!");
 							continue;
 						}
 						terrainHeight.adjustHeightAt(x, y, -eroded);
@@ -876,9 +878,9 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 						erodedSum+=eroded;
 					} else if (c<st) {
 						//deposition
-						float kd = Kd * FastMath.exp(delta*EROSION_FACTOR);
-						float depos = Kd * (st-c);
-						if (-delta>MAX_EVAPORATION) {
+						float kd = (float) (Kd * Math.pow(2, delta/(MAX_DEPOSITION/2)));
+						float depos = kd * (st-c);
+						if (-delta>MAX_DEPOSITION) {
 							continue;
 						}
 						terrainHeight.adjustHeightAt(x, y, depos);
