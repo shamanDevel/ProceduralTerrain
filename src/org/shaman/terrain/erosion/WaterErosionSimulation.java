@@ -664,8 +664,8 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		private static final float G = 20; //graviation
 		private static final float MIN_SLOPE = 0.005f; //lower threshold for sediment erosion
 		private static final float MAX_SLOPE = 0.1f; //upper bound for the slope
-		private static final float MAX_EROSION = 0.1f; //limits the maximal height that can be eroded
-		private static final float MAX_DEPOSITION = 0.1f; //limits the maximal height that can be disposed
+		private static final float MAX_EROSION = 0.025f; //limits the maximal height that can be eroded
+		private static final float MAX_DEPOSITION = 0.025f; //limits the maximal height that can be disposed
 		private static final float Kc = 0.5f; //sediment capacity constant
 		private static final float KcOcean = 0.1f; //sediment capacity constant
 		private static final float Ks = 0.1f; //sediment dissolving constant
@@ -867,7 +867,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 						float eroded = (float) ((c-st) * Math.pow(2, -(delta/(MAX_EROSION/2))) * Ks);
 						eroded = Math.max(0, Math.min(eroded, MAX_EROSION - delta));
 						if (delta>MAX_EROSION) {
-							System.err.println("maximal erosion reached!");
+//							System.err.println("maximal erosion reached!");
 							continue;
 						}
 						terrainHeight.adjustHeightAt(x, y, -eroded);

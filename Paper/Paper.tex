@@ -287,6 +287,7 @@ In our experience we compute $A$ and $R$ based on the biomes using the values fr
 	\label{tab:NoiseProperties}
 \end{table}
 The noise value $N$ is then simply added to the final height map.
+At the end, we normalize the map so that a height of zero is the ocean level, 1 is the highest mountain and -1 is the deepest sea.
 
 The result can be seen in Fig. \ref{fig:heightmap}. (The seed used is 658175619cff )
 
@@ -528,13 +529,156 @@ Then the velocity along the x-axis is compute as:
 $v$, the velocity along the y-axis is computed similarly.
 
 \subsubsection{Erosion, deposition and sediment transportation}\label{ErosionDeposition}
+To compute the sediment erosion and deposition, we first define the slope at a cell as:
+\begin{equation}
+\begin{array}{rl}
+	\alpha[x,y] = \max(&|b[x,y]-b[x-1,y]|,\\
+	                   &|b[x,y]-b[x+1,y]|,\\
+										 &|b[x,y]-b[x,y-1]|,\\
+										 &|b[x,y]-b[x,y+1]|\ )
+\end{array}
+\label{eq:ErosionSediment1}
+\end{equation}
+Then the sediment transportation capacity $C$ is calculated as:
+\begin{equation}
+	C[x,y]=K_c \cdot \alpha[x,y] \dot |\textbf{v}[x,y]|
+\label{eq:ErosionSediment2}
+\end{equation}
+In our experiments, we set the sediment capacity constant $K_c$ to 0.5.
+We recommend to clamp the values of $\alpha$ to be between e.g. 0.005 and 0.1 before computing $C$. By this, the erosion on steep areas does not grow to infinity and on flat areas some erosion still takes place.
 
+Then we compare $C$ to the suspended sediment $s_t$.
+For $C>s_t$, sediment is eroded using:
+\begin{equation}
+\begin{array}{rcl}
+	b_{t+\Delta t} &=& b_t - K_s (C-s_t) \\
+	s' &=& s_t + K_s (C-s_t)
+\end{array}
+\label{eq:ErosionSediment3}
+\end{equation}
+And for $C<s_t$, sediment is dissolved:
+\begin{equation}
+\begin{array}{rcl}
+	b_{t+\Delta t} &=& b_t + K_d (s_t-C) \\
+	s' &=& s_t - K_d (s_t-C)
+\end{array}
+\label{eq:ErosionSediment3}
+\end{equation}
+$K_s$ and $K_d$ are erosion and deposition constants. In our experiments, we use $K_s=K_d=0.1$.
 
-\subsection{Adaptions and limitations}
+After sediment is eroded, we have to transport it to next cells using the water velocity. For that purpose, we use a backward Euler-step:
+\begin{equation}
+	s_{t+\Delta t} = s'[x-u \cdot \Delta t, y - v \cdot \Delta t]
+\label{eq:ErosionSediment4}
+\end{equation}
+
+\subsubsection{Evaporation}
+As a last step, some water is evaporated in the air every step. We model this simply as
+\begin{equation}
+	d_{t+\Delta t}[x,y] = d_{t+\Delta t}[x,y] \cdot (1-K_e \cdot \Delta t)
+\label{eq:ErosionEvaporation}
+\end{equation}
+With $K_e$ being an evaporation constant, e.g. $K_e=0.005$.
+
+\subsection{Adaptions}
+We made a few changes to the original model that in our opinion increase the realism and visual appearance.
+
+\subsubsection{non-uniform temperature}
+The original model assumes a uniform temperature over the whole scene. Since we want to model both hot deserts and cold snow areas, we cannot apply this in our situation. 
+We give the user the ability to edit a temperature map $T$ (from 0=cold to 1=hot) that is initialized with the temperature from \ref{Elevation}.
+We then modify equation \ref{eq:ErosionEvaporation} to 
+\begin{equation}
+	d_{t+\Delta t}[x,y] = d_{t+\Delta t}[x,y] \cdot (1-K_e \cdot \Delta t \cdot T[x,y])
+\label{eq:ErosionEvaporation}
+\end{equation}
+
+\subsubsection{non-uniform erosion and deposition constants}
+In \ref{ErosionDeposition} we assumed the erosion constant $K_s$ and the deposition constant $K_d$ to be constant.
+However, in a natural soil, this is not the case.
+\begin{center}
+	\includegraphics[width=0.3\textwidth]{images/Soil_profile}
+	\footnote{https://upload.wikimedia.org/wikipedia/commons/9/95/Soil\_profile.png}
+\end{center}
+The top layers (soil) are eroded more easily than the bottom layers (stone). Newly dissolved sediment is eroded even better again because it consists mostly of loose stones and sand.
+We model this by representing $K_s$ and $K_d$ as functions of the amount of eroded terrain $\Delta b$.
+\begin{equation}
+\begin{array}{rcl}
+	\Delta b_t[x,y] &=& b_\text{original}[x,y] - b_t[x,y] \\
+	K_s(\Delta b) &=& K_{s,\text{base}} \cdot 2^{-\Delta b / f_s} \\
+	K_d(\Delta b) &=& K_{d,\text{base}} \cdot 2^{\Delta b / f_d} \\
+\end{array}
+\label{eq:KsKd}
+\end{equation}
+$K_{s,\text{base}}$ and $K_{d,\text{base}}$ are set to 0.1 as before; $f_s$ and $f_d$ specifies the amount of terrain that has to be eroded/deposited before the speed of the erosion/deposition is halved.
+
+For total accuracy, you would have to integrate these functions over the whole erosion/deposition process. For simplicity, we just evaluate them once and assume them to be constant for one time step.
+
+In addition, we limit the total amount of eroded or deposited terrain per cell. This is needed because when the simulation is running for a longer time, very steep cliffs are carved out of regions with a steep slope. A bound on the change of the terrain provides visually more pleasant results.
+
+\subsubsection{Boundary conditions}
+Since we assume that our terrain forms an island, we have to treat the case when water reaches the ocean in a special way.
+In the case of a cell that is below the see level, we simply set the water height, outflow flux and velocity to zero and add the whole sediment amount to the terrain height.
+
+\subsection{Limitations}
+The major drawback of the described model is that it relies on a grid. Because of this and the way the outflow flux is computed, rivers are much more likely to flow along the x and y-axis. 
+This leads to the clearly visible black stripes in Fig. \ref{fig:erosion3}. Maybe a more accurate flow simulation would improve this problem. This task is part of future work.
+
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/River2}
+		\caption{original terrain with river source}
+		\label{fig:river1}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/River1}
+		\caption{river bed is carved out}
+		\label{fig:river2}
+	\end{subfigure}
+	\caption{Erosion and deposition of river beds}\label{fig:river}
+\end{figure*}
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/Erosion1}
+		\caption{original terrain}
+		\label{fig:erosion1}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/Erosion2}
+		\caption{running the erosion simulation}
+		\label{fig:erosion2}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/Erosion3}
+		\caption{changes in the height map}
+		\label{fig:erosion3}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/Erosion4}
+		\caption{final terrain}
+		\label{fig:erosion4}
+	\end{subfigure}
+	\caption{Erosion and deposition of mountains}\label{fig:erosion}
+\end{figure*}
+
+In Fig. \ref{fig:river}, you can see how the erosion simulation carves out a river bed from a specified river source.
+
+Fig. \ref{fig:erosion} shows the simulation on a larger scale. The original terrain is shown in \ref{fig:erosion1}, then in \ref{fig:erosion2}, the simulation is running. The displayed terrain height is the terrain height plus the water height, so lakes, waves and so on can be seen. The water height also specifies how much "blue" is drawn on top of the terrain. The terrain is textured with grass until a specific slope angle is reached, then stone is used (with blending between them). By that, you can get a feeling of the local slope angle. In \ref{fig:erosion3}, you can see the difference from the original terrain to the new terrain. White indicates depositions, black stands for erosion. Finally, \ref{fig:erosion4} shows the final terrain without water. Especially note the change in the coast line and that the terrain is much more "bumpy", more stone is used in the texturing of the terrain.
 
 \section{Vegetation}\label{Vegetation}
-TODO
+
 \subsection{Biomes}\label{Biomes}
+
+\subsection{Grass}
+
+\subsection{Trees}
+
+\subsubsection{Tree generation}
+
+\subsubsection{Level of Detail}
+
+\subsubsection{Tree placement}
 
 \section{Conclusion and future work}
 TODO
