@@ -55,10 +55,6 @@
 							<control id="SeedButton" name="button" label="New" width="50px" margin="2px" />
 						</panel>
 						<panel childLayout="horizontal">
-							<control id="DensityCheckBox" name="checkbox" margin="2px"/>
-							<control name="label" text="Show+Edit Density" margin="2px"/>
-						</panel>
-						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Plant size:" width="100px" margin="2px"/>
 							<control id="PlantSizeSlider" name="horizontalSlider" width="142px" margin="2px"
 									 min="0.01" max="10" initial="2" stepSize="0.01" buttonStepSize="0.1"/>
@@ -66,6 +62,10 @@
 						<panel childLayout="horizontal">
 							<control id="GrassCheckBox" name="checkbox" margin="2px"/>
 							<control name="label" text="Show Grass" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control id="TreeCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Show Trees" margin="2px"/>
 						</panel>
 						
 						<panel childLayout="absolute" height="20px"/>

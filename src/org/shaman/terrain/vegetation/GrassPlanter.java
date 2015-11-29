@@ -38,8 +38,8 @@ import se.fojob.forester.util.FastRandom;
  *
  * @author Sebastian Weiss
  */
-public class GrassCreator {
-	private static final Logger LOG = Logger.getLogger(GrassCreator.class.getName());
+public class GrassPlanter {
+	private static final Logger LOG = Logger.getLogger(GrassPlanter.class.getName());
 	private final TerrainHeighmapCreator app;
 	private final Heightmap map;
 	private final Vectorfield biomes;
@@ -50,7 +50,7 @@ public class GrassCreator {
 	private float size;
 	private boolean enabled;
 
-	public GrassCreator(TerrainHeighmapCreator app, Heightmap map, Vectorfield biomes, 
+	public GrassPlanter(TerrainHeighmapCreator app, Heightmap map, Vectorfield biomes, 
 			Node sceneNode, float scaleFactor) {
 		this.app = app;
 		this.map = map;

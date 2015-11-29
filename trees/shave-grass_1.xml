@@ -5,7 +5,7 @@
     <!-- general params -->
     <param name='Shape' value='4'/>
     <param name='Levels' value='2'/>
-    <param name='Scale' value='2.0'/>
+    <param name='Scale' value='5.0'/>
     <param name='ScaleV' value='1.5'/>
     <param name='BaseSize' value='0.25'/>
     <param name='Ratio' value='0.01'/>

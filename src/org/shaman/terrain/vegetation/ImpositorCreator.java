@@ -53,8 +53,10 @@ import org.shaman.terrain.Biome;
 public class ImpositorCreator extends SimpleApplication{
 	private static final Logger LOG = Logger.getLogger(ImpositorCreator.class.getName());
 	private static final String INPUT_FOLDER = "./trees/";
-	private static final String OUTPUT_FOLDER = "./treemesh/";
+	public static final String OUTPUT_FOLDER = "./treemesh/";
+	public static final String TREE_DATA_FILE = OUTPUT_FOLDER + "Trees.dat";
 	private static final String TREE_DEF_FILE = "./Trees.csv";
+	private static final float MAX_PROP = 0.15f;
 	private static final int TEXTURE_SIZE = 1024;
 	private static final int OUTPUT_TEXTURE_SIZE = 256;
 	public static final int IMPOSITOR_COUNT = 8;
@@ -70,7 +72,15 @@ public class ImpositorCreator extends SimpleApplication{
 
 	@Override
 	public void simpleInitApp() {
+		File folder = new File(OUTPUT_FOLDER);
+		if (folder.exists()) {
+			assert (folder.isDirectory());
+		} else {
+			folder.mkdir();
+		}
+		
 		List<TreeInfo> trees = new ArrayList<>();
+		List<String> errors = new ArrayList<>();
 		try (BufferedReader in = new BufferedReader(new FileReader(TREE_DEF_FILE))) {
 			in.readLine(); //skip head
 			while (true) {
@@ -80,17 +90,34 @@ public class ImpositorCreator extends SimpleApplication{
 				Biome biome = Biome.valueOf(parts[0]);
 				String treeName = parts[1];
 				float prob = Float.parseFloat(parts[2]) / 100f;
-				TreeInfo info = createTree(biome, treeName, prob);
-				if (info != null) {
-					trees.add(info);
+				if (prob <= MAX_PROP) {
+					TreeInfo info = createTree(biome, treeName, 0, prob);
+					if (info != null) {
+						trees.add(info);
+					} else {
+						errors.add(treeName);
+					}
+				} else {
+					int n = (int) Math.ceil(prob / MAX_PROP);
+					float p = prob / n;
+					for (int i=0; i<n; ++i) {
+						TreeInfo info = createTree(biome, treeName, i, p);
+						if (info != null) {
+							trees.add(info);
+						} else {
+							errors.add(treeName);
+						}
+					}
 				}
 			}
 		} catch (IOException ex) {
 			Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
 		}
-		
+		if (!errors.isEmpty()) {
+			LOG.log(Level.INFO, "unable to create the following trees: {0}", errors);
+		}
 		LOG.log(Level.INFO, "save tree infos, {0} trees in total", trees.size());
-		try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(OUTPUT_FOLDER + "Trees.dat")))) {
+		try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(TREE_DATA_FILE)))) {
 			out.writeObject(trees);
 		} catch (IOException ex) {
 			Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
@@ -100,11 +127,11 @@ public class ImpositorCreator extends SimpleApplication{
 		stop();
 	}
 
-	public TreeInfo createTree(Biome biome, String treeName, float prob) throws IOException {
+	public TreeInfo createTree(Biome biome, String treeName, int variation, float prob) throws IOException {
 		LOG.info("create tree from "+treeName);
 		
-		File folder = new File(OUTPUT_FOLDER + treeName);
-		if (!folder.mkdir()) {
+		File folder = new File(OUTPUT_FOLDER + treeName + "_v" + variation);
+		if (!folder.exists() && !folder.mkdir()) {
 			LOG.log(Level.SEVERE, "unable to make directory {0}", folder);
 			return null;
 		}
@@ -229,13 +256,15 @@ public class ImpositorCreator extends SimpleApplication{
 				return null;
 			}
 		}
+		view.clearScenes();
 
 		//create tree info
 		TreeInfo info = new TreeInfo();
 		info.biome = biome;
-		info.name = treeName;
+		info.name = treeName + "_v" + variation;
 		info.treeSize = height;
 		info.probability = prob;
+		info.impostorCount = IMPOSITOR_COUNT;
 		info.impostorFadeNear = 30;
 		info.impostorFadeFar = 50;
 		info.highResStemFadeNear = 30;
@@ -244,6 +273,9 @@ public class ImpositorCreator extends SimpleApplication{
 		info.highResLeavesFadeFar = 55;
 		
 		System.out.println("impostors created");
+		Runtime.getRuntime().gc();
+		assetManager.clearCache();
+		
 		return info;
 	}
 	private void listGeometries(Spatial s, List<Geometry> geometries) {

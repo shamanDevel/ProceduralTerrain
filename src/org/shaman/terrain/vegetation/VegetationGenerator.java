@@ -45,6 +45,7 @@ public class VegetationGenerator extends AbstractTerrainStep {
 	private boolean textured = false;
 	private float plantSize;
 	private boolean showGrass;
+	private boolean showTrees;
 	private long seed;
 	
 	//Input
@@ -62,7 +63,8 @@ public class VegetationGenerator extends AbstractTerrainStep {
 	
 	//biomes
 	private BiomesMaterialCreator materialCreator;
-	private GrassCreator grass;
+	private GrassPlanter grass;
+	private TreePlanter trees;
 
 	@Override
 	@SuppressWarnings("unchecked")
@@ -136,6 +138,9 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		if (grass != null) {
 			grass.update(tpf);
 		}
+		if (trees != null) {
+			trees.update(tpf);
+		}
 	}
 	
 	private float clamp(float v) {
@@ -188,10 +193,23 @@ public class VegetationGenerator extends AbstractTerrainStep {
 			return;
 		}
 		if (grass==null) {
-			grass = new GrassCreator(app, map, materialCreator.getBiomes(), sceneNode, scaleFactor);
+			grass = new GrassPlanter(app, map, materialCreator.getBiomes(), sceneNode, scaleFactor);
 			grass.showGrass(true);
 		}
 		LOG.info("grass added");
+	}
+	
+	private void updateTrees() {
+		if (!showTrees) {
+			if (trees != null) {
+				trees.showTrees(false);
+				trees = null;
+			}
+		} else if (trees == null) {
+			trees = new TreePlanter(app, map, materialCreator.getBiomes(), sceneNode, scaleFactor, plantSize);
+			trees.showTrees(true);
+			LOG.info("trees added");
+		}
 	}
 	
 	void guiBiomeSelected(@Nullable Biome biome) {
@@ -214,6 +232,7 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		LOG.info("seed changed: "+seed);
 		this.seed = seed;
 	}
+	@Deprecated
 	void guiEditDensity(boolean editing) {
 		LOG.info("density editing "+(editing ? "enabled" : "disabled"));
 		editDensity = editing;
@@ -226,6 +245,11 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		LOG.info("show grass: "+show);
 		showGrass = show;
 		updateGrass();
+	}
+	void guiShowTrees(boolean show) {
+		LOG.info("show trees: "+show);
+		showTrees = show;
+		updateTrees();
 	}
 	void guiGeneratePlants() {
 		LOG.info("generate plants");

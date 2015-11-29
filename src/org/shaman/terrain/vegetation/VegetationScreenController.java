@@ -31,9 +31,9 @@ public class VegetationScreenController implements ScreenController {
 	private CheckBox texturedCheckBox;
 	private TextField seedTextField;
 	private Button newSeedButton;
-	private CheckBox densityCheckBox;
 	private Slider plantSizeSlider;
-	private CheckBox grassCheckButton;
+	private CheckBox grassCheckBox;
+	private CheckBox treesCheckBox;
 	private Button generatePlantsButton;
 	private Button cancelGenerationButton;
 	private ProgressbarControl generatePlantsProgressbar;
@@ -56,9 +56,9 @@ public class VegetationScreenController implements ScreenController {
 		texturedCheckBox = screen.findNiftyControl("TexturedCheckBox", CheckBox.class);
 		seedTextField = screen.findNiftyControl("SeedTextField", TextField.class);
 		newSeedButton = screen.findNiftyControl("SeedButton", Button.class);
-		densityCheckBox = screen.findNiftyControl("DensityCheckBox", CheckBox.class);
 		plantSizeSlider = screen.findNiftyControl("PlantSizeSlider", Slider.class);
-		grassCheckButton = screen.findNiftyControl("GrassCheckBox", CheckBox.class);
+		grassCheckBox = screen.findNiftyControl("GrassCheckBox", CheckBox.class);
+		treesCheckBox = screen.findNiftyControl("TreeCheckBox", CheckBox.class);
 		generatePlantsButton = screen.findNiftyControl("GeneratePlantsButton", Button.class);
 		cancelGenerationButton = screen.findNiftyControl("CancelGenerationButton", Button.class);
 		generatePlantsProgressbar = screen.findControl("GeneratePlantsProgressbar", ProgressbarControl.class);
@@ -85,7 +85,6 @@ public class VegetationScreenController implements ScreenController {
 		selectedBiomeLabel.setEnabled(!generating);
 		seedTextField.setEnabled(!generating);
 		newSeedButton.setEnabled(!generating);
-		densityCheckBox.setEnabled(!generating);
 		plantSizeSlider.setEnabled(!generating);
 		generatePlantsButton.setEnabled(!generating);
 		cancelGenerationButton.setEnabled(generating);
@@ -119,11 +118,11 @@ public class VegetationScreenController implements ScreenController {
 	@NiftyEventSubscriber(pattern = ".*CheckBox")
 	public void onCheckBoxClick(String id, CheckBoxStateChangedEvent e) {
 		System.out.println("checkbox "+id+" changed: "+e.isChecked());
-		if (densityCheckBox == e.getCheckBox()) {
-			generator.guiEditDensity(e.isChecked());
+		if (treesCheckBox == e.getCheckBox()) {
+			generator.guiShowTrees(e.isChecked());
 		} else if (texturedCheckBox == e.getCheckBox()) {
 			generator.guiShowTextured(e.isChecked());
-		} else if (grassCheckButton == e.getCheckBox()) {
+		} else if (grassCheckBox == e.getCheckBox()) {
 			generator.guiShowGrass(e.isChecked());
 		}
 	}

@@ -59,7 +59,7 @@ public class TreeNode extends Node {
 	public void updateLogicalState(float tpf) {
 		if (impositor==null) {
 			loadImpostor();
-			LOG.info("impostor added");
+//			LOG.info("impostor added");
 		}
 		float dist = camera.getLocation().distanceSquared(this.getWorldTranslation());
 		if (dist <= fadeFar && highResStem==null && useHighRes) {
@@ -108,8 +108,13 @@ public class TreeNode extends Node {
 			mat.setTexture("ColorMap", tex);
 			mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 			mat.setFloat("AlphaDiscardThreshold", 0.5f);
+			if (useHighRes) {
 			mat.setFloat("FadeNear", tree.impostorFadeNear);
 			mat.setFloat("FadeFar", tree.impostorFadeFar);
+			} else {
+				mat.setFloat("FadeNear", 0);
+				mat.setFloat("FadeFar", 1);
+			}
 			tree.impostorMaterial = mat;
 		}
 		Mesh mesh = getImpostorMesh();
@@ -118,6 +123,7 @@ public class TreeNode extends Node {
 		impositor.scale(tree.treeSize);
 		impositor.setQueueBucket(RenderQueue.Bucket.Transparent);
 		super.attachChild(impositor);
+		super.updateModelBound();
 	}
 	
 	private static final HashMap<Integer, Mesh> IMPOSTORS = new HashMap<>();

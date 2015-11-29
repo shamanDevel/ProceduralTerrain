@@ -5,8 +5,8 @@
     <!-- general params -->
     <param name='Shape' value='2'/>
     <param name='Levels' value='3'/>
-    <param name='Scale' value='10.0'/>
-    <param name='ScaleV' value='10.0'/>
+    <param name='Scale' value='7.0'/>
+    <param name='ScaleV' value='3.0'/>
     <param name='BaseSize' value='0.05'/>
     <param name='Ratio' value='0.018'/>
     <param name='RatioPower' value='1.3'/>
