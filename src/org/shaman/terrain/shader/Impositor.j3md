@@ -1,11 +1,12 @@
-MaterialDef Unshaded {
+MaterialDef Impostor {
 
     MaterialParameters {
-        Texture2D ColorMap
-        Texture2D LightMap
+        TextureArray ColorMap
         Color Color (Color)
         Boolean VertexColor (UseVertexColor)
-        Boolean SeparateTexCoord
+
+		Float FadeNear
+		Float FadeFar
 
         // Texture of the glowing parts of the material
         Texture2D GlowMap
@@ -14,10 +15,6 @@ MaterialDef Unshaded {
 
         // For instancing
         Boolean UseInstancing
-
-        // For hardware skinning
-        Int NumberOfBones
-        Matrix4Array BoneMatrices
 
         // Alpha threshold for fragment discarding
         Float AlphaDiscardThreshold (AlphaTestFallOff)

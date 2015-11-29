@@ -1,33 +1,23 @@
 #import "Common/ShaderLib/GLSLCompat.glsllib"
-#import "Common/ShaderLib/Skinning.glsllib"
 #import "Common/ShaderLib/Instancing.glsllib"
 
 attribute vec3 inPosition;
-uniform float m_ImpositorAlpha;
+uniform float m_FadeNear;
+uniform float m_FadeFar;
 
-#if defined(HAS_COLORMAP) || (defined(HAS_LIGHTMAP) && !defined(SEPARATE_TEXCOORD))
-    #define NEED_TEXCOORD1
-#endif
-
-attribute vec2 inTexCoord;
+attribute vec3 inTexCoord;
 attribute vec2 inTexCoord2;
 attribute vec4 inColor;
 attribute vec3 inNormal;
 
-varying vec2 texCoord1;
+varying vec3 texCoord1;
 varying vec2 texCoord2;
 
 varying vec4 vertColor;
 varying float impositorAlpha;
 
 void main(){
-    #ifdef NEED_TEXCOORD1
-        texCoord1 = inTexCoord;
-    #endif
-
-    #ifdef SEPARATE_TEXCOORD
-        texCoord2 = inTexCoord2;
-    #endif
+    texCoord1 = inTexCoord;
 
     #ifdef HAS_VERTEXCOLOR
         vertColor = inColor;
@@ -48,7 +38,7 @@ void main(){
 	//impositorAlpha = m_ImpositorAlpha;
 	vec3 wvPosition = TransformWorldView(modelSpacePos).xyz;// (g_WorldViewMatrix * modelSpacePos).xyz;
 	float dist = length(wvPosition);
-	impositorAlpha = clamp((dist-30.0)/20.0, 0.0, 1.0);
+	impositorAlpha = clamp((dist-m_FadeNear)/(m_FadeFar-m_FadeNear), 0.0, 1.0);
 
     gl_Position = TransformWorldViewProjection(modelSpacePos);
 }

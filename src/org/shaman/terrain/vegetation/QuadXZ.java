@@ -34,8 +34,8 @@ public class QuadXZ extends Mesh {
      * @param width The X extent or width
      * @param height The Y extent or width
      */
-    public QuadXZ(float width, float height){
-        updateGeometry(width, height);
+    public QuadXZ(float width, float height, float layer){
+        updateGeometry(width, height, layer);
     }
 
     /**
@@ -48,7 +48,7 @@ public class QuadXZ extends Mesh {
      * along the Y axis.
      */
     public QuadXZ(float width, float height, boolean flipCoords){
-        updateGeometry(width, height, flipCoords);
+        updateGeometry(width, height, flipCoords, 0);
     }
 
     public float getHeight() {
@@ -59,11 +59,11 @@ public class QuadXZ extends Mesh {
         return width;
     }
 
-    public void updateGeometry(float width, float height){
-        updateGeometry(width, height, false);
+    public void updateGeometry(float width, float height, float layer){
+        updateGeometry(width, height, false, layer);
     }
 
-    public void updateGeometry(float width, float height, boolean flipCoords) {
+    public void updateGeometry(float width, float height, boolean flipCoords, float layer) {
         this.width = width;
         this.height = height;
         setBuffer(VertexBuffer.Type.Position, 3, new float[]{width/2,      0,      0,
@@ -84,6 +84,7 @@ public class QuadXZ extends Mesh {
                                                     1, 1,
                                                     0, 1});
         }
+		setBuffer(VertexBuffer.Type.TexCoord2, 1, new float[]{layer, layer, layer, layer});
         setBuffer(VertexBuffer.Type.Normal, 3, new float[]{0, 1, 0,
                                               0, 1, 0,
                                               0, 1, 0,

@@ -25,6 +25,7 @@ import com.jme3.texture.FrameBuffer;
 import com.jme3.texture.Image;
 import com.jme3.util.BufferUtils;
 import com.jme3.util.Screenshots;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.WritableRaster;
@@ -32,6 +33,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,9 +44,11 @@ import javax.imageio.ImageIO;
  * @author Sebastian Weiss
  */
 public class ImpositorCreator extends SimpleApplication{
+	private static final Logger LOG = Logger.getLogger(ImpositorCreator.class.getName());
 	private static final String TREE_FILE = "./treemesh/Tree1.j3o";
 	private static final String OUTPUT_FOLDER = "./treemesh/Tree1/";
 	private static final int TEXTURE_SIZE = 1024;
+	private static final int OUTPUT_TEXTURE_SIZE = 256;
 	public static final int IMPOSITOR_COUNT = 8;
 
 	/**
@@ -153,10 +157,41 @@ public class ImpositorCreator extends SimpleApplication{
 			
 			try {
 				convertScreenShot(data, image);
-				ImageIO.write(image, "png", new File(OUTPUT_FOLDER+i+".png"));
+				BufferedImage img = new BufferedImage(OUTPUT_TEXTURE_SIZE, OUTPUT_TEXTURE_SIZE, BufferedImage.TYPE_4BYTE_ABGR);
+				Graphics2D G = img.createGraphics();
+				G.drawImage(image, 0, 0, OUTPUT_TEXTURE_SIZE, OUTPUT_TEXTURE_SIZE, null);
+				G.dispose();
+				ImageIO.write(img, "png", new File(OUTPUT_FOLDER+i+".png"));
 			} catch (IOException ex) {
 				Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
 			}
+		}
+		//create dds
+		try (PrintWriter out = new PrintWriter("list.lst")) {
+			for (int i=0; i<IMPOSITOR_COUNT; ++i) {
+				out.println(OUTPUT_FOLDER+i+".png");
+			}
+		} catch (FileNotFoundException ex) {
+			Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		List<String> commands = new ArrayList<>();
+		commands.addAll(Arrays.asList(
+			"nvdxt.exe",
+			"-32", "u4444",
+			"-volumeMap", "-list", "list.lst"));
+		commands.add("-output");
+		commands.add("Tree1.dds");
+		try {
+			ProcessBuilder processBuilder = new ProcessBuilder(commands);
+			processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
+			processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+			Process process = processBuilder.start();
+			int exit = process.waitFor();
+			LOG.info("exit code: "+exit);
+		} catch (IOException | InterruptedException ex) {
+			Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
+		} finally {
+			new File("list.lst").delete();
 		}
 		System.out.println("impositors created");
 		
