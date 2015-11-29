@@ -7,6 +7,7 @@ package org.shaman.terrain.vegetation;
 
 import com.jme3.app.FlyCamAppState;
 import com.jme3.app.SimpleApplication;
+import com.jme3.app.state.ScreenshotAppState;
 import com.jme3.bounding.BoundingBox;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
@@ -74,13 +75,15 @@ public class GrassTest extends SimpleApplication {
 
 	@Override
 	public void simpleInitApp() {
+		stateManager.attach(new ScreenshotAppState());
+		
 		cam.setFrustumFar(10000);
 		camera = new CustomFlyByCamera(cam);
 		camera.registerWithInput(inputManager);
 //		camera.setDragToRotate(true);
 		inputManager.setCursorVisible(true);
-		cam.setLocation(new Vector3f(0, 1000, 1000));
-        cam.lookAtDirection(new Vector3f(0, -1.5f, -1).normalizeLocal(), Vector3f.UNIT_Y);
+		cam.setLocation(new Vector3f(0, 400, 700));
+        cam.lookAtDirection(new Vector3f(0, -0.5f, -1).normalizeLocal(), Vector3f.UNIT_Y);
 		
 		DirectionalLight light = new DirectionalLight();
         light.setDirection((new Vector3f(-0.1f, -0.1f, -0.1f)).normalize());
@@ -90,10 +93,6 @@ public class GrassTest extends SimpleApplication {
 		DirectionalLightShadowRenderer shadowRenderer = new DirectionalLightShadowRenderer(assetManager, 512, 4);
 		shadowRenderer.setLight(light);
 		viewPort.addProcessor(shadowRenderer);
-		
-		Texture grass = assetManager.loadTexture("org/shaman/terrain/grass.jpg");
-		matTerrain = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-		matTerrain.setTexture("DiffuseMap", grass);
 		
 		String file = "C:\\Users\\Sebastian\\Documents\\Java\\ProceduralTerrain\\saves\\Auto WaterErosionSimulation 325_20_47_28.save";
 		Map<Object, Object> loadedProperties = null;
@@ -107,6 +106,13 @@ public class GrassTest extends SimpleApplication {
 		//Heightmap map = new Heightmap(256);
 		map = (Heightmap) loadedProperties.get(AbstractTerrainStep.KEY_HEIGHTMAP);
 		terrain = new TerrainQuad("terrain", 65, map.getSize()+1, map.getJMEHeightmap(48));
+		Texture grass = assetManager.loadTexture("org/shaman/terrain/grass.jpg");
+		grass.setWrap(Texture.WrapMode.Repeat);
+		matTerrain = new Material(assetManager, "Common/MatDefs/Terrain/TerrainLighting.j3md");
+		matTerrain.setBoolean("useTriPlanarMapping", true);
+		matTerrain.setTexture("DiffuseMap", grass);
+		matTerrain.setFloat("DiffuseMap_0_scale", 32/256f);
+		updateAlphaMap(map.getSize());
 		terrain.setMaterial(matTerrain);
         terrain.setModelBound(new BoundingBox());
         terrain.updateModelBound();
@@ -118,6 +124,7 @@ public class GrassTest extends SimpleApplication {
 		//init grass
 		Material grassMat = new Material(assetManager, "Resources/MatDefs/Grass/grassBase.j3md");
 		grassMat.setTexture("ColorMap", assetManager.loadTexture("Resources/Textures/Grass/grass.png"));
+//		grassMat.setTexture("ColorMap", assetManager.loadTexture("org/shaman/terrain/white.png"));
 		grassMat.setTexture("AlphaNoiseMap", assetManager.loadTexture("Resources/Textures/Grass/noise.png"));
 		grassMat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 		grassMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
@@ -145,6 +152,22 @@ public class GrassTest extends SimpleApplication {
 		layer.setWind(new Vector2f(16, 0));
 		layer.setSwayingVariation(0.4f);
 		layer.setSwayingFrequency(2f);
+	}
+	public void updateAlphaMap(int size) {		
+		ByteBuffer data;
+		data = BufferUtils.createByteBuffer(size*size*4);
+		data.rewind();
+		for (int x=0; x<size; ++x) {
+			for (int y=0; y<size; ++y) {
+				float r = 1;
+				data.put((byte) (255*r)).put((byte) 0).put((byte) 0).put((byte) 0);
+			}
+		}
+		data.rewind();
+		Image image = new Image(Image.Format.RGBA8, size, size, data, ColorSpace.Linear);
+		Texture alphaMap = new Texture2D(image);
+		alphaMap.setMagFilter(Texture.MagFilter.Bilinear);
+		matTerrain.setTexture("AlphaMap", alphaMap);
 	}
 	private class GrassPlantingAlgorithmImpl implements GrassPlantingAlgorithm {
 
