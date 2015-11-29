@@ -44,16 +44,19 @@ public class GrassCreator {
 	private final Heightmap map;
 	private final Vectorfield biomes;
 	private final Node sceneNode;
+	private final float scaleFactor;
 	private Forester forester;
 	private GrassLayer layer;
 	private float size;
 	private boolean enabled;
 
-	public GrassCreator(TerrainHeighmapCreator app, Heightmap map, Vectorfield biomes, Node sceneNode) {
+	public GrassCreator(TerrainHeighmapCreator app, Heightmap map, Vectorfield biomes, 
+			Node sceneNode, float scaleFactor) {
 		this.app = app;
 		this.map = map;
 		this.biomes = biomes;
 		this.sceneNode = new Node("grass");
+		this.scaleFactor = scaleFactor;
 		sceneNode.attachChild(this.sceneNode);
 	}
 	
@@ -78,7 +81,8 @@ public class GrassCreator {
 			grassMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
 			forester = Forester.getInstance();
 			forester.initialize(sceneNode, app.getCamera(), app.getHeightmapSpatial(), app);
-			GrassLoader grassLoader = forester.createGrassLoader(map.getSize(), 4, 400*TerrainHeighmapCreator.TERRAIN_SCALE, 200*TerrainHeighmapCreator.TERRAIN_SCALE);
+			GrassLoader grassLoader = forester.createGrassLoader(map.getSize(), 8, 
+					400*TerrainHeighmapCreator.TERRAIN_SCALE*scaleFactor, 200*TerrainHeighmapCreator.TERRAIN_SCALE*scaleFactor);
 			MapGrid grid = grassLoader.createMapGrid();
 			grid.addDensityMap(createDensityMap(map), 0, 0, 0);
 			layer = grassLoader.addLayer(grassMat.clone(), GrassLayer.MeshType.CROSSQUADS);
@@ -134,13 +138,13 @@ public class GrassCreator {
 //				float h = map.getHeightInterpolating(tx, ty);
 //				float d = h>0 ? 1 : 0;
 				v = biomes.getVectorInterpolating(tx, ty, v);
-				float d = v[Biome.GRASSLAND.ordinal()] + 0.25f*v[Biome.TUNDRA.ordinal()];
+				float d = v[Biome.GRASSLAND.ordinal()] + 0.02f*v[Biome.TUNDRA.ordinal()];
 
-				d *= d;
+//				d *= d;
 
-				if (rand.unitRandom() + 0.3 < d ) {
-					grassData[iIt++] = (x + bounds.getxMin())*TerrainHeighmapCreator.TERRAIN_SCALE;
-					grassData[iIt++] = (z + bounds.getzMin())*TerrainHeighmapCreator.TERRAIN_SCALE;
+				if (rand.unitRandom() < d ) {
+					grassData[iIt++] = (x + bounds.getxMin())*TerrainHeighmapCreator.TERRAIN_SCALE*scaleFactor;
+					grassData[iIt++] = (z + bounds.getzMin())*TerrainHeighmapCreator.TERRAIN_SCALE*scaleFactor;
 					grassData[iIt++] = rand.unitRandom();
 					//-pi/2 -> pi/2
 					grassData[iIt++] = (-0.5f + rand.unitRandom())*3.141593f;
@@ -158,7 +162,10 @@ public class GrassCreator {
 		for (int x=0; x<map.getSize(); ++x) {
 			for (int y=0; y<map.getSize(); ++y) {
 				float h = map.getHeightAt(y, map.getSize()-x-1);
+				float[] b = biomes.getVectorAt(x, y);
 				float v = h>0 ? 1 : 0;
+				v *= (b[Biome.GRASSLAND.ordinal()]*1 + b[Biome.TUNDRA.ordinal()]*0.2f
+						+ b[Biome.TAIGA.ordinal()]*0.2f);
 				data.put((byte) (255*v)).put((byte) (255*v)).put((byte) (255*v)).put((byte) (255*v));
 			}
 		}

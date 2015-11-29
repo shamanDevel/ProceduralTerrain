@@ -389,12 +389,17 @@ public class GrassGeometryGenerator {
         
         //Slim the mesh down a little.
         Format form = Format.UnsignedShort;
-        if (grassCount*4 > 65535) {
+//        if (grassCount*4 > 65535) {
+//            form = Format.UnsignedInt;
+//        } else if (grassCount*4 > 255){ 
+//            form = Format.UnsignedShort;
+//        } else {
+//            form = Format.UnsignedByte;
+//        }
+		if (grassCount*4 > 65535) {
             form = Format.UnsignedInt;
-        } else if (grassCount*4 > 255){ 
+        } else { 
             form = Format.UnsignedShort;
-        } else {
-            form = Format.UnsignedByte;
         }
         
         Buffer data = VertexBuffer.createBuffer(form, 1, grassCount*12);           

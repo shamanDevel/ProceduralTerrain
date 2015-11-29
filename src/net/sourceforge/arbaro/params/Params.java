@@ -166,7 +166,7 @@ public class Params {
 	public static final String[] BARK_TEXTURES = {
 		"bark0001.jpg", "bark0006.jpg", "bark0007.jpg", "bark0015.jpg",
 		"bark0016.jpg", "bark0017.jpg", "bark0018.jpg", "bark0019.jpg",
-		"bark0023.jpg", "bark0025.jpg",
+		"bark0023.jpg", "bark0025.jpg", "bark0020.jpg", "bark0030.jpg",
 		"barkTest2.jpg"
 	};
 	public static final String[] LEAF_TEXTURES = {

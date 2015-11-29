@@ -79,6 +79,7 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		if (properties.containsKey(KEY_TERRAIN_SCALE)) {
 			scaleFactor = (float) properties.get(KEY_TERRAIN_SCALE);
 		} else {
+			LOG.warning("no terrain scale factor defined, use default one");
 			scaleFactor = 0.5f; //test
 		}
 		LOG.info("terrain scale factor: "+scaleFactor);
@@ -91,7 +92,7 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		
 		app.setTerrain(map);
 		originalMapScale = app.getHeightmapSpatial().getLocalScale().clone();
-//		app.getHeightmapSpatial().setLocalScale(originalMapScale.x * scaleFactor, originalMapScale.y, originalMapScale.z * scaleFactor);
+		app.getHeightmapSpatial().setLocalScale(originalMapScale.x * scaleFactor, originalMapScale.y, originalMapScale.z * scaleFactor);
 		
 		brushSphere = new Geometry("brush", new Sphere(32, 32, 1));
 		Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
@@ -179,9 +180,15 @@ public class VegetationGenerator extends AbstractTerrainStep {
 	}
 	
 	private void updateGrass() {
-		if (!showGrass) return;
+		if (!showGrass) {
+			if (grass != null) {
+				grass.showGrass(false);
+				grass = null;
+			}
+			return;
+		}
 		if (grass==null) {
-			grass = new GrassCreator(app, map, materialCreator.getBiomes(), sceneNode);
+			grass = new GrassCreator(app, map, materialCreator.getBiomes(), sceneNode, scaleFactor);
 			grass.showGrass(true);
 		}
 		LOG.info("grass added");
