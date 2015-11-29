@@ -21,6 +21,7 @@
 \usepackage{subcaption}
 \usepackage{listings}
 
+\usetikzlibrary{arrows,automata}
 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
 \renewcommand{\algorithmiccomment}[1]{\ \ // #1} % C-like // Comments
 \lstset{language=Java, tabsize=4}
@@ -48,14 +49,18 @@
    \node[anchor=north east,inner sep=0pt] at (current page.north east)
               {\includegraphics[scale=0.2]{pic}};
 \end{tikzpicture}
+\begin{tikzpicture}[remember picture,overlay]
+   \node[anchor=north west,inner sep=0pt] at (current page.north west)
+              {\includegraphics[scale=0.35]{images/Tree3}};
+\end{tikzpicture}
 
-\begin{abstract}
-	Abstract
-\end{abstract}
+%\begin{abstract}
+%	Abstract
+%\end{abstract}
 
 \section{Objective}
 Terrain is a topic of endless discussion in computer graphics. It has to cover a large area of the world and at the same time it has to provide enough details for close-up shots.
-It is extremely time consuming to create a large-scale terrain that is also interesting when viewed closely. 
+It is extremely time consuming to create a large terrain that is also interesting when viewed closely. 
 
 In this project we present a framework for generating terrain, from a coarse grained height map to vegetation generation. The focus lies on combining existing techniques for performing the different tasks.
 The result should be an island because it provides a natural border of the world.
@@ -79,6 +84,7 @@ The framework consists of the following steps that are executed one after anothe
 	\item simulating water and erosion to increase the realism, chapter \ref{HydraulicErosion}
 	\item define biomes and populate the scene with grass and trees, chapter \ref{Vegetation}
 \end{enumerate}
+For consistency, all examples in this paper show the same terrain in the various stages of development.
 
 \section{Polygonal Map}\label{PolygonalMap}
 As a first step, we have to come up with a good initial terrain to help the user with the terrain features.
@@ -554,7 +560,7 @@ For $C>s_t$, sediment is eroded using:
 	b_{t+\Delta t} &=& b_t - K_s (C-s_t) \\
 	s' &=& s_t + K_s (C-s_t)
 \end{array}
-\label{eq:ErosionSediment3}
+\label{eq:ErosionSediment3_1}
 \end{equation}
 And for $C<s_t$, sediment is dissolved:
 \begin{equation}
@@ -562,7 +568,7 @@ And for $C<s_t$, sediment is dissolved:
 	b_{t+\Delta t} &=& b_t + K_d (s_t-C) \\
 	s' &=& s_t - K_d (s_t-C)
 \end{array}
-\label{eq:ErosionSediment3}
+\label{eq:ErosionSediment3_2}
 \end{equation}
 $K_s$ and $K_d$ are erosion and deposition constants. In our experiments, we use $K_s=K_d=0.1$.
 
@@ -580,50 +586,7 @@ As a last step, some water is evaporated in the air every step. We model this si
 \end{equation}
 With $K_e$ being an evaporation constant, e.g. $K_e=0.005$.
 
-\subsection{Adaptions}
-We made a few changes to the original model that in our opinion increase the realism and visual appearance.
-
-\subsubsection{non-uniform temperature}
-The original model assumes a uniform temperature over the whole scene. Since we want to model both hot deserts and cold snow areas, we cannot apply this in our situation. 
-We give the user the ability to edit a temperature map $T$ (from 0=cold to 1=hot) that is initialized with the temperature from \ref{Elevation}.
-We then modify equation \ref{eq:ErosionEvaporation} to 
-\begin{equation}
-	d_{t+\Delta t}[x,y] = d_{t+\Delta t}[x,y] \cdot (1-K_e \cdot \Delta t \cdot T[x,y])
-\label{eq:ErosionEvaporation}
-\end{equation}
-
-\subsubsection{non-uniform erosion and deposition constants}
-In \ref{ErosionDeposition} we assumed the erosion constant $K_s$ and the deposition constant $K_d$ to be constant.
-However, in a natural soil, this is not the case.
-\begin{center}
-	\includegraphics[width=0.3\textwidth]{images/Soil_profile}
-	\footnote{https://upload.wikimedia.org/wikipedia/commons/9/95/Soil\_profile.png}
-\end{center}
-The top layers (soil) are eroded more easily than the bottom layers (stone). Newly dissolved sediment is eroded even better again because it consists mostly of loose stones and sand.
-We model this by representing $K_s$ and $K_d$ as functions of the amount of eroded terrain $\Delta b$.
-\begin{equation}
-\begin{array}{rcl}
-	\Delta b_t[x,y] &=& b_\text{original}[x,y] - b_t[x,y] \\
-	K_s(\Delta b) &=& K_{s,\text{base}} \cdot 2^{-\Delta b / f_s} \\
-	K_d(\Delta b) &=& K_{d,\text{base}} \cdot 2^{\Delta b / f_d} \\
-\end{array}
-\label{eq:KsKd}
-\end{equation}
-$K_{s,\text{base}}$ and $K_{d,\text{base}}$ are set to 0.1 as before; $f_s$ and $f_d$ specifies the amount of terrain that has to be eroded/deposited before the speed of the erosion/deposition is halved.
-
-For total accuracy, you would have to integrate these functions over the whole erosion/deposition process. For simplicity, we just evaluate them once and assume them to be constant for one time step.
-
-In addition, we limit the total amount of eroded or deposited terrain per cell. This is needed because when the simulation is running for a longer time, very steep cliffs are carved out of regions with a steep slope. A bound on the change of the terrain provides visually more pleasant results.
-
-\subsubsection{Boundary conditions}
-Since we assume that our terrain forms an island, we have to treat the case when water reaches the ocean in a special way.
-In the case of a cell that is below the see level, we simply set the water height, outflow flux and velocity to zero and add the whole sediment amount to the terrain height.
-
-\subsection{Limitations}
-The major drawback of the described model is that it relies on a grid. Because of this and the way the outflow flux is computed, rivers are much more likely to flow along the x and y-axis. 
-This leads to the clearly visible black stripes in Fig. \ref{fig:erosion3}. Maybe a more accurate flow simulation would improve this problem. This task is part of future work.
-
-\subsection{Results}
+% For result chapter
 \begin{figure*}
 	\centering
 	\begin{subfigure}[b]{0.45\textwidth}
@@ -663,28 +626,197 @@ This leads to the clearly visible black stripes in Fig. \ref{fig:erosion3}. Mayb
 	\caption{Erosion and deposition of mountains}\label{fig:erosion}
 \end{figure*}
 
+\subsection{Adaptions}
+We made a few changes to the original model that in our opinion increase the realism and visual appearance.
+
+\subsubsection{non-uniform temperature}
+The original model assumes a uniform temperature over the whole scene. Since we want to model both hot deserts and cold snow areas, we cannot apply this in our situation. 
+We give the user the ability to edit a temperature map $T$ (from 0=cold to 1=hot) that is initialized with the temperature from \ref{Elevation}.
+We then modify equation \ref{eq:ErosionEvaporation} to 
+\begin{equation}
+	d_{t+\Delta t}[x,y] = d_{t+\Delta t}[x,y] \cdot (1-K_e \cdot \Delta t \cdot T[x,y])
+\label{eq:ErosionEvaporationExt}
+\end{equation}
+
+\subsubsection{non-uniform erosion and deposition constants}
+In \ref{ErosionDeposition} we assumed the erosion constant $K_s$ and the deposition constant $K_d$ to be constant.
+However, in a natural soil, this is not the case.
+\begin{center}
+	\includegraphics[width=0.3\textwidth]{images/Soil_profile}
+	\footnote{https://upload.wikimedia.org/wikipedia/commons/9/95/Soil\_profile.png}
+\end{center}
+The top layers (soil) are eroded more easily than the bottom layers (stone). Newly dissolved sediment is eroded even better again because it consists mostly of loose stones and sand.
+We model this by representing $K_s$ and $K_d$ as functions of the amount of eroded terrain $\Delta b$.
+\begin{equation}
+\begin{array}{rcl}
+	\Delta b_t[x,y] &=& b_\text{original}[x,y] - b_t[x,y] \\
+	K_s(\Delta b) &=& K_{s,\text{base}} \cdot 2^{-\Delta b / f_s} \\
+	K_d(\Delta b) &=& K_{d,\text{base}} \cdot 2^{\Delta b / f_d} \\
+\end{array}
+\label{eq:KsKd}
+\end{equation}
+$K_{s,\text{base}}$ and $K_{d,\text{base}}$ are set to 0.1 as before; $f_s$ and $f_d$ specifies the amount of terrain that has to be eroded/deposited before the speed of the erosion/deposition is halved.
+
+For total accuracy, you would have to integrate these functions over the whole erosion/deposition process. For simplicity, we just evaluate them once and assume them to be constant for one time step.
+
+In addition, we limit the total amount of eroded or deposited terrain per cell. This is needed because when the simulation is running for a longer time, very steep cliffs are carved out of regions with a steep slope. A bound on the change of the terrain provides visually more pleasant results.
+
+\subsubsection{Boundary conditions}
+Since we assume that our terrain forms an island, we have to treat the case when water reaches the ocean in a special way.
+In the case of a cell that is below the see level, we simply set the water height, outflow flux and velocity to zero and add the whole sediment amount to the terrain height.
+
+\subsection{Limitations}
+The major drawback of the described model is that it relies on a grid. Because of this and the way the outflow flux is computed, rivers are much more likely to flow along the x and y-axis. 
+This leads to the clearly visible black stripes in Fig. \ref{fig:erosion3}. Maybe a more accurate flow simulation would improve this problem. This task is part of future work.
+
+\subsection{Results}
 In Fig. \ref{fig:river}, you can see how the erosion simulation carves out a river bed from a specified river source.
 
 Fig. \ref{fig:erosion} shows the simulation on a larger scale. The original terrain is shown in \ref{fig:erosion1}, then in \ref{fig:erosion2}, the simulation is running. The displayed terrain height is the terrain height plus the water height, so lakes, waves and so on can be seen. The water height also specifies how much "blue" is drawn on top of the terrain. The terrain is textured with grass until a specific slope angle is reached, then stone is used (with blending between them). By that, you can get a feeling of the local slope angle. In \ref{fig:erosion3}, you can see the difference from the original terrain to the new terrain. White indicates depositions, black stands for erosion. Finally, \ref{fig:erosion4} shows the final terrain without water. Especially note the change in the coast line and that the terrain is much more "bumpy", the stone texture is used more often.
 
 \section{Vegetation}\label{Vegetation}
+Terrain without vegetation looks a little bit boring. Therefore, the last step of the framework is to define biomes and add trees and grass based on it.
 
 \subsection{Biomes}\label{Biomes}
+\begin{figure}[htbp]
+	\centering
+		\includegraphics[width=0.30\textwidth]{images/BiomeCategories}
+	\caption{Biomes}
+	\label{fig:BiomeCategories}
+\end{figure}
+Biomes are a system to classify the nature. A biome defines a region with common climate, soil and vegetation.
+An attempt to classify the different biomes based on rainfall and temperature was made in \cite{MariettaCollege.}. We are using an adapted version of the classification from \cite{JacobOlsen.2004}, see Fig. \ref{fig:BiomeCategories}.
+
+In our implementation, the biomes are initialized with the temperature and moisture information from the previous step. The user can then paint the different biomes directly on the terrain to fine-tune the biome assignment.
+
+The terrain is then rendered using different textures for each biome (Fig. \ref{fig:terrainBiomes}). Furthermore, the biomes specify if and what grass is used and what trees are planted.
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/TerrainBiomes1}
+		\caption{biomes are painted on the terrain}
+		\label{fig:terrainBiomes1}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/TerrainBiomes2}
+		\caption{textured terrain based on the biomes}
+		\label{fig:terrainBiomes2}
+	\end{subfigure}
+	\caption{Assigning biomes to the terrain}\label{fig:terrainBiomes}
+\end{figure*}
 
 \subsection{Grass}
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/Grass2}
+		\caption{transparent quads forming the grass blades}
+		\label{fig:grass1}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/Grass1}
+		\caption{adding a texture leads to the final appearance}
+		\label{fig:grass2}
+	\end{subfigure}
+	\caption{Grass}\label{fig:grass}
+\end{figure*}
+For rendering grass, we are using the concepts presented in \cite{KurtPelzer.}. An implementation of it comes with the 3d engine we are using, the jMonkeyEngine\footnote{\url{http://jmonkeyengine.org/}}.
+A blade of grass is displayed using two transparent quads that are orthogonal to each other (Fig. \ref{fig:grass1}). The shades are then randomly placed on the terrain, the density distribution varies with the biomes. Finally, a texture is applied to complete the grass rendering (Fig. \ref{fig:grass2}).
 
 \subsection{Trees}
+\begin{figure*}
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/Tree1}
+		\caption{black tupelo in fall}
+		\label{fig:trees1}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=\textwidth]{images/Tree2}
+		\caption{black oak}
+		\label{fig:trees2}
+	\end{subfigure}
+	\caption{Grass}\label{fig:trees}
+\end{figure*}
+Generating trees is a little bit more complicated. Trees have a very difficult 3d shape because they have many branches and leaves. In most computer games, trees are rendered using very primitive objects: stems are rendered as textured cylinders and bunches of leaves and small branches are combined and rendered using a single textured quad. This often looks good when viewed from the distance but the illusion breaks when you get to close to them.
 
-\subsubsection{Tree generation}
+In Fig. \ref{fig:trees} you can see two types of trees. The high resolution tree is rendered on the left (see \ref{TreeGeneration}) and the low resolution version for distance rendering is drawn on the right (see \ref{LevelOfDetail}).
 
-\subsubsection{Level of Detail}
+\subsubsection{Tree generation}\label{TreeGeneration}
+Since we also want to generate the trees procedurally, we have to go another way. In this framework, we use the algorithm presented in \cite{Weber.}, implemented in \cite{WolframDiestel.2013}.
+Trees are recursivly defined by a bunch of parameters for each layer. The first layer is the stem, the last layer contains the leaves. These parameters include curvature, branch radius, splitting, branching and textures.
+
+\subsubsection{Level of Detail}\label{LevelOfDetail}
+The procedural tree generation algorithm has one huge drawback: it generates too many triangles. Since every leave is modeled as an individual quad and the stem and branches are very smooth, a typical tree contains up to one million vertices and half a million triangles. These are way too many to render more than a few trees at the same time.
+
+Furthermore, because the tree model contains many small details, aliasing effects become a problem when the tree is rendered in the distance. The branches become so small that they are only rendered sometimes by the rasterizer. This leads to flickering effects.
+
+Both problems are adressed with a very simple technique based on impostors for rendering distant trees.
+\begin{figure}[htbp]
+	\centering
+		\includegraphics[width=0.30\textwidth]{images/Impostor}
+	\caption{Impostor}
+	\label{fig:Impostor}
+\end{figure}
+impostors are textured quads that are rotated around a central axis. We are using eight quads for trees (Fig. \ref{fig:Impostor}). Note the similarity of the impostors to the way grass is rendered. Each quad is textured with how the tree would look like when seen from the angle of that quad. To create these textures, we render the trees from every of these eight view angles into a offscreen surface and use this as the texture.
+During the creation of the textures, the tree must be rendered with exactly the same light setting as in the final scene. Otherwise, the lighting of the tree impostors are not consistent with the lighting of the surrounding terrain. This is especially necessary when a strong directional light is used.
+
+To avoid popping effects when changing from the high resolution model for close-up shots to the impostors for distance rendering, we use alpha blending:
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+		\draw[->,very thick] (-0.2,0) -- (3,0) node[below] {Distance from the viewer} -- (5,0);
+		\path[every node/.style={sloped,anchor=south,auto=false}, very thick,->]
+		 (0,-0.2) edge node {Visibility / Alpha} (0,2.2);
+		\draw[gray,dashed] (2,-0.2) -- (2,2.4) node[above] {fade-near};
+		\draw[gray,dashed] (3,-0.2) -- (3,2.1) node[above] {fade-far};
+		\path[blue, thick]
+		 (0,2) edge node[above] {high res} (2,2) (2,2) edge (3,0) (3,0) edge (5,0);
+		\path[red, thick]
+		 (0,0) edge node[above] {impostor} (2,0) (2,0) edge (3,2) (3,2) edge (5,2);
+	\end{tikzpicture}
+	\caption{Blending between high resolution model and \mbox{impostor}}
+	\label{fig:ImpostorBlending}
+\end{figure}
+The parameters fade-near and fade-far specify the distances from the camera where the fading between the high resolution model and the impostor takes place.
+Because the memory of the graphics card is also limited, we only load the high resolution model into the graphics memory when the distance to the tree is smaller than the fade-far value.
+
+Since the downscaling of textures can be done much smoother by the graphics card, impostors do not lack the problems of aliasing like the high resolution models do.
 
 \subsubsection{Tree placement}
+As a last step, the trees must be placed in the scene. For that, we first build a table by hand listing which trees occur in which biome with what probability. Then for every position on the height map (integer positions) we place a tree with a probability based on the general density of trees in the biome at that position and a constant density factor. This density factor is a parameter that has to be adjusted to match the desired global tree density. If a tree should be placed, we sample the type of tree from the tree table built at the beginning. To add more randomness, we place the tree at a random point on the terrain within the area of the current cell.
 
 \section{Conclusion and future work}
-TODO
+With the framework described in this paper, we are able to produce realistic terrain with many possibilities for artistic control.
+The user can control the shape of the island, can grow mountains and other terrain features, and can define vegetation based on biomes. To increase the realism of the terrain, we apply a hyrdaulic erosion scheme to it.
+
+There are many possibilities for extensions of this project. A more sophisticated approach for the rendering of grass and trees, as described in \cite{Boulanger.2005}, could be used. We further only support on type of grass that is planted on a fixed subset of biomes. Especially in rain forests, many bushes, farns, flowers, lianas and other plants apart from trees grow which are not included in our simulation. Furthermore, the diffusion solver (\ref{TerrainFeatures}) and erosion solver (\ref{HydraulicErosion}) are implemented on the CPU. A port to the GPU would increase the performance significantly.
+
+The next two pages show some screenshots from the terrain that is developed through this paper.
 
 \bibliographystyle{IEEEtran}
 %\bibliographystyle{alpha}
 \bibliography{Paper}
+
+\begin{figure*}
+	\centering
+	\includegraphics[width=0.8\textwidth]{images/Planted1}
+	\caption{grassland}
+\end{figure*}
+\begin{figure*}
+	\centering
+	\includegraphics[width=0.8\textwidth]{images/Planted2}
+	\caption{forest}
+\end{figure*}
+\begin{figure*}
+	\centering
+	\includegraphics[width=0.8\textwidth]{images/Planted3}
+	\caption{deciduous forest (foreground), taiga (background)}
+\end{figure*}
+\begin{figure*}
+	\centering
+	\includegraphics[width=0.8\textwidth]{images/Planted4}
+	\caption{desert}
+\end{figure*}
+
 \end{document}

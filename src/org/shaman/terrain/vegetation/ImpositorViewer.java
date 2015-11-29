@@ -30,13 +30,13 @@ import org.apache.commons.lang3.tuple.MutablePair;
  */
 public class ImpositorViewer extends SimpleApplication {
 //	private static final String TREE = "black_tupelo_2_v0";
-	private static final String TREE = "ca_black_oak_1_v1";
+//	private static final String TREE = "ca_black_oak_1_v1";
+	private static final String TREE = "oak_1_v0";
 	float minDist = 30;
 	float maxDist = 90;
 	
 	private Spatial highResTree;
 	private TreeNode impostor;
-	private boolean useImpositor = false;
 	private List<MutablePair<Float, Geometry>> impositors = new ArrayList<>();
 	private Comparator<MutablePair<Float, Geometry>> impositorComparator = new Comparator<MutablePair<Float, Geometry>>() {
 		@Override
@@ -56,6 +56,7 @@ public class ImpositorViewer extends SimpleApplication {
 	@Override
 	public void simpleInitApp() {
 		stateManager.attach(new ScreenshotAppState());
+//		viewPort.setBackgroundColor(ColorRGBA.White);
 		
 		flyCam.setEnabled(false);
 		chaseCam = new ChaseCamera(cam, rootNode, inputManager);
@@ -91,19 +92,6 @@ public class ImpositorViewer extends SimpleApplication {
 		impostor.setUseHighRes(true);
 		impostor.move(0, 0, -size/2);
 		rootNode.attachChild(impostor);
-		
-		//input
-		inputManager.addMapping("Impositor", new KeyTrigger(KeyInput.KEY_SPACE));
-		inputManager.addListener(new ActionListener() {
-			@Override
-			public void onAction(String name, boolean isPressed, float tpf) {
-				if ("Impositor".equals(name) && isPressed) {
-					useImpositor = !useImpositor;
-					highResTree.setCullHint(useImpositor ? Spatial.CullHint.Always : Spatial.CullHint.Inherit);
-					impostor.setCullHint(useImpositor ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
-				}
-			}
-		}, "Impositor");
 	}
 
 }
