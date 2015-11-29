@@ -292,8 +292,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 
         DirectionalLight light = new DirectionalLight();
         light.setDirection((new Vector3f(-0.1f, -0.1f, -0.1f)).normalize());
+		light.setColor(new ColorRGBA(0.5f, 0.5f, 0.5f, 1));
         rootNode.addLight(light);
-		AmbientLight ambientLight = new AmbientLight(new ColorRGBA(0.2f, 0.2f, 0.2f, 1));
+		AmbientLight ambientLight = new AmbientLight(new ColorRGBA(0.6f, 0.5f, 0.5f, 1));
 		rootNode.addLight(ambientLight);
 
         cam.setLocation(new Vector3f(0, 100 * TERRAIN_SCALE, -100 * TERRAIN_SCALE));

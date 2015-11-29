@@ -193,7 +193,7 @@ public class VegetationGenerator extends AbstractTerrainStep {
 			return;
 		}
 		if (grass==null) {
-			grass = new GrassPlanter(app, map, materialCreator.getBiomes(), sceneNode, scaleFactor);
+			grass = new GrassPlanter(app, map, materialCreator.getBiomes(), sceneNode, scaleFactor, plantSize);
 			grass.showGrass(true);
 		}
 		LOG.info("grass added");

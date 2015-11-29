@@ -104,7 +104,7 @@ public class TreePlanter {
 		MultiMap<TreeInfo, TreeNode> nodes = new MultiValueMap<>();
 		
 		//first, simple planting algorithm
-		float density = 0.2f / size;
+		float density = 0.4f / size;
 		Random rand = new Random();
 		Biome[] allBiomes = Biome.values();
 		for (int x=0; x<biomes.getSize(); ++x) {

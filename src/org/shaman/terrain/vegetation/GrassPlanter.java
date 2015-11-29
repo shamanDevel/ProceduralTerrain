@@ -51,12 +51,13 @@ public class GrassPlanter {
 	private boolean enabled;
 
 	public GrassPlanter(TerrainHeighmapCreator app, Heightmap map, Vectorfield biomes, 
-			Node sceneNode, float scaleFactor) {
+			Node sceneNode, float scaleFactor, float grassSize) {
 		this.app = app;
 		this.map = map;
 		this.biomes = biomes;
 		this.sceneNode = new Node("grass");
 		this.scaleFactor = scaleFactor;
+		this.size = grassSize;
 		sceneNode.attachChild(this.sceneNode);
 	}
 	
@@ -64,11 +65,6 @@ public class GrassPlanter {
 		if (forester != null && enabled) {
 			forester.update(tpf);
 		}
-	}
-	
-	public void setGrassSize(float size) {
-		this.size = size;
-		LOG.log(Level.INFO, "change grass size to {0}", size);
 	}
 	
 	public void showGrass(boolean show) {
@@ -88,10 +84,10 @@ public class GrassPlanter {
 			layer = grassLoader.addLayer(grassMat.clone(), GrassLayer.MeshType.CROSSQUADS);
 			layer.setDensityTextureData(0, FormatReader.Channel.Green);
 			layer.setDensityMultiplier(3f);
-			layer.setMaxHeight(2f*TerrainHeighmapCreator.TERRAIN_SCALE);
-			layer.setMinHeight(1.f*TerrainHeighmapCreator.TERRAIN_SCALE);
-			layer.setMaxWidth(2.f*TerrainHeighmapCreator.TERRAIN_SCALE);
-			layer.setMinWidth(1.f*TerrainHeighmapCreator.TERRAIN_SCALE);
+			layer.setMaxHeight(0.5f*TerrainHeighmapCreator.TERRAIN_SCALE*size);
+			layer.setMinHeight(0.3f*TerrainHeighmapCreator.TERRAIN_SCALE*size);
+			layer.setMaxWidth(0.5f*TerrainHeighmapCreator.TERRAIN_SCALE*size);
+			layer.setMinWidth(0.3f*TerrainHeighmapCreator.TERRAIN_SCALE*size);
 //			layer.setPlantingAlgorithm(new GPAUniform(0.3f));
 			layer.setPlantingAlgorithm(new GrassPlantingAlgorithmImpl());
 			layer.setSwaying(true);

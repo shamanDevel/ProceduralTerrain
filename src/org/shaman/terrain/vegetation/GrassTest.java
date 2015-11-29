@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.shaman.terrain;
+package org.shaman.terrain.vegetation;
 
 import com.jme3.app.FlyCamAppState;
 import com.jme3.app.SimpleApplication;
@@ -33,6 +33,9 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.shaman.terrain.AbstractTerrainStep;
+import org.shaman.terrain.CustomFlyByCamera;
+import org.shaman.terrain.Heightmap;
 import se.fojob.forester.Forester;
 import se.fojob.forester.RectBounds;
 import se.fojob.forester.grass.GrassLayer;
