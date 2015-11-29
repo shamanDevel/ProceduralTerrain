@@ -27,7 +27,7 @@ import org.shaman.terrain.Heightmap;
 import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.Vectorfield;
 import org.shaman.terrain.erosion.RiverSource;
-import org.shaman.terrain.polygonal.Biome;
+import org.shaman.terrain.Biome;
 
 /**
  *

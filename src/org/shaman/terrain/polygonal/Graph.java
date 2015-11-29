@@ -5,6 +5,7 @@
  */
 package org.shaman.terrain.polygonal;
 
+import org.shaman.terrain.Biome;
 import com.jme3.math.Vector2f;
 import java.io.Serializable;
 import java.util.ArrayList;

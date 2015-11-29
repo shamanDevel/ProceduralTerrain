@@ -18,7 +18,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.logging.Logger;
 import org.shaman.terrain.Vectorfield;
-import org.shaman.terrain.polygonal.Biome;
+import org.shaman.terrain.Biome;
 import org.shaman.terrain.vegetation.BiomesMaterialCreator;
 
 /**

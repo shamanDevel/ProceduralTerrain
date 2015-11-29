@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.shaman.terrain.polygonal;
+package org.shaman.terrain;
 
 import com.jme3.math.ColorRGBA;
 

@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 import org.shaman.terrain.Vectorfield;
-import org.shaman.terrain.polygonal.Biome;
+import org.shaman.terrain.Biome;
 
 /**
  * Creates a terrain material out of biome information

@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import org.shaman.terrain.erosion.RiverSource;
-import org.shaman.terrain.polygonal.Biome;
 
 /**
  *

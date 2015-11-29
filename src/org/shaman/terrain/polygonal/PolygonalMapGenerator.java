@@ -5,6 +5,7 @@
  */
 package org.shaman.terrain.polygonal;
 
+import org.shaman.terrain.Biome;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;

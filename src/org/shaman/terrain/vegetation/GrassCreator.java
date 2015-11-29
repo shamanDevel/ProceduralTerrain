@@ -21,7 +21,7 @@ import java.util.logging.Logger;
 import org.shaman.terrain.Heightmap;
 import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.Vectorfield;
-import org.shaman.terrain.polygonal.Biome;
+import org.shaman.terrain.Biome;
 import se.fojob.forester.Forester;
 import se.fojob.forester.RectBounds;
 import se.fojob.forester.grass.GrassLayer;

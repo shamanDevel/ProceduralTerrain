@@ -5,6 +5,7 @@
  */
 package org.shaman.terrain.polygonal;
 
+import org.shaman.terrain.Biome;
 import Jama.Matrix;
 import com.jme3.app.Application;
 import com.jme3.material.Material;

@@ -13,7 +13,7 @@ import de.lessvoid.nifty.examples.progressbar.ProgressbarControl;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import java.util.Random;
-import org.shaman.terrain.polygonal.Biome;
+import org.shaman.terrain.Biome;
 
 /**
  *
