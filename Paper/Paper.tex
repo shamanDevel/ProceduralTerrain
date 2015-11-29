@@ -57,7 +57,7 @@
 Terrain is a topic of endless discussion in computer graphics. It has to cover a large area of the world and at the same time it has to provide enough details for close-up shots.
 It is extremely time consuming to create a large-scale terrain that is also interesting when viewed closely. 
 
-In this project I present a framework for generating terrain, from a coarse grained height map to vegetation generation. The focus lies on combining existing techniques for performing the single tasks.
+In this project we present a framework for generating terrain, from a coarse grained height map to vegetation generation. The focus lies on combining existing techniques for performing the different tasks.
 The result should be an island because it provides a natural border of the world.
 
 Applications of procedural terrain include computer games, movies and geographic visualization and simulation.
@@ -66,7 +66,7 @@ The project was heavily inspired by a talk about "The Good Dinosaur" from Pixar 
 \section{Related Work}
 A lot of work has been done already in the field of generating height maps. There are in general three different approaches to this problem.
 Generating the height map completely from scratch using perlin noise, fractals, voronoi regions, software agents or genetic algorithms are described in \cite{Doran.2010}, \cite{JacobOlsen.2004} and \cite{TeongJooOngRyanSaundersJohnKeyserJohnJ.Leggett.2005}. These models often lack realism because of the missing physically and geographic background. This is addressed in a second approach, hydraulic erosion models, as described in \cite{BedrichBenes.2007} and \cite{Mei.}. They start with existing height maps and increase the realism by simulating fluid to erode the terrain and forming rivers in the end. The other way is used in \cite{JeanDavidGenevauxEricGalinEricGuerinAdrienPeytavieBedrichBenes.2013}, here we start with a river network and build the terrain with respect to the river flow.
-The last approaches copes with the lack of control in the previous described methods. They define the terrain by control features provided by the user, see \cite{FloraPonjouTasseArnaudEmilienMariePauleCaniStefanieHahmannAdrienBernhardt.2014} and \cite{Hnaidi.2010}.
+The last approach copes with the lack of control in the previous described methods. They define the terrain by control features provided by the user, see \cite{FloraPonjouTasseArnaudEmilienMariePauleCaniStefanieHahmannAdrienBernhardt.2014} and \cite{Hnaidi.2010}.
 On a 2D-scope, \cite{AmitPatel.2010} should be mentioned because it describes a complete new approach not using height map grids, but voronoi regions as base primitives.
 
 After the terrain is created, it must be populated with vegetation. Rendering of grass is described in e.g. \cite{KurtPelzer.} and \cite{Boulanger.2005}. Trees must be generated first and for that, \cite{AdamRunionsBrendanLanePrzemyslawPrusinkiewicz.2007} and \cite{Weber.} should be mentioned.
@@ -76,7 +76,7 @@ The framework consists of the following steps that are executed one after anothe
 \begin{enumerate}
 	\item generating an initial map using voronoi regions, chapter \ref{PolygonalMap}
 	\item editing the terrain by user-defined features, chapter \ref{TerrainFeatures}
-	\item simulate water and erosion to increase the realism, chapter \ref{HydraulicErosion}
+	\item simulating water and erosion to increase the realism, chapter \ref{HydraulicErosion}
 	\item define biomes and populate the scene with grass and trees, chapter \ref{Vegetation}
 \end{enumerate}
 
@@ -88,6 +88,7 @@ These techniques are taken from \cite{AmitPatel.2010}.
 We could start with a regular grid of squares or hexagons, but using a Voronoi diagram provides more randomness.
 
 At the beginning, we generate random points, called center points, in the plane from -1 to 1 in x and y coordinate and compute the Voronoi diagram (Fig. \ref{fig:voronoi}).
+The Voronoi diagram assigns each center point a region on the plane to where this center point is the closest. These regions are always convex polygons. The dual problem, the Delaunay triangulation, connects two center points by an edge if and only if the two voronoi regions of the two center points have a common border.
 
 Because the shapes of the polygons are too irregular, we perform a relaxation step by replacing each center point by the average of the polygon corners (Fig. \ref{fig:relaxation}).
 Applying this step several times results in more and more uniform polygons. In practice, two or three iterations provide good results.
@@ -174,7 +175,7 @@ Let $(x,y)$ be a point and we want to know if it is in the water or not.
 \end{equation}
 The function $water(x,y)$ returns true iff the point $(x,y)$ is in the water. The function noise(x,y) returns the value of the perlin noise at the specified position.
 
-There are many values to tweak: $n$ defines the number of octaves that are summed together, $o_b$ specifies the base octave, $o_s$ the octave scale, $a_b$ the base amplitude and $a_s$ the amplitude scale. $scale$ defines the influence of the distance to the center of the map versus the perlin noise and $offset$ is the specifies a base island size.
+There are many values to tweak: $n$ defines the number of octaves that are summed together, $o_b$ specifies the base octave, $o_s$ the octave scale, $a_b$ the base amplitude and $a_s$ the amplitude scale. $scale$ defines the influence of the distance to the center of the map versus the perlin noise and $offset$ specifies the base island size.
 In our experiments, we use the following values: $n=4, o_b=6, o_s=2, a_b=0.5, a_s=2.5, scale=2.2, offset=-0.2$.
 
 This function is evaluated for every corner (stored in the water-property). A center is labeled as water if at least 30\% of the corners are water.
@@ -623,6 +624,7 @@ In the case of a cell that is below the see level, we simply set the water heigh
 The major drawback of the described model is that it relies on a grid. Because of this and the way the outflow flux is computed, rivers are much more likely to flow along the x and y-axis. 
 This leads to the clearly visible black stripes in Fig. \ref{fig:erosion3}. Maybe a more accurate flow simulation would improve this problem. This task is part of future work.
 
+\subsection{Results}
 \begin{figure*}
 	\centering
 	\begin{subfigure}[b]{0.45\textwidth}
