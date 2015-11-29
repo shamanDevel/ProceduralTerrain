@@ -241,9 +241,9 @@ As a last step, we assign a biome to each center based on its temperature and mo
 
 \subsection{Generating the height map}
 \subsubsection{Heightmap}
-The next steps in the processing pipeline all require a heightmap. A height map is just a rectangular grid of values where each cell stores the height at this point. We also use the same datastructure to store moisture and temperature values.
+The next steps in the processing pipeline all require a height map. A height map is just a rectangular grid of values where each cell stores the height at this point. We also use the same datastructure to store moisture and temperature values.
 
-Notation: Let $H$ be the heightmap. Then we identified the cell at position $i,j$ with either $H_{i,j}$ or $H[i,j]$, depending on the readability. When coordinates lie outside the map, we clamp them. When the coordinates are not integers, but lie between cells, we perform a bilinear interpolation between the neighboring cells. When two heightmaps, or in the general case two scalar- or vectorfields, are added or multiplied together in this paper, these are always element-wise operations.
+Notation: Let $H$ be the heightmap. Then we identified the cell at position $i,j$ with either $H_{i,j}$ or $H[i,j]$, depending on the readability. When coordinates lie outside the map, we clamp them. When the coordinates are not integers, but lie between cells, we perform a bilinear interpolation between the neighboring cells. When two heightmaps, or in the general case two scalar- or vectorfields, are added or multiplied \mbox{together} in this paper, these are always element-wise operations.
 
 \subsubsection{Base elevation}
 Since we already display the polygon graph from the previous steps using triangle meshes, we can just render the elevation mesh from step \ref{Elevation} to obtain a base elevation of the generated terrain. 
@@ -299,7 +299,7 @@ By that, the user can create custom island shapes, raise mountains, build valley
 With the terrain created in this step, we can proceed to the next step.
 
 \section{Terrain Features}\label{TerrainFeatures}
-Starting from the terrain from the previous chapter, the user has now the ability to fine-tune the terrain features.
+Starting from the terrain from the previous chapter, the user now has the ability to fine-tune the terrain features.
 This is an implementation of \cite{Hnaidi.2010} with some extensions. More examples and further explanations are available in this paper.
 
 \begin{figure*}
@@ -317,7 +317,7 @@ This is an implementation of \cite{Hnaidi.2010} with some extensions. More examp
 	\caption{Defining feature curves}\label{fig:diffusion1}
 \end{figure*}
 \subsection{Feature curves}
-In the center of this processing steps stand feature curves. Feature curves are added by the user and a solver (\ref{DiffusionSolver}) then modifies the terrain with respect to them.
+In the center of this processing step stand feature curves. Feature curves are added by the user and a solver (\ref{DiffusionSolver}) then modifies the terrain with respect to them.
 Example feature curves forming hills can be seen in Fig. \ref{fig:featurecurves} (white spheres are the control points and the blue tupe is the interpolated curve) and the resulting terrain in Fig. \ref{fig:resultingterrain}.
 
 Each feature curve consists of two or more control points. Each control point has the following properties:
@@ -356,7 +356,7 @@ The gradient term is defined in the following way:
 	N^k[i,j] = \textbf{n}_x^2 H^k[i-\text{sign}(\textbf{n}_x),j] + \textbf{n}_y^2 H^k[i, j-\text{sign}(\textbf{n}_y)]
 \label{eq:Diffusion3}
 \end{equation}
-The gradient equation tend to satisfy the provided gradient $G$. $G$ is directly calculated from $\sin(\varphi_l)$ and $\sin(\varphi_r)$, i.e. from the slope angles defined at the control points.
+The gradient equation tends to satisfy the provided gradient $G$. $G$ is directly calculated from $\sin(\varphi_l)$ and $\sin(\varphi_r)$, i.e. from the slope angles defined at the control points.
 The vector $\textbf{n}=(\textbf{n}_x,\textbf{n}_y)$ describes the normalized direction of the gradient. This vector is orthogonal to the feature curve when projected in the plane and point away from the curve. In Fig. \ref{fig:featsExist2}, some of them are displayed as gray lines going away from the plateau.
 
 The Laplace term smoothes the terrain by averaging the neighbor cells:
@@ -387,7 +387,7 @@ The Laplace term smoothes the terrain by averaging the neighbor cells:
 	\end{subfigure}
 	\caption{Adding features to existing terrain}\label{fig:diffusion2}
 \end{figure*}
-\subsection{Integrate into existing terrain}
+\subsection{Integration into existing terrain}
 Defining the whole terrain only with the feature curves is very tedious. Therefore we want to start with an existing terrain, as described in chapter \ref{PolygonalMap}.
 However, simply starting with the existing terrain as $H^0$ does not work because the Laplace term would just smooth out every feature apart from the feature curves.
 
@@ -398,7 +398,7 @@ However, simply starting with the existing terrain as $H^0$ does not work becaus
 This works as long as there are no sharp features already existing right next to the new feature curve. If that is the case, as in the image above, adding the curves together produces unwanted results because of these inferences.
 
 This case happens quite often as seen in Fig. \ref{fig:diffusion3}. Here we define a new feature curve right next to an existing mountain. Although the curve's slope does not touch the existing terrain, the smoothing term inside the diffusion solver also increases the height outside of the feature curve. This leads to a growth of the mountain on the left (the tip of the mountain is now much higher than the control point, before it was about the same height).
-From a designer's perspective, this behavior might be not wanted because it is hard to predict and control.
+From a designer's perspective, this behavior might not be desired because it is hard to predict and control.
 
 \begin{figure*}
 	\centering
@@ -424,7 +424,6 @@ From a designer's perspective, this behavior might be not wanted because it is h
 We propose now another solution that both keeps existing terrain features while it preserves the local control and removes the inferences mentioned before.
 The idea is to limit the smoothing term $L$ to influence only a customizable region around a feature curve.
 For this, we add two new parameters, $l_l$ and $l_r$, to each control point. They specify the local radius of an envelope around the plateau and slope of the feature curve.
-It not only extends along the slope, but also over the start and end of the feature curve. 
 
 We then set $\gamma$ to 1 inside this envelope and to 0 outside and modify equation \ref{eq:Diffusion1} to include $\gamma$:
 \begin{equation}
@@ -436,14 +435,14 @@ We then set $\gamma$ to 1 inside this envelope and to 0 outside and modify equat
 \label{eq:Diffusion1_mod}
 \end{equation}
 
-Because we no limit the smoothing area, we can apply the solver directly on the original height map without smoothing out existing features. There is no need anymore to solve the diffusion equation on a separate map with relative heights as done in the previous section.
+Because we no limit the smoothing area, we can apply the solver directly on the original height map without smoothing out existing features. There is no need any more to solve the diffusion equation on a separate map with relative heights as done in the previous section.
 
 In Fig. \ref{fig:diffusionError3} you see the problematic situation again, but this time, the smoothing region is bounded as described before. The border of the smoothing envelope is visualized by the black lines. Note that the old mountain is preserved and the new feature is blended into the terrain without discontinuities.
 
 \section{Hydraulic Erosion}\label{HydraulicErosion}
 Now the shape of the terrain is fully defined, and the next step is to increase the realism by performing erosion.
 
-Erosion is comes in many shapes in the nature: there is thermal erosion which decomposes larger stones into smaller ones, wind erosion which carries sand over long distances and finally water erosion.
+Erosion comes in many shapes in the nature: there is thermal erosion which decomposes larger stones into smaller ones, wind erosion which carries sand over long distances and finally water erosion.
 Water erosion or hydraulic erosion is caused by flowing water that erodes the terrain, transports sediment along the river and finally deposits it somewhere.
 Since the hydraulic erosion is the strongest one, we focus on this type of erosion in the presented framework.
 
@@ -452,9 +451,9 @@ We use an adapted version of the model presented in \cite{Mei.}.
 \subsection{Erosion Model}
 The algorithms follows the following steps, which are repeatedly executed using the timestep $\Delta t$ (e.g. $\Delta t = 0.01$):
 \begin{enumerate}
-	\item increment water by rainfall
+	\item water increment by rainfall
 	\item flow simulation
-	\item change water volume
+	\item water volume change
 	\item erosion, deposition and sediment transportation
 	\item evaporation
 \end{enumerate}
@@ -522,7 +521,7 @@ The water height per cell is then modified using:
 \end{equation}
 For the next step, \ref{ErosionDeposition}, we need to compute the horizontal velocity of the water $\textbf{v}=(u,v)$.
 Let $\bar{d}$ be the arithmetic average of the water height before and after equation \ref{eq:ErosionVolume2}.
-Then the velocity along the x-axis is compute as:
+Then the velocity along the x-axis is computed as:
 \begin{equation}
 	u = \frac{f^R[x-1,y]-f^L[x,y] + f^R[x,y]-f^L[x+1,y]}{2\bar{d}}
 \label{eq:ErosionVolume3}
@@ -666,7 +665,7 @@ This leads to the clearly visible black stripes in Fig. \ref{fig:erosion3}. Mayb
 
 In Fig. \ref{fig:river}, you can see how the erosion simulation carves out a river bed from a specified river source.
 
-Fig. \ref{fig:erosion} shows the simulation on a larger scale. The original terrain is shown in \ref{fig:erosion1}, then in \ref{fig:erosion2}, the simulation is running. The displayed terrain height is the terrain height plus the water height, so lakes, waves and so on can be seen. The water height also specifies how much "blue" is drawn on top of the terrain. The terrain is textured with grass until a specific slope angle is reached, then stone is used (with blending between them). By that, you can get a feeling of the local slope angle. In \ref{fig:erosion3}, you can see the difference from the original terrain to the new terrain. White indicates depositions, black stands for erosion. Finally, \ref{fig:erosion4} shows the final terrain without water. Especially note the change in the coast line and that the terrain is much more "bumpy", more stone is used in the texturing of the terrain.
+Fig. \ref{fig:erosion} shows the simulation on a larger scale. The original terrain is shown in \ref{fig:erosion1}, then in \ref{fig:erosion2}, the simulation is running. The displayed terrain height is the terrain height plus the water height, so lakes, waves and so on can be seen. The water height also specifies how much "blue" is drawn on top of the terrain. The terrain is textured with grass until a specific slope angle is reached, then stone is used (with blending between them). By that, you can get a feeling of the local slope angle. In \ref{fig:erosion3}, you can see the difference from the original terrain to the new terrain. White indicates depositions, black stands for erosion. Finally, \ref{fig:erosion4} shows the final terrain without water. Especially note the change in the coast line and that the terrain is much more "bumpy", the stone texture is used more often.
 
 \section{Vegetation}\label{Vegetation}
 
