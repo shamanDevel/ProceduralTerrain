@@ -6,6 +6,7 @@
 package org.shaman.terrain.vegetation;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.app.state.ScreenshotAppState;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
@@ -13,22 +14,12 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
-import com.jme3.material.Material;
-import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
-import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
-import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import com.jme3.scene.shape.Quad;
-import com.jme3.texture.Image;
-import com.jme3.texture.Texture;
-import com.jme3.texture.Texture3D;
-import com.jme3.texture.TextureArray;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import org.apache.commons.lang3.tuple.MutablePair;
@@ -38,7 +29,8 @@ import org.apache.commons.lang3.tuple.MutablePair;
  * @author Sebastian Weiss
  */
 public class ImpositorViewer extends SimpleApplication {
-	private static final String TREE = "Tree1";
+//	private static final String TREE = "black_tupelo_2_v0";
+	private static final String TREE = "ca_black_oak_1_v1";
 	float minDist = 30;
 	float maxDist = 90;
 	
@@ -63,6 +55,8 @@ public class ImpositorViewer extends SimpleApplication {
 
 	@Override
 	public void simpleInitApp() {
+		stateManager.attach(new ScreenshotAppState());
+		
 		flyCam.setEnabled(false);
 		chaseCam = new ChaseCamera(cam, rootNode, inputManager);
 		rootNode.rotate(-FastMath.HALF_PI, 0, 0);
@@ -79,6 +73,8 @@ public class ImpositorViewer extends SimpleApplication {
 		assetManager.registerLocator("./treemesh/", FileLocator.class);
 		highResTree = assetManager.loadModel(TREE+"/Tree.j3o");
 		float size = highResTree.getWorldBound().getCenter().z * 2;
+		highResTree = null;
+		assetManager.clearCache();
 		
 		//load impositor
 		TreeInfo treeInfo = new TreeInfo();
@@ -92,6 +88,7 @@ public class ImpositorViewer extends SimpleApplication {
 		treeInfo.highResLeavesFadeNear = 35;
 		treeInfo.highResLeavesFadeFar = 55;
 		impostor = new TreeNode(treeInfo, assetManager, cam);
+		impostor.setUseHighRes(true);
 		impostor.move(0, 0, -size/2);
 		rootNode.attachChild(impostor);
 		

@@ -84,11 +84,15 @@ public class TreeNode extends Node {
 		highResStem = (Geometry) treeNode.getChild(0);
 		highResStem.getMaterial().setFloat("FadeNear", tree.highResStemFadeNear);
 		highResStem.getMaterial().setFloat("FadeFar", tree.highResStemFadeFar);
+		highResStem.getMaterial().getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+		highResStem.getMaterial().setTransparent(true);
+		highResStem.setQueueBucket(RenderQueue.Bucket.Transparent);
 		super.attachChild(highResStem);
 		if (treeNode.getChildren().size()>=1) {
 			highResLeaves = (Geometry) treeNode.getChild(0);
 			highResLeaves.getMaterial().setFloat("FadeNear", tree.highResLeavesFadeNear);
 			highResLeaves.getMaterial().setFloat("FadeFar", tree.highResLeavesFadeFar);
+			highResLeaves.setQueueBucket(RenderQueue.Bucket.Transparent);
 			super.attachChild(highResLeaves);
 		}
 		
@@ -136,7 +140,7 @@ public class TreeNode extends Node {
 		float[] tex = new float[3 * 4 * tree.impostorCount];
 		int[] index = new int[6 * tree.impostorCount];
 		for (int i=0; i<tree.impostorCount; ++i) {
-			float angle = i * FastMath.TWO_PI / tree.impostorCount;
+			float angle = i * FastMath.TWO_PI / tree.impostorCount + FastMath.PI;
 			float x1 = (float) (Math.cos(angle) * -0.5);
 			float y1 = (float) (Math.sin(angle) * -0.5);
 			float x2 = (float) (Math.cos(angle) * 0.5);
