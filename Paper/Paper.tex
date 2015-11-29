@@ -687,9 +687,9 @@ Terrain without vegetation looks a little bit boring. Therefore, the last step o
 Biomes are a system to classify the nature. A biome defines a region with common climate, soil and vegetation.
 An attempt to classify the different biomes based on rainfall and temperature was made in \cite{MariettaCollege.}. We are using an adapted version of the classification from \cite{JacobOlsen.2004}, see Fig. \ref{fig:BiomeCategories}.
 
-In our implementation, the biomes are initialized with the temperature and moisture information from the previous step. The user can then paint the different biomes directly on the terrain to fine-tune the biome assignment.
+In our implementation, the biomes are initialized with the temperature and moisture information from the previous steps. The user can then paint the different biomes directly on the terrain to fine-tune the biome assignment.
 
-The terrain is then rendered using different textures for each biome (Fig. \ref{fig:terrainBiomes}). Furthermore, the biomes specify if and what grass is used and what trees are planted.
+The terrain can be rendered using different textures for each biome (Fig. \ref{fig:terrainBiomes}). Furthermore, the biomes specify if and what grass is used and what trees are planted.
 \begin{figure*}
 	\centering
 	\begin{subfigure}[b]{0.45\textwidth}
@@ -720,7 +720,7 @@ The terrain is then rendered using different textures for each biome (Fig. \ref{
 	\end{subfigure}
 	\caption{Grass}\label{fig:grass}
 \end{figure*}
-For rendering grass, we are using the concepts presented in \cite{KurtPelzer.}. An implementation of it comes with the 3d engine we are using, the jMonkeyEngine\footnote{\url{http://jmonkeyengine.org/}}.
+For rendering grass, we use the concepts presented in \cite{KurtPelzer.}. An implementation of it comes with the 3d engine we are using, the jMonkeyEngine\footnote{\url{http://jmonkeyengine.org/}}.
 A blade of grass is displayed using two transparent quads that are orthogonal to each other (Fig. \ref{fig:grass1}). The shades are then randomly placed on the terrain, the density distribution varies with the biomes. Finally, a texture is applied to complete the grass rendering (Fig. \ref{fig:grass2}).
 
 \subsection{Trees}
@@ -739,8 +739,6 @@ A blade of grass is displayed using two transparent quads that are orthogonal to
 	\caption{Grass}\label{fig:trees}
 \end{figure*}
 Generating trees is a little bit more complicated. Trees have a very difficult 3d shape because they have many branches and leaves. In most computer games, trees are rendered using very primitive objects: stems are rendered as textured cylinders and bunches of leaves and small branches are combined and rendered using a single textured quad. This often looks good when viewed from the distance but the illusion breaks when you get to close to them.
-
-In Fig. \ref{fig:trees} you can see two types of trees. The high resolution tree is rendered on the left (see \ref{TreeGeneration}) and the low resolution version for distance rendering is drawn on the right (see \ref{LevelOfDetail}).
 
 \subsubsection{Tree generation}\label{TreeGeneration}
 Since we also want to generate the trees procedurally, we have to go another way. In this framework, we use the algorithm presented in \cite{Weber.}, implemented in \cite{WolframDiestel.2013}.
@@ -782,6 +780,8 @@ The parameters fade-near and fade-far specify the distances from the camera wher
 Because the memory of the graphics card is also limited, we only load the high resolution model into the graphics memory when the distance to the tree is smaller than the fade-far value.
 
 Since the downscaling of textures can be done much smoother by the graphics card, impostors do not lack the problems of aliasing like the high resolution models do.
+
+In Fig. \ref{fig:trees} you can see two types of trees. The high resolution tree is rendered on the left (see \ref{TreeGeneration}) and the low resolution version for distance rendering is drawn on the right (see \ref{LevelOfDetail}).
 
 \subsubsection{Tree placement}
 As a last step, the trees must be placed in the scene. For that, we first build a table by hand listing which trees occur in which biome with what probability. Then for every position on the height map (integer positions) we place a tree with a probability based on the general density of trees in the biome at that position and a constant density factor. This density factor is a parameter that has to be adjusted to match the desired global tree density. If a tree should be placed, we sample the type of tree from the tree table built at the beginning. To add more randomness, we place the tree at a random point on the terrain within the area of the current cell.
