@@ -27,90 +27,32 @@ import java.util.logging.Logger;
  */
 public class TreeNode extends Node {
 	private static final Logger LOG = Logger.getLogger(TreeNode.class.getName());
-	
-	private final String name;
-	private final int impostorCount;
+	private final TreeInfo tree;
 	private final AssetManager assetManager;
 	private final Camera camera;
-	private float treeSize;
-	private float impostorFadeNear;
-	private float impostorFadeFar;
-	private float highResStemFadeNear;
-	private float highResStemFadeFar;
-	private float highResLeavesFadeNear;
-	private float highResLeavesFadeFar;
-	private float highResFadeFarSq;
 	
 	private Geometry impositor;
 	private Geometry highResStem;
 	private Geometry highResLeaves;
+	private float fadeFar;
+	private boolean useHighRes;
 
-	public TreeNode(String name, int impostorCount, AssetManager assetManager, Camera camera) {
-		super(name);
-		this.name = name;
-		this.impostorCount = impostorCount;
+	public TreeNode(TreeInfo tree, AssetManager assetManager, Camera camera) {
+		super(tree.name);
+		this.tree = tree;
 		this.assetManager = assetManager;
 		this.camera = camera;
+		
+		fadeFar = Math.max(tree.highResLeavesFadeFar, tree.highResStemFadeFar)*1.1f;
+		fadeFar *= fadeFar;
 	}
 
-	public float getTreeSize() {
-		return treeSize;
+	public boolean isUseHighRes() {
+		return useHighRes;
 	}
 
-	public void setTreeSize(float treeSize) {
-		this.treeSize = treeSize;
-	}
-
-	public float getImpostorFadeNear() {
-		return impostorFadeNear;
-	}
-
-	public void setImpostorFadeNear(float impostorFadeNear) {
-		this.impostorFadeNear = impostorFadeNear;
-	}
-
-	public float getImpostorFadeFar() {
-		return impostorFadeFar;
-	}
-
-	public void setImpostorFadeFar(float impostorFadeFar) {
-		this.impostorFadeFar = impostorFadeFar;
-	}
-
-	public float getHighResStemFadeNear() {
-		return highResStemFadeNear;
-	}
-
-	public void setHighResStemFadeNear(float highResStemFadeNear) {
-		this.highResStemFadeNear = highResStemFadeNear;
-	}
-
-	public float getHighResStemFadeFar() {
-		return highResStemFadeFar;
-	}
-
-	public void setHighResStemFadeFar(float highResStemFadeFar) {
-		this.highResStemFadeFar = highResStemFadeFar;
-		this.highResFadeFarSq = Math.max(highResLeavesFadeFar, highResStemFadeFar)*1.1f;
-		this.highResFadeFarSq *= this.highResFadeFarSq;
-	}
-
-	public float getHighResLeavesFadeNear() {
-		return highResLeavesFadeNear;
-	}
-
-	public void setHighResLeavesFadeNear(float highResLeavesFadeNear) {
-		this.highResLeavesFadeNear = highResLeavesFadeNear;
-	}
-
-	public float getHighResLeavesFadeFar() {
-		return highResLeavesFadeFar;
-	}
-
-	public void setHighResLeavesFadeFar(float highResLeavesFadeFar) {
-		this.highResLeavesFadeFar = highResLeavesFadeFar;
-		this.highResFadeFarSq = Math.max(highResLeavesFadeFar, highResStemFadeFar)*1.1f;
-		this.highResFadeFarSq *= this.highResFadeFarSq;
+	public void setUseHighRes(boolean useHighRes) {
+		this.useHighRes = useHighRes;
 	}
 
 	@Override
@@ -120,10 +62,10 @@ public class TreeNode extends Node {
 			LOG.info("impostor added");
 		}
 		float dist = camera.getLocation().distanceSquared(this.getWorldTranslation());
-		if (dist <= highResFadeFarSq && highResStem==null) {
+		if (dist <= fadeFar && highResStem==null && useHighRes) {
 			loadHighResTree();
 			LOG.log(Level.INFO, "dist={0} -> load high resultion mesh", dist);
-		} else if (dist > highResFadeFarSq && highResStem!=null) {
+		} else if (dist > fadeFar && highResStem!=null) {
 			detachChild(highResStem);
 			if (highResLeaves != null) {
 				detachChild(highResLeaves);
@@ -136,56 +78,59 @@ public class TreeNode extends Node {
 	}
 	
 	private void loadHighResTree() {
-		Node tree = (Node) assetManager.loadModel(name + "/Tree.j3o");
+		Node treeNode = (Node) assetManager.loadModel(tree.name + "/Tree.j3o");
 		//Note: all tree nodes that share the same model file use the same
 		//material -> the same settings for fade distances
-		highResStem = (Geometry) tree.getChild(0);
-		highResStem.getMaterial().setFloat("FadeNear", highResStemFadeNear);
-		highResStem.getMaterial().setFloat("FadeFar", highResStemFadeFar);
+		highResStem = (Geometry) treeNode.getChild(0);
+		highResStem.getMaterial().setFloat("FadeNear", tree.highResStemFadeNear);
+		highResStem.getMaterial().setFloat("FadeFar", tree.highResStemFadeFar);
 		super.attachChild(highResStem);
-		if (tree.getChildren().size()>=1) {
-			highResLeaves = (Geometry) tree.getChild(0);
-			highResLeaves.getMaterial().setFloat("FadeNear", highResLeavesFadeNear);
-			highResLeaves.getMaterial().setFloat("FadeFar", highResLeavesFadeFar);
+		if (treeNode.getChildren().size()>=1) {
+			highResLeaves = (Geometry) treeNode.getChild(0);
+			highResLeaves.getMaterial().setFloat("FadeNear", tree.highResLeavesFadeNear);
+			highResLeaves.getMaterial().setFloat("FadeFar", tree.highResLeavesFadeFar);
 			super.attachChild(highResLeaves);
 		}
 		
 	}
 	
 	private void loadImpostor() {
-		Mesh mesh = getImpostorMesh();
-		List<Image> images = new ArrayList<>(impostorCount);
-		for (int i=0; i<ImpositorCreator.IMPOSITOR_COUNT; ++i) {
-			Texture t = assetManager.loadTexture(name + "/" + i + ".png");
-			images.add(t.getImage());
+		if (tree.impostorMaterial == null) {
+			List<Image> images = new ArrayList<>(tree.impostorCount);
+			for (int i=0; i<ImpositorCreator.IMPOSITOR_COUNT; ++i) {
+				Texture t = assetManager.loadTexture(name + "/" + i + ".png");
+				images.add(t.getImage());
+			}
+			TextureArray tex = new TextureArray(images);
+			tex.setMinFilter(Texture.MinFilter.Trilinear);
+			tex.setMagFilter(Texture.MagFilter.Bilinear);
+			Material mat = new Material(assetManager, "org/shaman/terrain/shader/Impositor.j3md");
+			mat.setTexture("ColorMap", tex);
+			mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+			mat.setFloat("AlphaDiscardThreshold", 0.5f);
+			mat.setFloat("FadeNear", tree.impostorFadeNear);
+			mat.setFloat("FadeFar", tree.impostorFadeFar);
+			tree.impostorMaterial = mat;
 		}
-		TextureArray tex = new TextureArray(images);
-		tex.setMinFilter(Texture.MinFilter.Trilinear);
-		tex.setMagFilter(Texture.MagFilter.Bilinear);
-		Material mat = new Material(assetManager, "org/shaman/terrain/shader/Impositor.j3md");
-		mat.setTexture("ColorMap", tex);
-		mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
-		mat.setFloat("AlphaDiscardThreshold", 0.5f);
-		mat.setFloat("FadeNear", impostorFadeNear);
-		mat.setFloat("FadeFar", impostorFadeFar);
+		Mesh mesh = getImpostorMesh();
 		impositor = new Geometry("impostor", mesh);
-		impositor.setMaterial(mat);
-		impositor.scale(treeSize);
+		impositor.setMaterial(tree.impostorMaterial);
+		impositor.scale(tree.treeSize);
 		impositor.setQueueBucket(RenderQueue.Bucket.Transparent);
 		super.attachChild(impositor);
 	}
 	
 	private static final HashMap<Integer, Mesh> IMPOSTORS = new HashMap<>();
 	private Mesh getImpostorMesh() {
-		Mesh mesh = IMPOSTORS.get(impostorCount);
+		Mesh mesh = IMPOSTORS.get(tree.impostorCount);
 		if (mesh != null) {
 			return mesh;
 		}
-		float[] pos = new float[3 * 4 * impostorCount];
-		float[] tex = new float[3 * 4 * impostorCount];
-		int[] index = new int[6 * impostorCount];
-		for (int i=0; i<impostorCount; ++i) {
-			float angle = i * FastMath.TWO_PI / impostorCount;
+		float[] pos = new float[3 * 4 * tree.impostorCount];
+		float[] tex = new float[3 * 4 * tree.impostorCount];
+		int[] index = new int[6 * tree.impostorCount];
+		for (int i=0; i<tree.impostorCount; ++i) {
+			float angle = i * FastMath.TWO_PI / tree.impostorCount;
 			float x1 = (float) (Math.cos(angle) * -0.5);
 			float y1 = (float) (Math.sin(angle) * -0.5);
 			float x2 = (float) (Math.cos(angle) * 0.5);
@@ -206,7 +151,7 @@ public class TreeNode extends Node {
 		mesh.setBuffer(VertexBuffer.Type.TexCoord, 3, tex);
 		mesh.setBuffer(VertexBuffer.Type.Index, 3, index);
 		mesh.updateCounts();
-		IMPOSTORS.put(impostorCount, mesh);
+		IMPOSTORS.put(tree.impostorCount, mesh);
 		return mesh;
 	}
 }

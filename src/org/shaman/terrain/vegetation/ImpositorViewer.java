@@ -81,14 +81,17 @@ public class ImpositorViewer extends SimpleApplication {
 		float size = highResTree.getWorldBound().getCenter().z * 2;
 		
 		//load impositor
-		impostor = new TreeNode(TREE, ImpositorCreator.IMPOSITOR_COUNT, assetManager, cam);
-		impostor.setImpostorFadeNear(30);
-		impostor.setImpostorFadeFar(50);
-		impostor.setTreeSize(size);
-		impostor.setHighResStemFadeNear(30);
-		impostor.setHighResStemFadeFar(50);
-		impostor.setHighResLeavesFadeNear(35);
-		impostor.setHighResLeavesFadeFar(55);
+		TreeInfo treeInfo = new TreeInfo();
+		treeInfo.name = TREE;
+		treeInfo.impostorCount = ImpositorCreator.IMPOSITOR_COUNT;
+		treeInfo.treeSize = size;
+		treeInfo.impostorFadeNear = 30;
+		treeInfo.impostorFadeFar = 50;
+		treeInfo.highResStemFadeNear = 30;
+		treeInfo.highResStemFadeFar = 50;
+		treeInfo.highResLeavesFadeNear = 35;
+		treeInfo.highResLeavesFadeFar = 55;
+		impostor = new TreeNode(treeInfo, assetManager, cam);
 		impostor.move(0, 0, -size/2);
 		rootNode.attachChild(impostor);
 		

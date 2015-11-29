@@ -6,9 +6,8 @@
 package org.shaman.terrain.vegetation;
 
 import com.jme3.app.SimpleApplication;
-import com.jme3.app.state.ScreenshotAppState;
 import com.jme3.bounding.BoundingVolume;
-import com.jme3.export.binary.BinaryImporter;
+import com.jme3.export.binary.BinaryExporter;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.math.ColorRGBA;
@@ -20,11 +19,9 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.*;
 import com.jme3.system.JmeContext;
-import com.jme3.system.JmeSystem;
 import com.jme3.texture.FrameBuffer;
 import com.jme3.texture.Image;
 import com.jme3.util.BufferUtils;
-import com.jme3.util.Screenshots;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
@@ -33,11 +30,21 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import net.sourceforge.arbaro.export.ExporterFactory;
+import net.sourceforge.arbaro.export.Progress;
+import net.sourceforge.arbaro.mesh.MeshGenerator;
+import net.sourceforge.arbaro.mesh.MeshGeneratorFactory;
+import net.sourceforge.arbaro.params.Params;
+import net.sourceforge.arbaro.tree.Tree;
+import net.sourceforge.arbaro.tree.TreeGenerator;
+import net.sourceforge.arbaro.tree.TreeGeneratorFactory;
+import org.shaman.terrain.ArbaroToJmeExporter;
+import org.shaman.terrain.Biome;
 
 /**
  *
@@ -45,12 +52,15 @@ import javax.imageio.ImageIO;
  */
 public class ImpositorCreator extends SimpleApplication{
 	private static final Logger LOG = Logger.getLogger(ImpositorCreator.class.getName());
-	private static final String TREE_FILE = "./treemesh/Tree1.j3o";
-	private static final String OUTPUT_FOLDER = "./treemesh/Tree1/";
+	private static final String INPUT_FOLDER = "./trees/";
+	private static final String OUTPUT_FOLDER = "./treemesh/";
+	private static final String TREE_DEF_FILE = "./Trees.csv";
 	private static final int TEXTURE_SIZE = 1024;
 	private static final int OUTPUT_TEXTURE_SIZE = 256;
 	public static final int IMPOSITOR_COUNT = 8;
 
+	private final Random rand = new Random();
+	
 	/**
 	 * @param args the command line arguments
 	 */
@@ -60,17 +70,76 @@ public class ImpositorCreator extends SimpleApplication{
 
 	@Override
 	public void simpleInitApp() {
-		//load tree
-		BinaryImporter importer = new BinaryImporter();
-		importer.setAssetManager(assetManager);
-		Spatial tree = null;
-		try {
-			tree = (Spatial) importer.load(new File(TREE_FILE));
+		List<TreeInfo> trees = new ArrayList<>();
+		try (BufferedReader in = new BufferedReader(new FileReader(TREE_DEF_FILE))) {
+			in.readLine(); //skip head
+			while (true) {
+				String line = in.readLine();
+				if (line == null) break;
+				String[] parts = line.split(";");
+				Biome biome = Biome.valueOf(parts[0]);
+				String treeName = parts[1];
+				float prob = Float.parseFloat(parts[2]) / 100f;
+				TreeInfo info = createTree(biome, treeName, prob);
+				if (info != null) {
+					trees.add(info);
+				}
+			}
 		} catch (IOException ex) {
 			Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
-			stop();
-			return;
 		}
+		
+		LOG.log(Level.INFO, "save tree infos, {0} trees in total", trees.size());
+		try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(OUTPUT_FOLDER + "Trees.dat")))) {
+			out.writeObject(trees);
+		} catch (IOException ex) {
+			Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		LOG.info("done");
+		
+		stop();
+	}
+
+	public TreeInfo createTree(Biome biome, String treeName, float prob) throws IOException {
+		LOG.info("create tree from "+treeName);
+		
+		File folder = new File(OUTPUT_FOLDER + treeName);
+		if (!folder.mkdir()) {
+			LOG.log(Level.SEVERE, "unable to make directory {0}", folder);
+			return null;
+		}
+		
+		//create tree
+		Params params = new Params();
+		params.prepare(13);
+		params.clearParams();
+		params.readFromXML(new FileInputStream(INPUT_FOLDER + treeName + ".xml"));
+		params.prepare(rand.nextInt(Short.MAX_VALUE)); 
+		TreeGenerator treeGenerator = TreeGeneratorFactory.createTreeGenerator(params);
+		treeGenerator.setSeed(rand.nextInt(Short.MAX_VALUE));
+		treeGenerator.setParam("Smooth",params.getParam("Smooth").toString());
+		ExporterFactory.setRenderW(1024);
+		ExporterFactory.setRenderH(1024);
+		ExporterFactory.setExportFormat(-1);
+		ExporterFactory.setOutputStemUVs(true);
+		ExporterFactory.setOutputLeafUVs(true);
+		Progress progress = new Progress();
+		Tree treeData = treeGenerator.makeTree(progress);
+		MeshGenerator meshGenerator = MeshGeneratorFactory.createMeshGenerator(/*params,*/ true);
+		ArbaroToJmeExporter exporter = new ArbaroToJmeExporter(assetManager, treeData, meshGenerator);
+		exporter.setBarkTexture("org/shaman/terrain/textures2/"+params.getParam("BarkTexture").getValue());
+		exporter.setLeafTexture("org/shaman/terrain/textures2/"+params.getParam("LeafTexture").getValue());
+		exporter.setLeafRotation(Float.parseFloat(params.getParam("LeafTextureRotation").getValue()));
+		exporter.doWrite();
+		Spatial tree = exporter.getSpatial();
+		LOG.log(Level.INFO, "tree generated, vertices:{0}, triangles:{1}", 
+				new Object[]{tree.getVertexCount(), tree.getTriangleCount()});
+		
+		//save tree
+		BinaryExporter binaryExporter = new BinaryExporter();
+		binaryExporter.save(tree, new File(folder, "Tree.j3o"));
+		
+		//compute bounding cylinder
 		List<Geometry> geometries = new ArrayList<>();
 		listGeometries(tree, geometries);
 		System.out.println("count of geometries: "+geometries.size());
@@ -104,10 +173,10 @@ public class ImpositorCreator extends SimpleApplication{
 		Node sceneNode = new Node("scene");
 		sceneNode.attachChild(tree);
 		DirectionalLight light = new DirectionalLight();
-        light.setDirection((new Vector3f(-0.1f, -0.1f, -0.1f)).normalize());
-        tree.addLight(light);
+		light.setDirection((new Vector3f(-0.1f, -0.1f, -0.1f)).normalize());
+		tree.addLight(light);
 		AmbientLight ambientLight = new AmbientLight(new ColorRGBA(0.6f, 0.6f, 0.6f, 1));
-//		sceneNode.addLight(ambientLight);
+		sceneNode.addLight(ambientLight);
 		sceneNode.setQueueBucket(RenderQueue.Bucket.Gui);
 		for (Geometry geom : geometries) {
 			geom.setQueueBucket(RenderQueue.Bucket.Gui);
@@ -123,7 +192,6 @@ public class ImpositorCreator extends SimpleApplication{
 		Node sceneNode3 = new Node("scene3");
 		sceneNode3.attachChild(sceneNode2);
 		sceneNode3.setLocalTranslation(TEXTURE_SIZE/2, 0, 0);
-		
 		//create offscreen surface
 		ByteBuffer data = BufferUtils.createByteBuffer(TEXTURE_SIZE * TEXTURE_SIZE * 4);
 		BufferedImage image = new BufferedImage(TEXTURE_SIZE, TEXTURE_SIZE, BufferedImage.TYPE_4BYTE_ABGR);
@@ -149,53 +217,34 @@ public class ImpositorCreator extends SimpleApplication{
 			renderer.readFrameBuffer(buffer, data);
 			sceneNode.rotate(0, 0, FastMath.TWO_PI / IMPOSITOR_COUNT);
 			
-//			try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(OUTPUT_FOLDER+i+".png"))) {
-//				JmeSystem.writeImageFile(out, "png", data, TEXTURE_SIZE, TEXTURE_SIZE);
-//			} catch (IOException ex) {
-//				Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
-//			}
-			
 			try {
 				convertScreenShot(data, image);
 				BufferedImage img = new BufferedImage(OUTPUT_TEXTURE_SIZE, OUTPUT_TEXTURE_SIZE, BufferedImage.TYPE_4BYTE_ABGR);
 				Graphics2D G = img.createGraphics();
 				G.drawImage(image, 0, 0, OUTPUT_TEXTURE_SIZE, OUTPUT_TEXTURE_SIZE, null);
 				G.dispose();
-				ImageIO.write(img, "png", new File(OUTPUT_FOLDER+i+".png"));
+				ImageIO.write(img, "png", new File(folder, i+".png"));
 			} catch (IOException ex) {
 				Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
+				return null;
 			}
 		}
-		//create dds
-		try (PrintWriter out = new PrintWriter("list.lst")) {
-			for (int i=0; i<IMPOSITOR_COUNT; ++i) {
-				out.println(OUTPUT_FOLDER+i+".png");
-			}
-		} catch (FileNotFoundException ex) {
-			Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		List<String> commands = new ArrayList<>();
-		commands.addAll(Arrays.asList(
-			"nvdxt.exe",
-			"-32", "u4444",
-			"-volumeMap", "-list", "list.lst"));
-		commands.add("-output");
-		commands.add("Tree1.dds");
-		try {
-			ProcessBuilder processBuilder = new ProcessBuilder(commands);
-			processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-			processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-			Process process = processBuilder.start();
-			int exit = process.waitFor();
-			LOG.info("exit code: "+exit);
-		} catch (IOException | InterruptedException ex) {
-			Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
-		} finally {
-			new File("list.lst").delete();
-		}
-		System.out.println("impositors created");
+
+		//create tree info
+		TreeInfo info = new TreeInfo();
+		info.biome = biome;
+		info.name = treeName;
+		info.treeSize = height;
+		info.probability = prob;
+		info.impostorFadeNear = 30;
+		info.impostorFadeFar = 50;
+		info.highResStemFadeNear = 30;
+		info.highResStemFadeFar = 50;
+		info.highResLeavesFadeNear = 35;
+		info.highResLeavesFadeFar = 55;
 		
-		stop();
+		System.out.println("impostors created");
+		return info;
 	}
 	private void listGeometries(Spatial s, List<Geometry> geometries) {
 		if (s instanceof Geometry) {
