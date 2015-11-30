@@ -87,6 +87,9 @@ public class WaterErosionScreenController implements ScreenController {
 		rainCheckBox.setChecked(true);
 		riverCheckBox.setChecked(true);
 		deleteWaterButton.setEnabled(false);
+		
+		simulation.guiRiverSourceRadiusChanged(sourceRadiusSlider.getValue());
+		simulation.guiRiverSourceIntensityChanged(sourceIntensitySlider.getValue());
 	}
 
 	@Override
@@ -200,6 +203,10 @@ public class WaterErosionScreenController implements ScreenController {
 		System.out.println("slider "+id+" changed: "+e);
 		if (brushSizeSlider==e.getSlider()) {
 			simulation.guiBrushSizeChanged(e.getValue());
+		} else if (sourceRadiusSlider == e.getSlider()) {
+			simulation.guiRiverSourceRadiusChanged(e.getValue());
+		} else if (sourceIntensitySlider == e.getSlider()) {
+			simulation.guiRiverSourceIntensityChanged(e.getValue());
 		}
 	}
 	

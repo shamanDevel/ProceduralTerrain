@@ -56,6 +56,8 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	private float brushSize = 0;
 	private boolean cameraLocked = false;
 	private boolean recording = false;
+	private float riverSourceRadius;
+	private float riverSourceIntensity;
 
 	//maps
 	private Heightmap map;
@@ -188,6 +190,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		if (riverEditMode==2) {
 			pickRiverSources(ray, clicked, mouseMoved);
 		} else if (riverEditMode>0 || displayMode>0) {
+			brushSphere.setLocalScale((riverEditMode>0 ? riverSourceRadius : brushSize)*TerrainHeighmapCreator.TERRAIN_SCALE);
 			editTerrain(ray, clicked, mouseMoved);
 		}
 	}
@@ -244,10 +247,10 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 				RiverSource source = new RiverSource();
 				source.x = (int) mapPoint.x;
 				source.y = (int) mapPoint.y;
-				source.radius = brushSize*scaleFactor;
+				source.radius = riverSourceRadius*scaleFactor;
 				source.intensity = 0.5f;
 				Geometry geom = new Geometry("river source", new Sphere(16, 16, 1));
-				geom.setLocalScale(brushSize*TerrainHeighmapCreator.TERRAIN_SCALE);
+				geom.setLocalScale(riverSourceRadius*TerrainHeighmapCreator.TERRAIN_SCALE);
 				geom.setLocalTranslation(brushSphere.getLocalTranslation());
 				Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
 				mat.setColor("Color", COLOR_RIVER_SOURCE);
@@ -516,10 +519,20 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 		}
 	}
 	void guiRiverSourceRadiusChanged(float radius) {
-		
+		this.riverSourceRadius = radius;
+		LOG.info("set river source radius to "+radius);
+		if (selectedRiver>=0) {
+			RiverSource rs = riverSources.get(selectedRiver);
+			rs.geom.setLocalScale(riverSourceRadius*TerrainHeighmapCreator.TERRAIN_SCALE);
+			rs.radius = this.riverSourceRadius * scaleFactor;
+		}
 	}
 	void guiRiverSourceIntensityChanged(float intensity) {
-		
+		this.riverSourceIntensity = intensity;
+		if (selectedRiver>=0) {
+			RiverSource rs = riverSources.get(selectedRiver);
+			rs.intensity = intensity;
+		}
 	}
 	
 	void guiRun() {
