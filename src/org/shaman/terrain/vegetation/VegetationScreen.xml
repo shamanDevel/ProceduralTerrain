@@ -28,13 +28,6 @@
 				</panel>
 				<panel childLayout="vertical" backgroundColor="#5558">
 					<panel id="PropertiesPanel" width="250px" height="100%" childLayout="vertical">
-						<panel childLayout="horizontal">
-							<control name="label" textHAlign="left" text="Brush size:" width="100px" margin="2px"/>
-							<control id="BrushSizeSlider" name="horizontalSlider" width="142px" margin="2px"
-									 min="1" max="50" initial="5" stepSize="1" buttonStepSize="5"/>
-						</panel>
-						<panel childLayout="absolute" height="20px"/>
-						
 						<control name="label" text="Click on a biome to draw it"/>
 						<image id="BiomeImage" filename="org/shaman/terrain/vegetation/Biomes.png"
 							   filter="true" margin="2px" width="246px" height="180px">
@@ -42,18 +35,22 @@
 						</image>
 						<control id="SelectedBiomeLabel" name="label" width="250px" text="Selected Biome: NONE"/>
 						<panel childLayout="horizontal">
+							<control name="label" textHAlign="left" text="Brush size:" width="100px" margin="2px"/>
+							<control id="BrushSizeSlider" name="horizontalSlider" width="142px" margin="2px"
+									 min="1" max="50" initial="5" stepSize="1" buttonStepSize="5"/>
+						</panel>
+						<panel childLayout="horizontal">
 							<control id="TexturedCheckBox" name="checkbox" margin="2px"/>
 							<control name="label" text="Show Textures" margin="2px"/>
+						</panel>
+						<panel childLayout="horizontal">
+							<control id="DistortBiomesButton" name="button" label="Distort Borders" width="121px" margin="2px" />
+							<control id="SmoothBiomesButton" name="button" label="Smooth Borders" width="121" margin="2px"/>
 						</panel>
 						
 						<panel childLayout="absolute" height="20px"/>
 						
 						<control name="label" text="Plants"/>
-						<panel childLayout="horizontal">
-							<control name="label" textHAlign="left" width="70px" text="Seed:" margin="2px"/>
-							<control id="SeedTextField" name="textfield" width="118px" margin="2px"/>
-							<control id="SeedButton" name="button" label="New" width="50px" margin="2px" />
-						</panel>
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Plant size:" width="100px" margin="2px"/>
 							<control id="PlantSizeSlider" name="horizontalSlider" width="142px" margin="2px"
@@ -66,15 +63,6 @@
 						<panel childLayout="horizontal">
 							<control id="TreeCheckBox" name="checkbox" margin="2px"/>
 							<control name="label" text="Show Trees" margin="2px"/>
-						</panel>
-						
-						<panel childLayout="absolute" height="20px"/>
-						<panel childLayout="horizontal">
-							<control id="GeneratePlantsButton" name="button" label="Generate Plants" width="172px" margin="2px"/>
-							<control id="CancelGenerationButton" name="button" label="Cancel" width="70px" margin="2px" />
-						</panel>
-						<panel childLayout="center" width="250px" height="30px">
-						<control id="GeneratePlantsProgressbar" name="progressbar" width="230px" height="30px" margin="2px" />
 						</panel>
 						
 						<panel childLayout="absolute" height="20px"/>

@@ -161,6 +161,10 @@ public class BiomesMaterialCreator {
 		return biomes;
 	}
 	
+	public void updateBiomes(int x, int y, float[] biomes) {
+		this.biomes.setVectorAt(x, y, biomes);
+	}
+	
 	public void updateBiomes(int x, int y, Biome biome, float change) {
 		float[] v = biomes.getVectorAt(x, y);
 		int index = biome.ordinal();
@@ -221,7 +225,10 @@ public class BiomesMaterialCreator {
 				float[] v = biomes.getVectorAt(y, size-x-1);
 				Arrays.fill(colors, 0);
 				for (int i=0; i<v.length; ++i) {
-					colors[BIOME_TO_TEXTURE[i]] += v[i];
+					colors[BIOME_TO_TEXTURE[i]] += 1-(1-v[i])*(1-v[i]);
+				}
+				for (int i=0; i<colors.length; ++i) {
+					colors[i] = Math.max(0, Math.min(1, colors[i]));
 				}
 				//TODO: rock at steep slopes
 				buf1.put((byte) (colors[0]*255));

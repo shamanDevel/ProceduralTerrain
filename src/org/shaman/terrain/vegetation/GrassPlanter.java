@@ -91,7 +91,7 @@ public class GrassPlanter {
 //			layer.setPlantingAlgorithm(new GPAUniform(0.3f));
 			layer.setPlantingAlgorithm(new GrassPlantingAlgorithmImpl());
 			layer.setSwaying(true);
-			layer.setWind(new Vector2f(1*TerrainHeighmapCreator.TERRAIN_SCALE, 0));
+			layer.setWind(new Vector2f(0.5f*TerrainHeighmapCreator.TERRAIN_SCALE, 0));
 			layer.setSwayingVariation(0.4f);
 			layer.setSwayingFrequency(2f);
 			enabled = true;

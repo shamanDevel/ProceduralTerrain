@@ -31,13 +31,11 @@
  */
 package org.shaman.terrain;
 
-import org.shaman.terrain.sketch.SketchTerrain;
 import com.jme3.app.FlyCamAppState;
 import com.jme3.app.SimpleApplication;
 import com.jme3.app.state.ScreenshotAppState;
 import com.jme3.app.state.VideoRecorderAppState;
 import com.jme3.bounding.BoundingBox;
-import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -47,7 +45,6 @@ import com.jme3.light.DirectionalLight;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
-import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.post.FilterPostProcessor;
@@ -56,8 +53,6 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.debug.Arrow;
 import com.jme3.system.AppSettings;
-import com.jme3.system.JmeContext;
-import com.jme3.system.JmeSystem;
 import com.jme3.terrain.geomipmap.TerrainLodControl;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.texture.Image;
@@ -70,10 +65,8 @@ import com.jme3.water.WaterFilter;
 import de.lessvoid.nifty.Nifty;
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -81,8 +74,8 @@ import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.shaman.terrain.erosion.WaterErosionSimulation;
-import org.shaman.terrain.heightmap.*;
 import org.shaman.terrain.polygonal.PolygonalMapGenerator;
+import org.shaman.terrain.sketch.SketchTerrain;
 import org.shaman.terrain.vegetation.VegetationGenerator;
 
 
@@ -165,6 +158,9 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		settings.setUseJoysticks(true);
 		settings.setResolution(1280, 800);
 		settings.setVSync(true);
+		if (RECORDING_TIMER) {
+			settings.setFrameRate(30);
+		}
 		app.setSettings(settings);
 		app.setShowSettings(true);
 		if (RECORDING_TIMER) {

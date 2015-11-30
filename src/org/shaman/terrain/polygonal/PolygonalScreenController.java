@@ -79,7 +79,7 @@ public class PolygonalScreenController implements ScreenController {
 		pointCountDropDown.addAllItems(Arrays.asList(500, 1000, 1500, 2000, 2500, 3000));
 		relaxationDropDown.addAllItems(Arrays.asList("no relaxation", "1x", "2x", "3x", "4x"));
 		coastlineDropDown.addAllItems(Arrays.asList("perlin", "circular"));
-		mapSizeDropDown.addAllItems(Arrays.asList(512, 1024, 2048, 4096, 8192, 16384));
+		mapSizeDropDown.addAllItems(Arrays.asList(512, 1024, 2048));
 		nextStepButton.setEnabled(false);
 		continueEditingButton.setEnabled(false);
 		

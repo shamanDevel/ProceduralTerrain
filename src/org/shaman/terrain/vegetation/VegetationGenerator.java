@@ -19,7 +19,9 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Sphere;
 import de.lessvoid.nifty.Nifty;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import org.shaman.terrain.AbstractTerrainStep;
@@ -28,6 +30,7 @@ import org.shaman.terrain.TerrainHeighmapCreator;
 import org.shaman.terrain.Vectorfield;
 import org.shaman.terrain.erosion.RiverSource;
 import org.shaman.terrain.Biome;
+import org.shaman.terrain.heightmap.Noise;
 
 /**
  *
@@ -193,7 +196,7 @@ public class VegetationGenerator extends AbstractTerrainStep {
 			return;
 		}
 		if (grass==null) {
-			grass = new GrassPlanter(app, map, materialCreator.getBiomes(), sceneNode, scaleFactor, plantSize);
+			grass = new GrassPlanter(app, map, materialCreator.getBiomes(), sceneNode, scaleFactor, plantSize/2);
 			grass.showGrass(true);
 		}
 		LOG.info("grass added");
@@ -251,17 +254,60 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		showTrees = show;
 		updateTrees();
 	}
-	void guiGeneratePlants() {
-		LOG.info("generate plants");
-		//Test
-		screenController.setGenerating(true);
-		screenController.setProgress(0.5f);
+	private static float[][] KERNEL;
+	private static int KERNEL_SIZE = 4;
+	static {
+		ArrayList<float[]> kernel = new ArrayList<>();
+		for (int x=-KERNEL_SIZE; x<=KERNEL_SIZE; ++x) {
+			for (int y=-KERNEL_SIZE; y<=KERNEL_SIZE; ++y) {
+				if (KERNEL_SIZE*KERNEL_SIZE >= x*x + y*y) {
+					kernel.add(new float[]{x, y, 1});
+				}
+			}
+		}
+		for (float[] v : kernel) {
+			v[2] /= kernel.size();
+		}
+		KERNEL = kernel.toArray(new float[kernel.size()][]);
 	}
-	void guiCancelGeneration() {
-		LOG.info("cancel generating");
-		//Test
-		screenController.setGenerating(false);
-		screenController.setProgress(1);
+	void guiSmoothBiomeBorder() {
+		Vectorfield b = materialCreator.getBiomes().clone();
+		for (int x=0; x<b.getSize(); ++x) {
+			for (int y=0; y<b.getSize(); ++y) {
+				float[] v = new float[b.getDimensions()];
+				for (float[] i : KERNEL) {
+					float[] v2 = b.getVectorAtClamping(x+(int) i[0], y+ (int) i[1]);
+					for (int j=0; j<b.getDimensions(); ++j) {
+						v[j] += v2[j]*i[2];
+					}
+				}
+				materialCreator.updateBiomes(x, y, v);
+			}
+		}
+		materialCreator.updateMaterial(textured);
+		LOG.info("biomes smoothed");
+	}
+	private static final float DISTORTION_AMPLITUDE = 10;
+	private static final float DISTORTION_FREQUENCY = 0.05f;
+	void guiDistortBiomeBorder() {
+		Vectorfield b = materialCreator.getBiomes().clone();
+		Noise noise = new Noise(new Random().nextLong());
+		float[] store = null;
+		for (int x=0; x<b.getSize(); ++x) {
+			for (int y=0; y<b.getSize(); ++y) {
+				float xx = (float) (x + DISTORTION_AMPLITUDE * noise.noise(x*DISTORTION_FREQUENCY, y*DISTORTION_FREQUENCY, 0));
+				float yy = (float) (y + DISTORTION_AMPLITUDE * noise.noise(x*DISTORTION_FREQUENCY, y*DISTORTION_FREQUENCY, 3.4));
+				store = b.getVectorInterpolating(xx, yy, store);
+				if (map.getHeightAt(x, y)>0) {
+					store[Biome.BEACH.ordinal()] += store[Biome.LAKE.ordinal()] + store[Biome.OCEAN.ordinal()];
+					store[Biome.LAKE.ordinal()] = 0;
+					store[Biome.OCEAN.ordinal()] = 0;
+				}
+				materialCreator.updateBiomes(x, y, store);
+			}
+		}
+		materialCreator.updateMaterial(textured);
+		LOG.info("biomes distorted");
 	}
 	
 	private void registerListener() {

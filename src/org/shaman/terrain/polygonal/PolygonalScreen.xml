@@ -12,7 +12,7 @@
 			<panel height="100%" width="100%" childLayout="vertical">
 				<panel id="NavigationPanel" width="100%" height="30px" childLayout="horizontal" backgroundColor="#000a">
 					<control name="label" text="Polygonal" width="100px" />
-					<control id="SkipStepButton" name="button" label="Sketch" width="100px" />
+					<control name="label" text="Sketch" width="100px" />
 				</panel>
 				<panel childLayout="vertical" backgroundColor="#5558">
 					<panel id="PropertiesPanel" width="250px" height="100%" childLayout="vertical">
@@ -73,13 +73,14 @@
 						</panel>
 						<panel childLayout="horizontal">
 							<control name="label" textHAlign="left" text="Map size:" width="100px" margin="2px"/>
-							<control id="MapSizeDropDown" name="dropDown" displayItems="5" width="142px" margin="2px"/>
+							<control id="MapSizeDropDown" name="dropDown" displayItems="3" width="142px" margin="2px"/>
 						</panel>
 						<control id="GenerateMapButton" name="button" label="Generate" width="150px" margin="2px" />
 						<panel childLayout="horizontal">
 							<control id="NextStepButton" name="button" label="Next Step" width="121px" margin="2px"/>
 							<control id="ContinueButton" name="button" label="Continue Editing" width="121px" margin="2px"/>
 						</panel>
+						<control id="SkipStepButton" name="button" label="Skip this step" width="121px" margin="2px" />
 					</panel>
 				</panel>
 			</panel>

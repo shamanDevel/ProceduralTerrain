@@ -29,14 +29,11 @@ public class VegetationScreenController implements ScreenController {
 	private Element biomeImage;
 	private Label selectedBiomeLabel;
 	private CheckBox texturedCheckBox;
-	private TextField seedTextField;
-	private Button newSeedButton;
+	private Button distortBiomesButton;
+	private Button smoothBiomesButton;
 	private Slider plantSizeSlider;
 	private CheckBox grassCheckBox;
 	private CheckBox treesCheckBox;
-	private Button generatePlantsButton;
-	private Button cancelGenerationButton;
-	private ProgressbarControl generatePlantsProgressbar;
 
 	public VegetationScreenController(VegetationGenerator generator) {
 		this.generator = generator;
@@ -54,20 +51,15 @@ public class VegetationScreenController implements ScreenController {
 		biomeImage = screen.findElementById("BiomeImage");
 		selectedBiomeLabel = screen.findNiftyControl("SelectedBiomeLabel", Label.class);
 		texturedCheckBox = screen.findNiftyControl("TexturedCheckBox", CheckBox.class);
-		seedTextField = screen.findNiftyControl("SeedTextField", TextField.class);
-		newSeedButton = screen.findNiftyControl("SeedButton", Button.class);
+		distortBiomesButton = screen.findNiftyControl("DistortBiomesButton", Button.class);
+		smoothBiomesButton = screen.findNiftyControl("SmoothBiomesButton", Button.class);
 		plantSizeSlider = screen.findNiftyControl("PlantSizeSlider", Slider.class);
 		grassCheckBox = screen.findNiftyControl("GrassCheckBox", CheckBox.class);
 		treesCheckBox = screen.findNiftyControl("TreeCheckBox", CheckBox.class);
-		generatePlantsButton = screen.findNiftyControl("GeneratePlantsButton", Button.class);
-		cancelGenerationButton = screen.findNiftyControl("CancelGenerationButton", Button.class);
-		generatePlantsProgressbar = screen.findControl("GeneratePlantsProgressbar", ProgressbarControl.class);
-		
-		cancelGenerationButton.setEnabled(false);
+
 		generator.guiBrushSizeChanged(brushSizeSlider.getValue());
 		generator.guiPlantSizeChanged(plantSizeSlider.getValue());
 		String seed = randomSeed();
-		seedTextField.setText(seed);
 		generator.guiSeedChanged(seed.hashCode());
 	}
 
@@ -83,36 +75,22 @@ public class VegetationScreenController implements ScreenController {
 	void setGenerating(boolean generating) {
 		brushSizeSlider.setEnabled(!generating);
 		selectedBiomeLabel.setEnabled(!generating);
-		seedTextField.setEnabled(!generating);
-		newSeedButton.setEnabled(!generating);
 		plantSizeSlider.setEnabled(!generating);
-		generatePlantsButton.setEnabled(!generating);
-		cancelGenerationButton.setEnabled(generating);
-	}
-	void setProgress(float progress) {
-		generatePlantsProgressbar.setProgress(progress);
 	}
 	
 	@NiftyEventSubscriber(pattern = ".*Button")
 	public void onButtonClick(String id, ButtonClickedEvent e) {
 		System.out.println("button "+id+" clicked");
-		if (newSeedButton == e.getButton()) {
-			String seed = randomSeed();
-			seedTextField.setText(seed);
-			generator.guiSeedChanged(seed.hashCode());
-		} else if (generatePlantsButton == e.getButton()) {
-			generator.guiGeneratePlants();
-		} else if (cancelGenerationButton == e.getButton()) {
-			generator.guiCancelGeneration();
+		if (smoothBiomesButton == e.getButton()) {
+			generator.guiSmoothBiomeBorder();
+		} else if (distortBiomesButton == e.getButton()) {
+			generator.guiDistortBiomeBorder();
 		}
 	}
 	
 	@NiftyEventSubscriber(pattern = ".*TextField")
 	public void onTextfieldChange(String id, TextFieldChangedEvent e) {
 		System.out.println("textfield "+id+" changed: "+e.getText());
-		if (seedTextField == e.getTextFieldControl()) {
-			generator.guiSeedChanged(e.getText().hashCode());
-		}
 	}
 	
 	@NiftyEventSubscriber(pattern = ".*CheckBox")
