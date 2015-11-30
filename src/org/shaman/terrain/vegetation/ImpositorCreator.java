@@ -10,10 +10,7 @@ import com.jme3.bounding.BoundingVolume;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.FastMath;
-import com.jme3.math.Transform;
-import com.jme3.math.Vector3f;
+import com.jme3.math.*;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.ViewPort;
 import com.jme3.renderer.queue.RenderQueue;
@@ -29,9 +26,7 @@ import java.awt.image.WritableRaster;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -43,6 +38,10 @@ import net.sourceforge.arbaro.params.Params;
 import net.sourceforge.arbaro.tree.Tree;
 import net.sourceforge.arbaro.tree.TreeGenerator;
 import net.sourceforge.arbaro.tree.TreeGeneratorFactory;
+import org.apache.commons.collections4.MultiMap;
+import org.apache.commons.collections4.map.MultiValueMap;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.shaman.terrain.ArbaroToJmeExporter;
 import org.shaman.terrain.Biome;
 
@@ -58,7 +57,7 @@ public class ImpositorCreator extends SimpleApplication{
 	private static final String TREE_DEF_FILE = "./Trees.csv";
 	private static final float MAX_PROP = 0.15f;
 	private static final int TEXTURE_SIZE = 1024;
-	private static final int OUTPUT_TEXTURE_SIZE = 256;
+	private static final int OUTPUT_TEXTURE_SIZE = 512;
 	public static final int IMPOSITOR_COUNT = 8;
 
 	private final Random rand = new Random();
@@ -81,6 +80,9 @@ public class ImpositorCreator extends SimpleApplication{
 		
 		List<TreeInfo> trees = new ArrayList<>();
 		List<String> errors = new ArrayList<>();
+		//collect input
+		MultiMap<Biome, Pair<String, Float>> treeDef = new MultiValueMap<>();
+		Map<String, Float> probabilities = new HashMap<>();
 		try (BufferedReader in = new BufferedReader(new FileReader(TREE_DEF_FILE))) {
 			in.readLine(); //skip head
 			while (true) {
@@ -90,33 +92,66 @@ public class ImpositorCreator extends SimpleApplication{
 				Biome biome = Biome.valueOf(parts[0]);
 				String treeName = parts[1];
 				float prob = Float.parseFloat(parts[2]) / 100f;
-				if (prob <= MAX_PROP) {
-					TreeInfo info = createTree(biome, treeName, 0, prob);
-					if (info != null) {
-						trees.add(info);
-					} else {
-						errors.add(treeName);
-					}
+				treeDef.put(biome, new ImmutablePair<>(treeName, prob));
+				Float p = probabilities.get(treeName);
+				if (p==null) {
+					p = prob;
 				} else {
-					int n = (int) Math.ceil(prob / MAX_PROP);
-					float p = prob / n;
-					for (int i=0; i<n; ++i) {
-						TreeInfo info = createTree(biome, treeName, i, p);
-						if (info != null) {
-							trees.add(info);
-						} else {
-							errors.add(treeName);
-						}
-						break;
-					}
+					p += prob;
 				}
-				break;
+				probabilities.put(treeName, p);
 			}
 		} catch (IOException ex) {
 			Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
 		}
-		if (!errors.isEmpty()) {
-			LOG.log(Level.INFO, "unable to create the following trees: {0}", errors);
+		LOG.info("TreeDef: "+treeDef);
+		LOG.info("TreeProb: "+probabilities);
+		//create trees
+		treeCreation:
+		for (Map.Entry<String, Float> entry  : probabilities.entrySet()) {
+			try {
+				String treeName = entry.getKey();
+				List<TreeInfo> treeInfos = new ArrayList<>();
+				float prob = entry.getValue();
+				if (prob <= MAX_PROP) {
+					TreeInfo info = createTree(null, treeName, 0, 1);
+					if (info != null) {
+						treeInfos.add(info);
+					} else {
+						continue treeCreation;
+					}
+				} else {
+					int n = (int) Math.ceil(prob / MAX_PROP);
+					float p = prob / n;
+					for (int i = 0; i < n; ++i) {
+						TreeInfo info = createTree(null, treeName, i, p);
+						if (info != null) {
+							treeInfos.add(info);
+						} else {
+							continue treeCreation;
+						}
+					}
+				}
+				//create tree infos
+				for (Map.Entry<Biome, Object> treeDefE : treeDef.entrySet()) {
+					for (Pair<String, Float> v : (Collection<Pair<String, Float>>) treeDefE.getValue()) {
+						if (treeName.equals(v.getKey())) {
+							for (TreeInfo i : treeInfos) {
+								TreeInfo i2 = i.clone();
+								i2.biome = treeDefE.getKey();
+								i2.probability = v.getValue() / treeInfos.size();
+								trees.add(i2);
+							}
+						}
+					}
+				}
+			} catch (IOException ex) {
+				Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+		System.out.println("trees:");
+		for (TreeInfo t : trees) {
+			System.out.println(" "+t);
 		}
 		LOG.log(Level.INFO, "save tree infos, {0} trees in total", trees.size());
 		try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(TREE_DATA_FILE)))) {
@@ -202,8 +237,8 @@ public class ImpositorCreator extends SimpleApplication{
 		Node sceneNode = new Node("scene");
 		sceneNode.attachChild(tree);
 		DirectionalLight light = new DirectionalLight();
-		light.setDirection((new Vector3f(-0.1f, -0.1f, -0.1f)).normalize());
-		tree.addLight(light);
+		Vector3f lightDir = new Vector3f(-0.1f, -0.1f, -0.1f);
+		light.setDirection(lightDir.normalize());
 		AmbientLight ambientLight = new AmbientLight(new ColorRGBA(0.6f, 0.6f, 0.6f, 1));
 		sceneNode.addLight(ambientLight);
 		sceneNode.setQueueBucket(RenderQueue.Bucket.Gui);
@@ -240,11 +275,16 @@ public class ImpositorCreator extends SimpleApplication{
 		tree.setCullHint(Spatial.CullHint.Never);
 		view.setEnabled(true);
 		//render
+		sceneNode.addLight(light);
 		for (int i=0; i<IMPOSITOR_COUNT; ++i) {
 			sceneNode3.updateGeometricState();
+			
 			renderManager.renderViewPort(view, 0);
 			renderer.readFrameBuffer(buffer, data);
 			sceneNode.rotate(0, 0, FastMath.TWO_PI / IMPOSITOR_COUNT);
+			Quaternion rot = new Quaternion();
+			rot.fromAngles(0, 0, i*FastMath.TWO_PI / IMPOSITOR_COUNT);
+			light.setDirection(rot.mult(lightDir).normalizeLocal());
 			
 			try {
 				convertScreenShot(data, image);

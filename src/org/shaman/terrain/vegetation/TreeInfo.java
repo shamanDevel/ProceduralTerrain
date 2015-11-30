@@ -7,13 +7,15 @@ package org.shaman.terrain.vegetation;
 
 import com.jme3.material.Material;
 import java.io.Serializable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.shaman.terrain.Biome;
 
 /**
  *
  * @author Sebastian Weiss
  */
-public class TreeInfo implements Serializable {
+public class TreeInfo implements Serializable, Cloneable {
 	private static final long serialVersionUID = -4799746574620732770L;
 	
 	public String name;
@@ -31,4 +33,19 @@ public class TreeInfo implements Serializable {
 	public float probability;
 	
 	public transient Material impostorMaterial;
+
+	@Override
+	public TreeInfo clone() {
+		try {
+			return (TreeInfo) super.clone();
+		} catch (CloneNotSupportedException ex) {
+			throw new Error(ex);
+		}
+	}
+
+	@Override
+	public String toString() {
+		return "TreeInfo{" + "name=" + name + ", impostorCount=" + impostorCount + ", treeSize=" + treeSize + ", impostorFadeNear=" + impostorFadeNear + ", impostorFadeFar=" + impostorFadeFar + ", highResStemFadeNear=" + highResStemFadeNear + ", highResStemFadeFar=" + highResStemFadeFar + ", highResLeavesFadeNear=" + highResLeavesFadeNear + ", highResLeavesFadeFar=" + highResLeavesFadeFar + ", biome=" + biome + ", probability=" + probability + '}';
+	}
+	
 }

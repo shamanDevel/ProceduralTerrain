@@ -32,9 +32,12 @@ void main(){
 	vec3 wvPosition = TransformWorldView(modelSpacePos).xyz;// (g_WorldViewMatrix * modelSpacePos).xyz;
 	vec3 wvNormal  = normalize(TransformNormal(inNormal));//normalize(g_NormalMatrix * modelSpaceNorm);
 	vec3 viewDir = normalize(-wvPosition);
+	wvNormal.x = 0;
+	viewDir.x = 0;
 	impositorAlpha = max(0.0, dot(wvNormal, viewDir));
 	impositorAlpha = smoothstep(0, 1, impositorAlpha);
 	*/
+	
 	//impositorAlpha = m_ImpositorAlpha;
 	vec3 wvPosition = TransformWorldView(modelSpacePos).xyz;// (g_WorldViewMatrix * modelSpacePos).xyz;
 	float dist = length(wvPosition);

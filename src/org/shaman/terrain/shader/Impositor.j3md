@@ -48,8 +48,6 @@ MaterialDef Impostor {
         Float PCFEdge
 
         Float ShadowMapSize
-
-		Float ImpositorAlpha
     }
 
     Technique {

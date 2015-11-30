@@ -74,6 +74,15 @@ public class TreeNode extends Node {
 			highResLeaves = null;
 			LOG.log(Level.INFO, "dist={0} -> discard high resultion mesh", dist);
 		}
+		if (dist <= fadeFar && dist >= tree.impostorFadeNear*tree.impostorFadeNear) {
+			if (highResStem != null) {
+				highResStem.getMaterial().getAdditionalRenderState().setDepthWrite(false);
+			}
+		} else {
+			if (highResStem != null) {
+				highResStem.getMaterial().getAdditionalRenderState().setDepthWrite(true);
+			}
+		}
 		super.updateLogicalState(tpf);
 	}
 	
@@ -126,7 +135,7 @@ public class TreeNode extends Node {
 		impositor = new Geometry("impostor", mesh);
 		impositor.setMaterial(tree.impostorMaterial);
 		impositor.scale(tree.treeSize);
-		impositor.setQueueBucket(RenderQueue.Bucket.Opaque);
+		impositor.setQueueBucket(RenderQueue.Bucket.Transparent);
 		super.attachChild(impositor);
 		super.updateModelBound();
 	}
@@ -138,14 +147,17 @@ public class TreeNode extends Node {
 			return mesh;
 		}
 		float[] pos = new float[3 * 4 * tree.impostorCount];
+		float[] norm = new float[3 * 4 * tree.impostorCount];
 		float[] tex = new float[3 * 4 * tree.impostorCount];
 		int[] index = new int[6 * tree.impostorCount];
 		for (int i=0; i<tree.impostorCount; ++i) {
-			float angle = i * FastMath.TWO_PI / tree.impostorCount;
+			float angle = -i * FastMath.TWO_PI / tree.impostorCount - FastMath.HALF_PI;
 			float x1 = (float) (Math.cos(angle) * -0.5);
 			float y1 = (float) (Math.sin(angle) * -0.5);
 			float x2 = (float) (Math.cos(angle) * 0.5);
 			float y2 = (float) (Math.sin(angle) * 0.5);
+			float z1 = (float) (Math.sin(angle));
+			float z2 = (float) (Math.cos(angle));
 			pos[12*i+0] = x2; pos[12*i+1] = y2; pos[12*i+2] = 0;
 			pos[12*i+3] = x1; pos[12*i+4] = y1; pos[12*i+5] = 0;
 			pos[12*i+6] = x1; pos[12*i+7] = y1; pos[12*i+8] = 1;
@@ -154,12 +166,17 @@ public class TreeNode extends Node {
 			tex[12*i+3] = 1; tex[12*i+4] = 0; tex[12*i+5] = i;
 			tex[12*i+6] = 1; tex[12*i+7] = 1; tex[12*i+8] = i;
 			tex[12*i+9] = 0; tex[12*i+10] = 1; tex[12*i+11] = i;
+			norm[12*i+0] = z1; norm[12*i+1] = z2; norm[12*i+2] = 0;
+			norm[12*i+3] = z1; norm[12*i+4] = z2; norm[12*i+5] = 0;
+			norm[12*i+6] = z1; norm[12*i+7] = z2; norm[12*i+8] = 0;
+			norm[12*i+9] = z1; norm[12*i+10] = z2; norm[12*i+11] = 0;
 			index[6*i+0] = 4*i+0; index[6*i+1] = 4*i+1; index[6*i+2] = 4*i+2;
 			index[6*i+3] = 4*i+0; index[6*i+4] = 4*i+2; index[6*i+5] = 4*i+3;
 		}
 		mesh = new Mesh();
 		mesh.setBuffer(VertexBuffer.Type.Position, 3, pos);
 		mesh.setBuffer(VertexBuffer.Type.TexCoord, 3, tex);
+		mesh.setBuffer(VertexBuffer.Type.Normal, 3, norm);
 		mesh.setBuffer(VertexBuffer.Type.Index, 3, index);
 		mesh.updateCounts();
 		IMPOSTORS.put(tree.impostorCount, mesh);
