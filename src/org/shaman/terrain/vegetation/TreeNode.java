@@ -97,12 +97,14 @@ public class TreeNode extends Node {
 		highResStem.getMaterial().getAdditionalRenderState().setAlphaTest(true);
 		highResStem.getMaterial().setTransparent(true);
 		highResStem.setQueueBucket(RenderQueue.Bucket.Transparent);
+//		highResStem.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 		super.attachChild(highResStem);
 		if (treeNode.getChildren().size()>=1) {
 			highResLeaves = (Geometry) treeNode.getChild(0);
 			highResLeaves.getMaterial().setFloat("FadeNear", tree.highResLeavesFadeNear);
 			highResLeaves.getMaterial().setFloat("FadeFar", tree.highResLeavesFadeFar);
 			highResLeaves.setQueueBucket(RenderQueue.Bucket.Transparent);
+//			highResLeaves.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 			super.attachChild(highResLeaves);
 		}
 		
@@ -136,6 +138,7 @@ public class TreeNode extends Node {
 		impositor.setMaterial(tree.impostorMaterial);
 		impositor.scale(tree.treeSize);
 		impositor.setQueueBucket(RenderQueue.Bucket.Transparent);
+//		impositor.setShadowMode(RenderQueue.ShadowMode.Cast);
 		super.attachChild(impositor);
 		super.updateModelBound();
 	}
