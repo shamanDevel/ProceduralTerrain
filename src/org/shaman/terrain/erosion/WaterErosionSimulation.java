@@ -657,19 +657,19 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 	public static class ErosionSolver {
 		//Settings
 		private static final float RAINDROPS_PER_ITERATION = 0.001f;
-		private static final float RAINDROP_WATER = 0.25f;
-		private static final float DELTA_T = 0.01f;
+		private static final float RAINDROP_WATER = 0.20f;
+		private static final float DELTA_T = 0.02f;
 		private static final float A = 1; //tube area
 		private static final float L = 1; //cell distances
 		private static final float G = 20; //graviation
 		private static final float MIN_SLOPE = 0.005f; //lower threshold for sediment erosion
-		private static final float MAX_SLOPE = 0.1f; //upper bound for the slope
+		private static final float MAX_SLOPE = 0.5f; //upper bound for the slope
 		private static final float MAX_EROSION = 0.025f; //limits the maximal height that can be eroded
 		private static final float MAX_DEPOSITION = 0.025f; //limits the maximal height that can be disposed
-		private static final float Kc = 5f; //sediment capacity constant
-		private static final float KcOcean = 0.1f; //sediment capacity constant
-		private static final float Ks = 0.5f; //sediment dissolving constant
-		private static final float Kd = 0.5f; //sediment deposition constant
+		private static final float Kc = 0.1f; //sediment capacity constant
+		private static final float KcOcean = 0.05f; //sediment capacity constant
+		private static final float Ks = 0.002f; //sediment dissolving constant
+		private static final float Kd = 0.002f; //sediment deposition constant
 		private static final float EROSION_FACTOR = 200;
 		private static final float Ke = 0.1f; //evaporation constant
 		private static final float RIVER_FACTOR = 0.2f;
@@ -835,7 +835,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 					waterHeight.setHeightAt(x, y, d2);
 					float averageD = (d1 + d2)/2;
 					//velocity field
-					if (averageD==0) {
+					if (Math.abs(averageD)<0.0001) {
 						velocity.setVectorAt(x, y, NULL_VELOCITY);
 					} else {
 						//NOTE: the original model divides the velocity values by averageD.
@@ -843,10 +843,12 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 						//This gives a muvh smoother result!!!
 						float deltaWx = (outflowFlux.getScalarAtClamping(x-1, y, 1) - outflowFlux.getScalarAt(x, y, 0)
 								+ outflowFlux.getScalarAt(x, y, 1) - outflowFlux.getScalarAtClamping(x+1, y, 0));
-						velocity.setScalarAt(x, y, 0, deltaWx * 100 / L);
+						//velocity.setScalarAt(x, y, 0, deltaWx * 100 / L);
+						velocity.setScalarAt(x, y, 0, deltaWx / averageD);
 						float deltaWy = (outflowFlux.getScalarAtClamping(x, y-1, 3) - outflowFlux.getScalarAt(x, y, 2)
 								+ outflowFlux.getScalarAt(x, y, 3) - outflowFlux.getScalarAtClamping(x, y+1, 2));
-						velocity.setScalarAt(x, y, 1, deltaWy * 100 / L);
+//						velocity.setScalarAt(x, y, 1, deltaWy * 100 / L);
+						velocity.setScalarAt(x, y, 1, deltaWy / averageD);
 					}
 				}
 			}
@@ -860,7 +862,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 					float slope = Math.max(MIN_SLOPE, Math.min(MAX_SLOPE, terrainHeight.getSlopeAt(x, y)));
 					float[] v = velocity.getVectorAt(x, y);
 					float c = (terrainHeight.getHeightAt(x, y)<=0 ? KcOcean : Kc) * slope 
-							* FastMath.sqrt(v[0]*v[0] + v[1]*v[1]) * waterHeight.getHeightAt(x, y);
+							* FastMath.sqrt(v[0]*v[0] + v[1]*v[1]);// * waterHeight.getHeightAt(x, y);
 					float st = sediment.getHeightAt(x, y);
 					float delta = originalHeight.getHeightAt(x, y)-terrainHeight.getHeightAt(x, y);
 					if (c>st) {
@@ -868,7 +870,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 //						float ks = Ks;
 //						float eroded = ks * (c-st);
 						float ks = (float) (Math.pow(2, -(delta/(MAX_EROSION/2))) * Ks);
-						float eroded = ((c-st) * ks * waterHeight.getHeightAt(x, y));
+						float eroded = (c-st) * ks;// * waterHeight.getHeightAt(x, y);
 						eroded = Math.max(0, Math.min(eroded, MAX_EROSION - delta));
 						if (delta>MAX_EROSION) {
 //							System.err.println("maximal erosion reached!");
@@ -883,7 +885,7 @@ public class WaterErosionSimulation extends AbstractTerrainStep {
 					} else if (c<st) {
 						//deposition
 						float kd = (float) (Kd * Math.pow(2, delta/(MAX_DEPOSITION/2)));
-						float depos = kd * (st-c) * waterHeight.getHeightAt(x, y);
+						float depos = kd * (st-c);// * waterHeight.getHeightAt(x, y);
 						depos = Math.max(0, Math.min(depos, MAX_DEPOSITION + delta));
 						if (-delta>MAX_DEPOSITION) {
 							continue;
