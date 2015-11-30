@@ -62,10 +62,10 @@ public class TreeNode extends Node {
 //			LOG.info("impostor added");
 		}
 		float dist = camera.getLocation().distanceSquared(this.getWorldTranslation());
-		if (dist <= fadeFar && highResStem==null && useHighRes && this.checkCulling(camera)) {
+		if (dist <= fadeFar && highResStem==null && useHighRes && (super.refreshFlags!=0 || this.checkCulling(camera))) {
 			loadHighResTree();
 			LOG.log(Level.INFO, "dist={0} -> load high resultion mesh", dist);
-		} else if ((dist > fadeFar || !this.checkCulling(camera)) && highResStem!=null) {
+		} else if ((dist > fadeFar || (super.refreshFlags==0 && !this.checkCulling(camera))) && highResStem!=null) {
 			detachChild(highResStem);
 			if (highResLeaves != null) {
 				detachChild(highResLeaves);
@@ -140,7 +140,7 @@ public class TreeNode extends Node {
 		float[] tex = new float[3 * 4 * tree.impostorCount];
 		int[] index = new int[6 * tree.impostorCount];
 		for (int i=0; i<tree.impostorCount; ++i) {
-			float angle = i * FastMath.TWO_PI / tree.impostorCount + FastMath.PI;
+			float angle = i * FastMath.TWO_PI / tree.impostorCount;
 			float x1 = (float) (Math.cos(angle) * -0.5);
 			float y1 = (float) (Math.sin(angle) * -0.5);
 			float x2 = (float) (Math.cos(angle) * 0.5);

@@ -7,6 +7,7 @@ package org.shaman.terrain.vegetation;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.app.state.ScreenshotAppState;
+import com.jme3.app.state.VideoRecorderAppState;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
@@ -22,16 +23,18 @@ import com.jme3.scene.Spatial;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.logging.Logger;
 import org.apache.commons.lang3.tuple.MutablePair;
 
 /**
  *
  * @author Sebastian Weiss
  */
-public class ImpositorViewer extends SimpleApplication {
+public class ImpositorViewer extends SimpleApplication implements ActionListener {
+	private static final Logger LOG = Logger.getLogger(ImpositorViewer.class.getName());
 //	private static final String TREE = "black_tupelo_2_v0";
-//	private static final String TREE = "ca_black_oak_1_v1";
-	private static final String TREE = "oak_1_v0";
+	private static final String TREE = "ca_black_oak_1_v1";
+//	private static final String TREE = "oak_1_v0";
 	float minDist = 30;
 	float maxDist = 90;
 	
@@ -45,6 +48,7 @@ public class ImpositorViewer extends SimpleApplication {
 		}
 	};
 	private ChaseCamera chaseCam;
+	private boolean recording = false;
 	
 	/**
 	 * @param args the command line arguments
@@ -92,6 +96,24 @@ public class ImpositorViewer extends SimpleApplication {
 		impostor.setUseHighRes(true);
 		impostor.move(0, 0, -size/2);
 		rootNode.attachChild(impostor);
+		
+		inputManager.addMapping("recording", new KeyTrigger(KeyInput.KEY_F10));
+        inputManager.addListener(this, "recording");
+	}
+
+	@Override
+	public void onAction(String name, boolean isPressed, float tpf) {
+	if (name.equals("recording") && isPressed) {
+		if (recording) {
+			stateManager.detach(stateManager.getState(VideoRecorderAppState.class));
+			recording = false;
+			LOG.info("recording stopped");
+		} else {
+			stateManager.attach(new VideoRecorderAppState()); //start recording
+			LOG.info("recording started");
+			recording = true;
+		}
+	}
 	}
 
 }

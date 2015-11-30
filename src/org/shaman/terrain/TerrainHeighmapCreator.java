@@ -60,6 +60,7 @@ import com.jme3.texture.Texture;
 import com.jme3.texture.Texture.WrapMode;
 import com.jme3.texture.Texture2D;
 import com.jme3.util.BufferUtils;
+import com.jme3.util.JmeFormatter;
 import com.jme3.util.SkyFactory;
 import com.jme3.water.WaterFilter;
 import de.lessvoid.nifty.Nifty;
@@ -67,8 +68,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.logging.*;
 import javax.annotation.Nullable;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -90,8 +90,6 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	public static final float SLOPE_POWER = 2f;
 	public static final float HEIGHMAP_HEIGHT_SCALE = 48;
 	public static final float TERRAIN_SCALE = 16;
-	private static final boolean RECORDING = false;
-	private static final int RECORDING_FRAMES = 1000 / 10; //20 FPS
 	private static final boolean RECORDING_TIMER = false;
 	
 	@SuppressWarnings("unchecked")
@@ -107,8 +105,8 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	private static Class<? extends AbstractTerrainStep> loadedStep;
 	private static Map<Object, Object> loadedProperties;
 	
-	private long recordingTime;
 	private ScreenshotAppState screenshotAppState;
+	private boolean recording = false;
 	
 	private Thread renderThread;
     private TerrainQuad terrain;
@@ -148,6 +146,13 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 				loadedProperties = (Map<Object, Object>) in.readObject();
 			} catch (Exception ex) {
 				LOG.log(Level.SEVERE, "unable to load save file", ex);
+			}
+		}
+		
+		Logger rootLogger = Logger.getLogger("");
+		for (Handler h : rootLogger.getHandlers()) {
+			if (h instanceof ConsoleHandler) {
+				((ConsoleHandler) h).setFormatter(new JmeFormatter());
 			}
 		}
 		
@@ -210,9 +215,6 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 		//nextStep();
 		screenshotAppState = new ScreenshotAppState();
 		stateManager.attach(screenshotAppState);
-		if (RECORDING) {
-			recordingTime = System.currentTimeMillis();
-		}
     }
 
 	@Override
@@ -460,32 +462,22 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	}
 
     private void setupKeys() {
-        inputManager.addMapping("wireframe", new KeyTrigger(KeyInput.KEY_T));
-        inputManager.addListener(actionListener, "wireframe");
-        inputManager.addMapping("WardIso", new KeyTrigger(KeyInput.KEY_9));
-        inputManager.addListener(actionListener, "WardIso");
-        inputManager.addMapping("DetachControl", new KeyTrigger(KeyInput.KEY_0));
-        inputManager.addListener(actionListener, "DetachControl");
+        inputManager.addMapping("recording", new KeyTrigger(KeyInput.KEY_F10));
+        inputManager.addListener(actionListener, "recording");
     }
     private ActionListener actionListener = new ActionListener() {
 
         public void onAction(String name, boolean pressed, float tpf) {
-            if (name.equals("wireframe") && !pressed) {
-                wireframe = !wireframe;
-                if (!wireframe) {
-                    terrain.setMaterial(matWire);
-                } else {
-                    terrain.setMaterial(matTerrain);
-                }
-            } else if (name.equals("DetachControl") && !pressed) {
-                TerrainLodControl control = terrain.getControl(TerrainLodControl.class);
-                if (control != null)
-                    control.detachAndCleanUpControl();
-                else {
-                    control = new TerrainLodControl(terrain, cam);
-                    terrain.addControl(control);
-                }
-                    
+            if (name.equals("recording") && pressed) {
+				if (recording) {
+					stateManager.detach(stateManager.getState(VideoRecorderAppState.class));
+					recording = false;
+					LOG.info("recording stopped");
+				} else {
+					stateManager.attach(new VideoRecorderAppState()); //start recording
+					LOG.info("recording started");
+					recording = true;
+				}
             }
         }
     };
@@ -589,14 +581,6 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 			firstUpdate = false;
 			camera.setEnabled(true);
 			camera.setMoveSpeed(200 * TERRAIN_SCALE);
-		}
-		if (RECORDING) {
-			long time = System.currentTimeMillis();
-			if (time > recordingTime + RECORDING_FRAMES) {
-				recordingTime = time;
-				screenshotAppState.takeScreenshot();
-				System.out.println("shot");
-			}
 		}
 	}
 	
