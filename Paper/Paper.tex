@@ -666,8 +666,7 @@ Since we assume that our terrain forms an island, we have to treat the case when
 In the case of a cell that is below the see level, we simply set the water height, outflow flux and velocity to zero and add the whole sediment amount to the terrain height.
 
 \subsection{Limitations}
-The major drawback of the described model is that it relies on a grid. Because of this and the way the outflow flux is computed, rivers are much more likely to flow along the x and y-axis. 
-This leads to the clearly visible black stripes in Fig. \ref{fig:erosion3}. Maybe a more accurate flow simulation would improve this problem. This task is part of future work.
+The described model is very sensitive to the chose of the parameters. The timescale must be small enough so that no numerically instabilities are created, but this directly leads to a long computation time. Also the constant values in the erosion model are very crucial: if the factors are too high, the terrain is eroded very quickly. This looks very unrealistic. The presented values produce good results in our experiments, but a deeper analysis of the parameters is necessary in a future work.
 
 \subsection{Results}
 In Fig. \ref{fig:river}, you can see how the erosion simulation carves out a river bed from a specified river source.
