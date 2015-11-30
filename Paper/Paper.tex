@@ -675,7 +675,7 @@ In Fig. \ref{fig:river}, you can see how the erosion simulation carves out a riv
 Fig. \ref{fig:erosion} shows the simulation on a larger scale. The original terrain is shown in \ref{fig:erosion1}, then in \ref{fig:erosion2}, the simulation is running. The displayed terrain height is the terrain height plus the water height, so lakes, waves and so on can be seen. The water height also specifies how much "blue" is drawn on top of the terrain. The terrain is textured with grass until a specific slope angle is reached, then stone is used (with blending between them). By that, you can get a feeling of the local slope angle. In \ref{fig:erosion3}, you can see the difference from the original terrain to the new terrain. White indicates depositions, black stands for erosion. Finally, \ref{fig:erosion4} shows the final terrain without water. Especially note the change in the coast line and that the terrain is much more "bumpy", the stone texture is used more often.
 
 \section{Vegetation}\label{Vegetation}
-Terrain without vegetation looks a little bit boring. Therefore, the last step of the framework is to define biomes and add trees and grass based on it.
+Terrain without vegetation looks a little bit boring. Therefore, the last step of the framework is to define biomes and add trees and grass based on them.
 
 \subsection{Biomes}\label{Biomes}
 \begin{figure}[htbp]
@@ -689,7 +689,7 @@ An attempt to classify the different biomes based on rainfall and temperature wa
 
 In our implementation, the biomes are initialized with the temperature and moisture information from the previous steps. The user can then paint the different biomes directly on the terrain to fine-tune the biome assignment.
 
-The terrain can be rendered using different textures for each biome (Fig. \ref{fig:terrainBiomes}). Furthermore, the biomes specify if and what grass is used and what trees are planted.
+The terrain can be rendered using different textures for each biome (Fig. \ref{fig:terrainBiomes}). Furthermore, the biomes specify the existence and types of grass and trees.
 \begin{figure*}
 	\centering
 	\begin{subfigure}[b]{0.45\textwidth}
@@ -757,7 +757,7 @@ Both problems are adressed with a very simple technique based on impostors for r
 	\label{fig:Impostor}
 \end{figure}
 impostors are textured quads that are rotated around a central axis. We are using eight quads for trees (Fig. \ref{fig:Impostor}). Note the similarity of the impostors to the way grass is rendered. Each quad is textured with how the tree would look like when seen from the angle of that quad. To create these textures, we render the trees from every of these eight view angles into a offscreen surface and use this as the texture.
-During the creation of the textures, the tree must be rendered with exactly the same light setting as in the final scene. Otherwise, the lighting of the tree impostors are not consistent with the lighting of the surrounding terrain. This is especially necessary when a strong directional light is used.
+During the creation of the textures, the tree must be rendered with exactly the same light setting as in the final scene. Otherwise, the lighting of the tree impostors is not consistent with the lighting of the surrounding terrain. This is especially necessary when a strong directional light is used.
 
 To avoid popping effects when changing from the high resolution model for close-up shots to the impostors for distance rendering, we use alpha blending:
 \begin{figure}[H]
@@ -792,7 +792,7 @@ The user can control the shape of the island, can grow mountains and other terra
 
 There are many possibilities for extensions of this project. A more sophisticated approach for the rendering of grass and trees, as described in \cite{Boulanger.2005}, could be used. We further only support on type of grass that is planted on a fixed subset of biomes. Especially in rain forests, many bushes, farns, flowers, lianas and other plants apart from trees grow which are not included in our simulation. Furthermore, the diffusion solver (\ref{TerrainFeatures}) and erosion solver (\ref{HydraulicErosion}) are implemented on the CPU. A port to the GPU would increase the performance significantly.
 
-The next two pages show some screenshots from the terrain that is developed through this paper.
+The next two pages show some screenshots from the terrain used as an example through this paper.
 
 \bibliographystyle{IEEEtran}
 %\bibliographystyle{alpha}
