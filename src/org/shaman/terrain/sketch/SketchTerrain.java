@@ -36,10 +36,7 @@ import java.awt.image.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -80,9 +77,12 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	private final ArrayList<Node> featureCurveNodes;
 	private final ArrayList<ControlCurveMesh> featureCurveMesh;
 	private boolean addNewCurves = true;
-	
+	private ControlPoint oldSelectedPoint;
+	private WeakHashMap<ControlPoint, Geometry> controlPointMap;
 	private int selectedCurveIndex;
 	private int selectedPointIndex;
+	private Material controlPointMaterial;
+	private Material controlPointSelectedMaterial;
 	
 	private ControlCurve newCurve;
 	private Node newCurveNode;
@@ -102,6 +102,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		this.featureCurveNodes = new ArrayList<>();
 		this.featureCurveMesh = new ArrayList<>();
 		this.presets = DefaultCurvePresets.DEFAULT_PRESETS;
+		this.controlPointMap = new WeakHashMap<>();
 	}
 
 	@Override
@@ -112,6 +113,14 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		}
 		this.originalMap = this.map.clone();
 		selectedPreset = 0;
+		controlPointMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
+		controlPointMaterial.setBoolean("UseMaterialColors", true);
+		controlPointMaterial.setColor("Diffuse", ColorRGBA.Gray);
+		controlPointMaterial.setColor("Ambient", ColorRGBA.White);
+		controlPointSelectedMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
+		controlPointSelectedMaterial.setBoolean("UseMaterialColors", true);
+		controlPointSelectedMaterial.setColor("Diffuse", ColorRGBA.Black);
+		controlPointSelectedMaterial.setColor("Ambient", ColorRGBA.White);
 		init();
 	}
 
@@ -237,15 +246,12 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 		curveNode.attachChild(node);
 	}
 	private void addControlPointsToNode(ControlPoint[] points, Node node, int index) {
-		Material sphereMat = new Material(app.getAssetManager(), "Common/MatDefs/Light/Lighting.j3md");
-		sphereMat.setBoolean("UseMaterialColors", true);
-		sphereMat.setColor("Diffuse", ColorRGBA.Gray);
-		sphereMat.setColor("Ambient", ColorRGBA.White);
 		for (int i=0; i<points.length; ++i) {
 			Sphere s = new Sphere(CURVE_RESOLUTION, CURVE_RESOLUTION, CURVE_SIZE*3f);
 			Geometry g = new Geometry(index<0 ? "dummy" : ("ControlPoint"+index+":"+i), s);
-			g.setMaterial(sphereMat);
+			g.setMaterial(controlPointMaterial);
 			g.setLocalTranslation(app.mapHeightmapToWorld(points[i].x, points[i].y, points[i].height));
+			controlPointMap.put(points[i], g);
 			node.attachChild(g);
 		}
 	}
@@ -339,7 +345,7 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	//Edit
 	private void addNewPoint(Ray ray) {
 		long time = System.currentTimeMillis();
-		if (time < lastTime+500) {
+		if (time < lastTime+200) {
 			//finish current curve
 			if (newCurve==null) {
 				return;
@@ -444,6 +450,19 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 	}
 	private void selectCurve(int curveIndex, ControlPoint point) {
 		screenController.selectCurve(curveIndex, point);
+		if (oldSelectedPoint != null) {
+			Geometry geom = controlPointMap.get(oldSelectedPoint);
+			if (geom != null) {
+				geom.setMaterial(controlPointMaterial);
+			}
+		}
+		if (point != null) {
+			Geometry geom = controlPointMap.get(point);
+			if (geom != null) {
+				geom.setMaterial(controlPointSelectedMaterial);
+			}
+		}
+		oldSelectedPoint = point;
 	}
 	public void guiDeleteCurve() {
 		if (selectedCurveIndex==-1) {
@@ -1205,4 +1224,5 @@ public class SketchTerrain extends AbstractTerrainStep implements ActionListener
 			}
 		}
 	}
+	
 }

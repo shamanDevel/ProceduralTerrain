@@ -53,6 +53,8 @@ import com.jme3.renderer.Camera;
  */
 public class CustomFlyByCamera implements AnalogListener, ActionListener {
 
+	private static final String MAPPING_EXTRA_ROTATE = "ExtraRotate";
+	private static final String MAPPING_EXTRA_MOVE = "ExtraMove";
     private static String[] mappings = new String[]{
             CameraInput.FLYCAM_LEFT,
             CameraInput.FLYCAM_RIGHT,
@@ -71,7 +73,10 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
             CameraInput.FLYCAM_RISE,
             CameraInput.FLYCAM_LOWER,
             
-            CameraInput.FLYCAM_INVERTY
+            CameraInput.FLYCAM_INVERTY,
+			
+			MAPPING_EXTRA_ROTATE,
+			MAPPING_EXTRA_MOVE
         };
 
     protected Camera cam;
@@ -92,7 +97,9 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
 	protected float joystickRotateThreshold = 0.05f;
 	protected float joystickRotateFactor = 0.0025f;
 	protected boolean canRotateSideways = false;
-	protected String joystickName = "SpaceNavigator for Notebooks";
+	protected String joystickName = "SpaceNavigator";
+	protected boolean canRotateExtra = false;
+	protected boolean canMoveExtra = false;
 	
     /**
      * Creates a new FlyByCamera to control the given Camera object.
@@ -237,6 +244,11 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
         inputManager.addMapping(CameraInput.FLYCAM_BACKWARD, new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping(CameraInput.FLYCAM_RISE, new KeyTrigger(KeyInput.KEY_Q));
         inputManager.addMapping(CameraInput.FLYCAM_LOWER, new KeyTrigger(KeyInput.KEY_Z));
+		
+		inputManager.addMapping(MAPPING_EXTRA_ROTATE, new KeyTrigger(KeyInput.KEY_LCONTROL));
+		inputManager.addMapping(MAPPING_EXTRA_ROTATE, new KeyTrigger(KeyInput.KEY_RCONTROL));
+		inputManager.addMapping(MAPPING_EXTRA_MOVE, new KeyTrigger(KeyInput.KEY_LMENU));
+		inputManager.addMapping(MAPPING_EXTRA_MOVE, new KeyTrigger(KeyInput.KEY_RMENU));
 
         inputManager.addListener(this, mappings);
         inputManager.setCursorVisible(dragToRotate || !isEnabled());
@@ -253,7 +265,7 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
 		System.out.println("Joystick: "+joystick.getName());
 		System.out.println("Axes: "+joystick.getAxes());
         
-		if (joystickName.equals(joystick.getName())) {
+		if (joystick.getName().contains(joystickName)) {
 			//map SpaceNavigator
 			JoystickAxis x = joystick.getAxis("x");
 			inputManager.addMapping("JoyX-", new JoyAxisTrigger(joystick.getJoyId(), x.getAxisId(), false));
@@ -427,13 +439,37 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
 		//System.out.println(name+": "+value);
 
         if (name.equals(CameraInput.FLYCAM_LEFT)){
-            rotateCamera(value, initialUpVec, false);
+			if (canRotateExtra) {
+				rotateCamera(value, initialUpVec, true);
+			} else if (canMoveExtra) {
+				moveCamera(value, true);
+			} else {
+				rotateCamera(value, initialUpVec, false);
+			}
         }else if (name.equals(CameraInput.FLYCAM_RIGHT)){
-            rotateCamera(-value, initialUpVec, false);
+			if (canRotateExtra) {
+				rotateCamera(-value, initialUpVec, true);
+			} else if (canMoveExtra) {
+				moveCamera(-value, true);
+			} else {
+				rotateCamera(-value, initialUpVec, false);
+			}
         }else if (name.equals(CameraInput.FLYCAM_UP)){
-            rotateCamera(-value * (invertY ? -1 : 1), cam.getLeft(), false);
+			if (canRotateExtra) {
+				rotateCamera(-value * (invertY ? -1 : 1), cam.getLeft(), true);
+			} else if (canMoveExtra) {
+				moveCamera(value, false);
+			} else {
+				rotateCamera(-value * (invertY ? -1 : 1), cam.getLeft(), false);
+			}            
         }else if (name.equals(CameraInput.FLYCAM_DOWN)){
-            rotateCamera(value * (invertY ? -1 : 1), cam.getLeft(), false);
+			if (canRotateExtra) {
+				rotateCamera(value * (invertY ? -1 : 1), cam.getLeft(), true);
+			} else if (canMoveExtra) {
+				moveCamera(-value, false);
+			} else {
+				rotateCamera(value * (invertY ? -1 : 1), cam.getLeft(), false);
+			}
         }else if (name.equals(CameraInput.FLYCAM_FORWARD)){
             moveCamera(value, false);
         }else if (name.equals(CameraInput.FLYCAM_BACKWARD)){
@@ -503,7 +539,13 @@ public class CustomFlyByCamera implements AnalogListener, ActionListener {
             if( !value ) {  
                 invertY = !invertY;
             }
-        }        
+        } else if (MAPPING_EXTRA_MOVE.equals(name)) {
+			canMoveExtra = value;
+			inputManager.setCursorVisible(!value);
+		} else if (MAPPING_EXTRA_ROTATE.equals(name)) {
+			canRotateExtra = value;
+			inputManager.setCursorVisible(!value);
+		}
     }
 
 }
