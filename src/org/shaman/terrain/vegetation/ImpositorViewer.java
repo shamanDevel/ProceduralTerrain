@@ -33,8 +33,9 @@ import org.apache.commons.lang3.tuple.MutablePair;
 public class ImpositorViewer extends SimpleApplication implements ActionListener {
 	private static final Logger LOG = Logger.getLogger(ImpositorViewer.class.getName());
 //	private static final String TREE = "black_tupelo_2_v0";
-	private static final String TREE = "ca_black_oak_1_v1";
+//	private static final String TREE = "ca_black_oak_1_v1";
 //	private static final String TREE = "oak_1_v0";
+	private static final String TREE = "conifer_3_v0";
 	float minDist = 30;
 	float maxDist = 90;
 	
@@ -76,22 +77,25 @@ public class ImpositorViewer extends SimpleApplication implements ActionListener
 		
 		//load high-resolution model
 		assetManager.registerLocator("./treemesh/", FileLocator.class);
-		highResTree = assetManager.loadModel(TREE+"/Tree.j3o");
-		float size = highResTree.getWorldBound().getCenter().z * 2;
-		highResTree = null;
-		assetManager.clearCache();
+//		highResTree = assetManager.loadModel(TREE+"/Tree.j3o");
+//		float size = highResTree.getWorldBound().getCenter().z * 2;
+//		highResTree = null;
+//		assetManager.clearCache();
+//		System.out.println("size: "+size);
+		
+		float size = 10.985725f;
 		
 		//load impositor
 		TreeInfo treeInfo = new TreeInfo();
 		treeInfo.name = TREE;
 		treeInfo.impostorCount = ImpositorCreator.IMPOSITOR_COUNT;
 		treeInfo.treeSize = size;
-		treeInfo.impostorFadeNear = 30;
-		treeInfo.impostorFadeFar = 50;
-		treeInfo.highResStemFadeNear = 30;
+		treeInfo.impostorFadeNear = 20;
+		treeInfo.impostorFadeFar = 40;
+		treeInfo.highResStemFadeNear = 20;
 		treeInfo.highResStemFadeFar = 50;
-		treeInfo.highResLeavesFadeNear = 35;
-		treeInfo.highResLeavesFadeFar = 55;
+		treeInfo.highResLeavesFadeNear = 20;
+		treeInfo.highResLeavesFadeFar = 50;
 		impostor = new TreeNode(treeInfo, assetManager, cam);
 		impostor.setUseHighRes(true);
 		impostor.move(0, 0, -size/2);

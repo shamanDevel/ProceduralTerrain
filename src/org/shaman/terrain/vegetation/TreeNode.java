@@ -85,6 +85,7 @@ public class TreeNode extends Node {
 		highResStem.getMaterial().setFloat("FadeNear", tree.highResStemFadeNear);
 		highResStem.getMaterial().setFloat("FadeFar", tree.highResStemFadeFar);
 		highResStem.getMaterial().getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+		highResStem.getMaterial().getAdditionalRenderState().setAlphaTest(true);
 		highResStem.getMaterial().setTransparent(true);
 		highResStem.setQueueBucket(RenderQueue.Bucket.Transparent);
 		super.attachChild(highResStem);
@@ -113,8 +114,8 @@ public class TreeNode extends Node {
 			mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 			mat.setFloat("AlphaDiscardThreshold", 0.5f);
 			if (useHighRes) {
-			mat.setFloat("FadeNear", tree.impostorFadeNear);
-			mat.setFloat("FadeFar", tree.impostorFadeFar);
+				mat.setFloat("FadeNear", tree.impostorFadeNear);
+				mat.setFloat("FadeFar", tree.impostorFadeFar);
 			} else {
 				mat.setFloat("FadeNear", 0);
 				mat.setFloat("FadeFar", 1);
@@ -125,7 +126,7 @@ public class TreeNode extends Node {
 		impositor = new Geometry("impostor", mesh);
 		impositor.setMaterial(tree.impostorMaterial);
 		impositor.scale(tree.treeSize);
-		impositor.setQueueBucket(RenderQueue.Bucket.Transparent);
+		impositor.setQueueBucket(RenderQueue.Bucket.Opaque);
 		super.attachChild(impositor);
 		super.updateModelBound();
 	}

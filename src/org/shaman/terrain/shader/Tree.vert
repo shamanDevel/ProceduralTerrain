@@ -110,8 +110,8 @@ void main(){
    vec3 wvPosition = TransformWorldView(modelSpacePos).xyz;// (g_WorldViewMatrix * modelSpacePos).xyz;
    vec3 wvNormal  = normalize(TransformNormal(modelSpaceNorm));//normalize(g_NormalMatrix * modelSpaceNorm);
    vec3 viewDir = normalize(-wvPosition);
-   impositorAlpha = 1.0-clamp((m_FadeFar-length(wvPosition))/(m_FadeFar-m_FadeNear), 0.0, 1.0);
-   impositorAlpha = 1.0-impositorAlpha*impositorAlpha;
+   impositorAlpha = clamp((length(wvPosition)-m_FadeNear)/(m_FadeFar-m_FadeNear), 0.0, 1.0);
+   impositorAlpha = 1.0-impositorAlpha*impositorAlpha*impositorAlpha;
   
    vec4 wvLightPos = (g_ViewMatrix * vec4(g_LightPosition.xyz,clamp(g_LightColor.w,0.0,1.0)));
    wvLightPos.w = g_LightPosition.w;

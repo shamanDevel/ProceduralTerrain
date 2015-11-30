@@ -107,8 +107,10 @@ public class ImpositorCreator extends SimpleApplication{
 						} else {
 							errors.add(treeName);
 						}
+						break;
 					}
 				}
+				break;
 			}
 		} catch (IOException ex) {
 			Logger.getLogger(ImpositorCreator.class.getName()).log(Level.SEVERE, null, ex);
