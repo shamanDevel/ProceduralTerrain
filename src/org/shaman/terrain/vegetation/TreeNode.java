@@ -62,10 +62,10 @@ public class TreeNode extends Node {
 //			LOG.info("impostor added");
 		}
 		float dist = camera.getLocation().distanceSquared(this.getWorldTranslation());
-		if (dist <= fadeFar && highResStem==null && useHighRes) {
+		if (dist <= fadeFar && highResStem==null && useHighRes && this.checkCulling(camera)) {
 			loadHighResTree();
 			LOG.log(Level.INFO, "dist={0} -> load high resultion mesh", dist);
-		} else if (dist > fadeFar && highResStem!=null) {
+		} else if ((dist > fadeFar || !this.checkCulling(camera)) && highResStem!=null) {
 			detachChild(highResStem);
 			if (highResLeaves != null) {
 				detachChild(highResLeaves);
