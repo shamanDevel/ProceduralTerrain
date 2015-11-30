@@ -547,11 +547,11 @@ To compute the sediment erosion and deposition, we first define the slope at a c
 \end{equation}
 Then the sediment transportation capacity $C$ is calculated as:
 \begin{equation}
-	C[x,y]=K_c \cdot \alpha[x,y] \dot |\textbf{v}[x,y]|
+	C[x,y]=K_c \cdot \alpha[x,y] \cdot |\textbf{v}[x,y]|
 \label{eq:ErosionSediment2}
 \end{equation}
-In our experiments, we set the sediment capacity constant $K_c$ to 0.5.
-We recommend to clamp the values of $\alpha$ to be between e.g. 0.005 and 0.1 before computing $C$. By this, the erosion on steep areas does not grow to infinity and on flat areas some erosion still takes place.
+In our experiments, we set the sediment capacity constant $K_c$ to 0.1.
+We recommend to clamp the values of $\alpha$ to be between e.g. 0.005 and 0.5 before computing $C$. By this, the erosion on steep areas does not grow to infinity and on flat areas some erosion still takes place.
 
 Then we compare $C$ to the suspended sediment $s_t$.
 For $C>s_t$, sediment is eroded using:
@@ -570,7 +570,7 @@ And for $C<s_t$, sediment is dissolved:
 \end{array}
 \label{eq:ErosionSediment3_2}
 \end{equation}
-$K_s$ and $K_d$ are erosion and deposition constants. In our experiments, we use $K_s=K_d=0.1$.
+$K_s$ and $K_d$ are erosion and deposition constants. In our experiments, we use $K_s=K_d=0.002$.
 
 After sediment is eroded, we have to transport it to next cells using the water velocity. For that purpose, we use a backward Euler-step:
 \begin{equation}
@@ -584,7 +584,7 @@ As a last step, some water is evaporated in the air every step. We model this si
 	d_{t+\Delta t}[x,y] = d_{t+\Delta t}[x,y] \cdot (1-K_e \cdot \Delta t)
 \label{eq:ErosionEvaporation}
 \end{equation}
-With $K_e$ being an evaporation constant, e.g. $K_e=0.005$.
+With $K_e$ being an evaporation constant, e.g. $K_e=0.1$.
 
 % For result chapter
 \begin{figure*}
@@ -655,7 +655,7 @@ We model this by representing $K_s$ and $K_d$ as functions of the amount of erod
 \end{array}
 \label{eq:KsKd}
 \end{equation}
-$K_{s,\text{base}}$ and $K_{d,\text{base}}$ are set to 0.1 as before; $f_s$ and $f_d$ specifies the amount of terrain that has to be eroded/deposited before the speed of the erosion/deposition is halved.
+$K_{s,\text{base}}$ and $K_{d,\text{base}}$ are set to 0.002 as before; $f_s$ and $f_d$ specifies the amount of terrain that has to be eroded/deposited before the speed of the erosion/deposition is halved.
 
 For total accuracy, you would have to integrate these functions over the whole erosion/deposition process. For simplicity, we just evaluate them once and assume them to be constant for one time step.
 
