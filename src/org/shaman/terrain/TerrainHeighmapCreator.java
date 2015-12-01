@@ -90,7 +90,7 @@ public class TerrainHeighmapCreator extends SimpleApplication {
 	public static final float SLOPE_POWER = 2f;
 	public static final float HEIGHMAP_HEIGHT_SCALE = 48;
 	public static final float TERRAIN_SCALE = 16;
-	private static final boolean RECORDING_TIMER = false;
+	private static final boolean RECORDING_TIMER = true;
 	
 	@SuppressWarnings("unchecked")
 	private static final Class<? extends AbstractTerrainStep>[] STEPS = new Class[] {

@@ -5,6 +5,9 @@
  */
 package org.shaman.terrain;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.shaman.terrain.vegetation.ImpositorCreator;
+
 /**
  *
  * @author Sebastian Weiss
@@ -15,7 +18,13 @@ public class ProceduralTerrain {
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
-		// TODO code application logic here
+		if (ArrayUtils.indexOf(args, "generate-trees") >= 0) {
+			ImpositorCreator.main(args);
+		} else if (ArrayUtils.indexOf(args, "arbaro") >= 0) {
+			ArbaroTreeGenerator.main(args);
+		} else {
+			TerrainHeighmapCreator.main(args);
+		}
 	}
 	
 }
