@@ -34,6 +34,14 @@ public class VegetationScreenController implements ScreenController {
 	private Slider plantSizeSlider;
 	private CheckBox grassCheckBox;
 	private CheckBox treesCheckBox;
+	private CheckBox treesHighResCheckBox;
+	
+	private Button recordAddButton;
+	private CheckBox recordEditCheckBox;
+	private Button recordDeleteButton;
+	private Button recordDeleteAllButton;
+	private Button recordPlayButton;
+	private Button recordRecordButton;
 
 	public VegetationScreenController(VegetationGenerator generator) {
 		this.generator = generator;
@@ -56,6 +64,13 @@ public class VegetationScreenController implements ScreenController {
 		plantSizeSlider = screen.findNiftyControl("PlantSizeSlider", Slider.class);
 		grassCheckBox = screen.findNiftyControl("GrassCheckBox", CheckBox.class);
 		treesCheckBox = screen.findNiftyControl("TreeCheckBox", CheckBox.class);
+		treesHighResCheckBox = screen.findNiftyControl("TreeHighResCheckBox", CheckBox.class);
+		recordAddButton = screen.findNiftyControl("RecordAddButton", Button.class);
+		recordEditCheckBox = screen.findNiftyControl("RecordEditCheckBox", CheckBox.class);
+		recordDeleteButton = screen.findNiftyControl("RecordDeleteButton", Button.class);
+		recordDeleteAllButton = screen.findNiftyControl("RecordDeleteAllButton", Button.class);
+		recordPlayButton = screen.findNiftyControl("RecordPlayButton", Button.class);
+		recordRecordButton = screen.findNiftyControl("RecordRecordButton", Button.class);
 
 		generator.guiBrushSizeChanged(brushSizeSlider.getValue());
 		generator.guiPlantSizeChanged(plantSizeSlider.getValue());
@@ -85,6 +100,16 @@ public class VegetationScreenController implements ScreenController {
 			generator.guiSmoothBiomeBorder();
 		} else if (distortBiomesButton == e.getButton()) {
 			generator.guiDistortBiomeBorder();
+		} else if (recordAddButton == e.getButton()) {
+			generator.guiRecordingAdd();
+		} else if (recordDeleteButton == e.getButton()) {
+			generator.guiRecordingDelete();
+		} else if (recordDeleteAllButton == e.getButton()) {
+			generator.guiRecordingDeleteAll();
+		} else if (recordPlayButton == e.getButton()) {
+			generator.guiRecordingPlay();
+		} else if (recordRecordButton == e.getButton()) {
+			generator.guiRecordingRecord();
 		}
 	}
 	
@@ -102,6 +127,10 @@ public class VegetationScreenController implements ScreenController {
 			generator.guiShowTextured(e.isChecked());
 		} else if (grassCheckBox == e.getCheckBox()) {
 			generator.guiShowGrass(e.isChecked());
+		} else if (recordEditCheckBox == e.getCheckBox()) {
+			generator.guiRecordingEdit(e.isChecked());
+		} else if (treesHighResCheckBox == e.getCheckBox()) {
+			generator.guiUseHighResTrees(e.isChecked());
 		}
 	}
 	

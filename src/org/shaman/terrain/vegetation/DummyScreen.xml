@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty xmlns="https://raw.githubusercontent.com/void256/nifty-gui/1.4/nifty-core/src/main/resources/nifty.xsd" 
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	   xsi:schemaLocation="https://raw.githubusercontent.com/void256/nifty-gui/1.4/nifty-core/src/main/resources/nifty.xsd">
+
+	   <screen id="Dummy" />
+	
+</nifty>

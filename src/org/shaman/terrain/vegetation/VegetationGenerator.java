@@ -68,6 +68,10 @@ public class VegetationGenerator extends AbstractTerrainStep {
 	private BiomesMaterialCreator materialCreator;
 	private GrassPlanter grass;
 	private TreePlanter trees;
+	
+	//recording
+	private Recording recording;
+	private boolean recordingEdit;
 
 	@Override
 	@SuppressWarnings("unchecked")
@@ -128,6 +132,8 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		}
 		materialCreator = new BiomesMaterialCreator(app.getAssetManager(), biomes);
 		app.forceTerrainMaterial(materialCreator.getMaterial(textured));
+		
+		recording = new Recording(app, app.getCamera(), sceneNode);
 	}
 
 	@Override
@@ -144,6 +150,7 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		if (trees != null) {
 			trees.update(tpf);
 		}
+		recording.update(tpf);
 	}
 	
 	private float clamp(float v) {
@@ -254,6 +261,11 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		showTrees = show;
 		updateTrees();
 	}
+	void guiUseHighResTrees(boolean enabled) {
+		if (trees != null) {
+			trees.setUseHighRes(enabled);
+		}
+	}
 	private static float[][] KERNEL;
 	private static int KERNEL_SIZE = 4;
 	static {
@@ -308,6 +320,24 @@ public class VegetationGenerator extends AbstractTerrainStep {
 		}
 		materialCreator.updateMaterial(textured);
 		LOG.info("biomes distorted");
+	}
+	void guiRecordingAdd() {
+		recording.addPoint();
+	}
+	void guiRecordingEdit(boolean editing) {
+		recordingEdit = editing;
+	}
+	void guiRecordingDelete() {
+		
+	}
+	void guiRecordingDeleteAll() {
+		recording.deleteAll();
+	}
+	void guiRecordingPlay() {
+		recording.play();
+	}
+	void guiRecordingRecord() {
+		recording.record();
 	}
 	
 	private void registerListener() {

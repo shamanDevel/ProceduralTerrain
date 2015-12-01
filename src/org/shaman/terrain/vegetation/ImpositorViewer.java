@@ -37,9 +37,9 @@ import org.apache.commons.lang3.tuple.MutablePair;
  */
 public class ImpositorViewer extends SimpleApplication implements ActionListener {
 	private static final Logger LOG = Logger.getLogger(ImpositorViewer.class.getName());
-	private static final String TREE = "black_tupelo_2_v0";
+//	private static final String TREE = "black_tupelo_2_v0";
 //	private static final String TREE = "ca_black_oak_1_v1";
-//	private static final String TREE = "oak_1_v0";
+	private static final String TREE = "oak_1_v0";
 //	private static final String TREE = "conifer_3_v0";
 //	private static final String TREE = "palm_v0";
 	float minDist = 30;

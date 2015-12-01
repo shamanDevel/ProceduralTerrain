@@ -13,6 +13,7 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -72,6 +73,12 @@ public class TreePlanter {
 				float p = 0;
 				for (TreeInfo t : list) {
 					if (t.biome == b) {
+						t.highResLeavesFadeFar *= TerrainHeighmapCreator.TERRAIN_SCALE;
+						t.highResLeavesFadeNear *= TerrainHeighmapCreator.TERRAIN_SCALE;
+						t.highResStemFadeFar *= TerrainHeighmapCreator.TERRAIN_SCALE;
+						t.highResStemFadeNear *= TerrainHeighmapCreator.TERRAIN_SCALE;
+						t.impostorFadeFar *= TerrainHeighmapCreator.TERRAIN_SCALE;
+						t.impostorFadeNear *= TerrainHeighmapCreator.TERRAIN_SCALE;
 						p += t.probability;
 						trees.add(new ImmutablePair<>(p, t));
 					}
@@ -95,6 +102,13 @@ public class TreePlanter {
 		}
 	}
 	
+	public void setUseHighRes(boolean enabled) {
+		LOG.info("use high resolution models: "+enabled);
+		for (Spatial s : sceneNode.getChildren()) {
+			((TreeNode) s).setUseHighRes(enabled);
+		}
+	}
+	
 	private void plantTrees() {
 //		Box testMesh = new Box(1, 1, 1);
 //		Material testMat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
@@ -104,7 +118,7 @@ public class TreePlanter {
 		MultiMap<TreeInfo, TreeNode> nodes = new MultiValueMap<>();
 		
 		//first, simple planting algorithm
-		float density = 0.4f / size;
+		float density = 0.2f / size;
 		Random rand = new Random();
 		Biome[] allBiomes = Biome.values();
 		for (int x=0; x<biomes.getSize(); ++x) {

@@ -64,9 +64,31 @@
 							<control id="TreeCheckBox" name="checkbox" margin="2px"/>
 							<control name="label" text="Show Trees" margin="2px"/>
 						</panel>
+						<panel childLayout="horizontal">
+							<control id="TreeHighResCheckBox" name="checkbox" margin="2px"/>
+							<control name="label" text="Use high resolution trees" margin="2px"/>
+						</panel>
 						
 						<panel childLayout="absolute" height="20px"/>
-						<control id="NextStepButton" name="button" label="Next Step" width="246px" margin="2px"/>
+						<control name="label" text="Recording"/>
+						<panel childLayout="horizontal">
+							<control id="RecordAddButton" name="button" label="Add Point" width="121px" margin="2px"/>
+							<control id="RecordDeleteAllButton" name="button" label="Delete All" width="121px" margin="2px"/>
+							<!--
+							<control name="label" text="  Edit:" margin="2px" />
+							<control id="RecordEditCheckBox" name="checkbox" margin="2px" />
+							-->
+						</panel>
+						<!--
+						<panel childLayout="horizontal">
+							<control id="RecordDeleteButton" name="button" label="Delete Point" width="121px" margin="2px"/>
+							<control id="RecordDeleteAllButton" name="button" label="Delete All" width="121px" margin="2px"/>
+						</panel>
+						-->
+						<panel childLayout="horizontal">
+							<control id="RecordPlayButton" name="button" label="Play" width="121px" margin="2px" />
+							<control id="RecordRecordButton" name="button" label="Record" width="121px" margin="2px" />
+						</panel>
 					</panel>
 				</panel>
 			</panel>
